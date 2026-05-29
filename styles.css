@@ -62,7 +62,7 @@ select {
   padding: 34px 32px;
 }
 
-.login-card img {
+.login-logo {
   justify-self: center;
   width: min(330px, 100%);
   height: auto;
@@ -130,11 +130,36 @@ select {
   box-shadow: 0 12px 24px rgba(234, 90, 0, 0.18);
 }
 
-.login-card .auth-logout-button,
-.login-card .google-login-button {
+.login-card .auth-logout-button {
   border-color: #d7dfe8;
   background: #f8fafc;
   color: #334155;
+}
+
+.login-card .google-login-button {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 41px;
+  border: 1px solid #d0d7de;
+  border-radius: 5px;
+  background: #f8fafc;
+  color: #17202a;
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.login-card .google-login-button img {
+  width: 18px;
+  height: 18px;
+}
+
+.login-card .google-login-button:hover {
+  background: #ffffff;
+  border-color: #b8c2cc;
 }
 
 .login-status {
@@ -268,12 +293,24 @@ select {
 }
 
 .google-login-button {
-  min-height: 38px;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 41px;
   width: 100%;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
+  border: 1px solid #d0d7de;
+  border-radius: 5px;
+  background: #f8fafc;
+  color: #17202a;
   padding: 0 14px;
+  font-weight: 600;
+}
+
+.google-login-button img {
+  width: 18px;
+  height: 18px;
 }
 
 .google-login-button:disabled {
@@ -1183,7 +1220,7 @@ td.action-cell {
     padding: 26px 20px;
   }
 
-  .login-card img {
+  .login-logo {
     width: min(260px, 100%);
   }
 
