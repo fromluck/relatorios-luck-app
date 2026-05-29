@@ -127,19 +127,6 @@ select {
   color: #991b1b;
 }
 
-.secondary-action-button {
-  min-height: 38px;
-  width: 100%;
-  border: 1px solid #ffd6bf;
-  background: #fff3eb;
-  color: #b94400;
-  padding: 0 14px;
-}
-
-.secondary-action-button:hover {
-  background: #ffe7d8;
-}
-
 .brand span,
 .eyebrow {
   color: var(--blue);
@@ -592,7 +579,8 @@ td.action-cell {
   color: #be123c;
 }
 
-.edit-dialog {
+.edit-dialog,
+.save-dialog {
   width: min(520px, calc(100% - 28px));
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -600,14 +588,40 @@ td.action-cell {
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
 }
 
-.edit-dialog::backdrop {
+.edit-dialog::backdrop,
+.save-dialog::backdrop {
   background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(7px);
 }
 
 .edit-dialog form {
   display: grid;
   gap: 14px;
   padding: 20px;
+}
+
+.save-dialog {
+  width: min(420px, calc(100% - 28px));
+}
+
+.save-dialog-content {
+  display: grid;
+  gap: 12px;
+  border-top: 5px solid var(--blue);
+  background: #ffffff;
+  padding: 24px;
+}
+
+.save-dialog h2 {
+  margin: 0;
+  font-size: 25px;
+}
+
+.save-dialog p {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .dialog-header {
