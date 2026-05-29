@@ -7,6 +7,7 @@
 ];
 
 const STORAGE_KEY = "luck-production-reports-v2";
+const STATE_STORAGE_KEY = "luck-production-state-v1";
 const LEGACY_STORAGE_KEYS = [
   "luck-production-reports-v1",
   "luck-production-reports",
@@ -217,10 +218,10 @@ let remoteSyncReady = false;
 let remoteSaveTimer = null;
 let reportData = normalizeReportData(loadReports());
 ensureRowIds();
-saveReports();
 let parsedQuickItems = [];
 let editingItemId = null;
 let contractTargets = loadContractTargets();
+saveLocalState();
 
 const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 
@@ -268,10 +269,42 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function readSavedState() {
+  const saved = localStorage.getItem(STATE_STORAGE_KEY);
+  if (!saved) return null;
+
+  try {
+    const state = JSON.parse(saved);
+    return Array.isArray(state?.reports) ? state : null;
+  } catch {
+    return null;
+  }
+}
+
+function stateTime(state) {
+  const timestamp = Date.parse(state?.updatedAt || state?.exportedAt || "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function getSharedState() {
+  if (!Array.isArray(window.LUCK_SHARED_BACKUP?.reports)) return null;
+  return {
+    reports: window.LUCK_SHARED_BACKUP.reports,
+    contractTargets: window.LUCK_SHARED_BACKUP.contractTargets || null,
+    updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
+  };
+}
+
 function loadReports() {
-  const sharedReports = window.LUCK_SHARED_BACKUP?.reports;
+  const sharedState = getSharedState();
+  const sharedReports = sharedState?.reports;
   const forceShared = new URLSearchParams(window.location.search).has("shared");
   if (forceShared && Array.isArray(sharedReports)) return clone(sharedReports);
+
+  const savedState = readSavedState();
+  if (savedState?.reports && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return clone(savedState.reports);
+  }
 
   const candidates = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]
     .map((key) => {
@@ -285,10 +318,16 @@ function loadReports() {
         return null;
       }
     })
-    .filter(Boolean)
+    .filter(Boolean);
+
+  if (Array.isArray(sharedReports)) {
+    candidates.push({ key: "shared", reports: sharedReports, score: reportScore(sharedReports) });
+  }
+
+  candidates
     .sort((a, b) => b.score - a.score);
 
-  return clone(candidates[0]?.reports || sharedReports || initialReports);
+  return clone(candidates[0]?.reports || initialReports);
 }
 
 function reportScore(reports) {
@@ -300,10 +339,16 @@ function reportScore(reports) {
 }
 
 function loadContractTargets() {
-  const sharedTargets = window.LUCK_SHARED_BACKUP?.contractTargets;
+  const sharedState = getSharedState();
+  const sharedTargets = sharedState?.contractTargets;
   const forceShared = new URLSearchParams(window.location.search).has("shared");
   if (sharedTargets && typeof sharedTargets === "object") {
     if (forceShared) return { ...CONTRACT_TARGETS, ...sharedTargets };
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.contractTargets && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return { ...CONTRACT_TARGETS, ...savedState.contractTargets };
   }
 
   const saved = localStorage.getItem(TARGETS_STORAGE_KEY);
@@ -316,13 +361,20 @@ function loadContractTargets() {
   }
 }
 
-function saveContractTargets() {
+function saveLocalState() {
+  const state = getCurrentState();
+  localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
+}
+
+function saveContractTargets() {
+  saveLocalState();
   scheduleRemoteSave();
 }
 
 function saveReports() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
+  saveLocalState();
   scheduleRemoteSave();
 }
 
