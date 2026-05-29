@@ -238,27 +238,11 @@ select {
 }
 
 .sidebar {
-  position: sticky;
-  top: 22px;
+  position: static;
   display: grid;
   gap: 18px;
   align-content: start;
-  height: calc(100vh - 44px);
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding: 18px;
-  scrollbar-gutter: stable;
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #cbd5e1;
 }
 
 .control-bar {
@@ -1225,11 +1209,7 @@ td.action-cell {
   }
 
   .sidebar {
-    position: static;
     height: auto;
-    max-height: none;
-    overflow: visible;
-    scrollbar-gutter: auto;
   }
 
   .control-bar,
