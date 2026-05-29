@@ -513,8 +513,10 @@ function renderAuthState() {
       : "Use o acesso Luck para continuar.";
   }
   if (elements.googleLoginButton) {
-    elements.googleLoginButton.disabled = !isGoogleAuthEnabled();
-    elements.googleLoginButton.title = isGoogleAuthEnabled()
+    const googleEnabled = isGoogleAuthEnabled();
+    elements.googleLoginButton.hidden = !googleEnabled;
+    elements.googleLoginButton.disabled = !googleEnabled;
+    elements.googleLoginButton.title = googleEnabled
       ? "Entrar usando a conta Google"
       : "Configure o provedor Google no Supabase para habilitar";
   }
