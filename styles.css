@@ -19,6 +19,11 @@
   box-sizing: border-box;
 }
 
+html {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -1186,6 +1191,20 @@ td.action-cell {
     min-height: 24mm;
     padding: 4mm;
     box-shadow: none;
+  }
+}
+
+@media (max-width: 1180px) and (min-width: 921px) {
+  .entry-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topic-field {
+    grid-column: 1 / -1;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
