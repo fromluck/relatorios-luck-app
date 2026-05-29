@@ -248,6 +248,8 @@ const elements = {
   deleteEditButton: document.querySelector("#deleteEditButton"),
   entryForm: document.querySelector("#entryForm"),
   pdfButton: document.querySelector("#pdfButton"),
+  cloudSaveButton: document.querySelector("#cloudSaveButton"),
+  syncStatus: document.querySelector("#syncStatus"),
   backupButton: document.querySelector("#backupButton"),
   restoreButton: document.querySelector("#restoreButton"),
   restoreInput: document.querySelector("#restoreInput"),
@@ -341,36 +343,48 @@ function hasSupabaseBackend() {
   return Boolean(config.url && config.anonKey);
 }
 
+function getCurrentState() {
+  return {
+    version: BACKUP_VERSION,
+    updatedAt: new Date().toISOString(),
+    reports: reportData,
+    contractTargets
+  };
+}
+
+function setSyncStatus(message, type = "local") {
+  if (!elements.syncStatus) return;
+
+  elements.syncStatus.textContent = message;
+  elements.syncStatus.classList.toggle("is-online", type === "online");
+  elements.syncStatus.classList.toggle("is-error", type === "error");
+}
+
 function scheduleRemoteSave() {
   if (!remoteSyncReady || (!hasAppsScriptBackend() && !hasSupabaseBackend())) return;
 
   window.clearTimeout(remoteSaveTimer);
-  remoteSaveTimer = window.setTimeout(() => {
-    const state = {
-      reports: reportData,
-      contractTargets
-    };
-
-    if (hasAppsScriptBackend()) {
-      window.google.script.run.saveState(state);
-      return;
-    }
-
-    saveSupabaseState(state);
-  }, 500);
+  remoteSaveTimer = window.setTimeout(() => saveRemoteState({ quiet: true }), 500);
 }
 
 function loadRemoteState() {
   if (hasSupabaseBackend()) {
+    setSyncStatus("Carregando dados do banco...");
     loadSupabaseState();
     return;
   }
 
-  if (!hasAppsScriptBackend()) return;
+  if (!hasAppsScriptBackend()) {
+    setSyncStatus("Modo local: conecte o banco para sincronizar entre dispositivos.");
+    return;
+  }
+
+  setSyncStatus("Carregando dados do banco...");
 
   window.google.script.run
     .withSuccessHandler((state) => {
       remoteSyncReady = true;
+      setSyncStatus("Banco conectado. Alterações salvas automaticamente.", "online");
 
       if (Array.isArray(state?.reports)) {
         reportData = normalizeReportData(state.reports);
@@ -391,6 +405,7 @@ function loadRemoteState() {
     })
     .withFailureHandler(() => {
       remoteSyncReady = false;
+      setSyncStatus("Não foi possível conectar ao banco de dados.", "error");
     })
     .getState();
 }
@@ -406,6 +421,7 @@ async function loadSupabaseState() {
 
     const [record] = await response.json();
     remoteSyncReady = true;
+    setSyncStatus("Banco conectado. Alterações salvas automaticamente.", "online");
 
     if (Array.isArray(record?.state?.reports)) {
       reportData = normalizeReportData(record.state.reports);
@@ -425,6 +441,7 @@ async function loadSupabaseState() {
     scheduleRemoteSave();
   } catch (error) {
     remoteSyncReady = false;
+    setSyncStatus("Não foi possível conectar ao banco de dados.", "error");
     console.warn(error);
   }
 }
@@ -448,8 +465,12 @@ async function saveSupabaseState(state) {
     });
 
     if (!response.ok) throw new Error("Falha ao salvar no Supabase.");
+    setSyncStatus("Dados salvos no banco.", "online");
+    return true;
   } catch (error) {
+    setSyncStatus("Erro ao salvar no banco de dados.", "error");
     console.warn(error);
+    return false;
   }
 }
 
@@ -460,13 +481,47 @@ function supabaseHeaders(config) {
   };
 }
 
+function saveAppsScriptState(state) {
+  return new Promise((resolve) => {
+    window.google.script.run
+      .withSuccessHandler(() => {
+        setSyncStatus("Dados salvos no banco.", "online");
+        resolve(true);
+      })
+      .withFailureHandler(() => {
+        setSyncStatus("Erro ao salvar no banco de dados.", "error");
+        resolve(false);
+      })
+      .saveState(state);
+  });
+}
+
+async function saveRemoteState(options = {}) {
+  const state = getCurrentState();
+
+  if (hasAppsScriptBackend()) {
+    const saved = await saveAppsScriptState(state);
+    if (!saved && !options.quiet) window.alert("Não consegui salvar no banco de dados.");
+    return saved;
+  }
+
+  if (hasSupabaseBackend()) {
+    const saved = await saveSupabaseState(state);
+    if (!saved && !options.quiet) window.alert("Não consegui salvar no banco de dados.");
+    return saved;
+  }
+
+  setSyncStatus("Modo local: conecte o banco para sincronizar entre dispositivos.", "error");
+  if (!options.quiet) {
+    window.alert("O banco de dados ainda não está conectado. Baixei um backup para você não perder as informações.");
+    saveBackupFile();
+  }
+  return false;
+}
+
 function saveBackupFile() {
-  const payload = {
-    version: BACKUP_VERSION,
-    exportedAt: new Date().toISOString(),
-    reports: reportData,
-    contractTargets
-  };
+  const payload = getCurrentState();
+  payload.exportedAt = payload.updatedAt;
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -1275,6 +1330,7 @@ elements.editForm.addEventListener("submit", saveEditedItem);
 elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
+elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.backupButton.addEventListener("click", saveBackupFile);
 elements.restoreButton.addEventListener("click", () => elements.restoreInput.click());
 elements.restoreInput.addEventListener("change", restoreBackupFile);
