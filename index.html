@@ -7,7 +7,30 @@
     <link rel="stylesheet" href="styles.css?v=modal-salvar-1">
   </head>
   <body>
-    <main class="app-shell">
+    <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
+      <div class="login-card">
+        <img src="luck-logo.svg" alt="Luck">
+        <span class="eyebrow">Relatórios</span>
+        <h1>Acesse sua área</h1>
+        <p>Entre para visualizar, editar e sincronizar os relatórios de produção da Luck.</p>
+
+        <label>
+          E-mail
+          <input id="loginEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
+        </label>
+
+        <label>
+          Senha
+          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Senha">
+        </label>
+
+        <button id="loginButton" class="export-main-button" type="button">Entrar</button>
+        <button id="signupButton" class="auth-logout-button" type="button">Criar acesso</button>
+        <p id="loginStatus" class="login-status">Use o acesso Luck para continuar.</p>
+      </div>
+    </section>
+
+    <main id="appShell" class="app-shell" hidden>
       <aside class="sidebar" aria-label="Navegação do relatório">
         <div class="brand">
           <img src="luck-logo.svg" alt="Luck">
@@ -204,8 +227,8 @@
       </div>
     </main>
 
-    <script src="config.js?v=supabase-auth-3"></script>
-    <script src="shared-data.js?v=supabase-auth-3"></script>
-    <script src="app.js?v=supabase-auth-3"></script>
+    <script src="config.js?v=login-home-1"></script>
+    <script src="shared-data.js?v=login-home-1"></script>
+    <script src="app.js?v=login-home-1"></script>
   </body>
 </html>
