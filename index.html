@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Relatório de Produção Mensal</title>
+    <link rel="stylesheet" href="styles.css?v=online-google-1">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Navegação do relatório">
+        <div class="brand">
+          <img src="luck-logo.svg" alt="Luck">
+          <strong>Relatórios</strong>
+        </div>
+
+        <label>
+          Cliente
+          <select id="companySelect"></select>
+        </label>
+
+        <label>
+          Mês
+          <select id="monthSelect"></select>
+        </label>
+
+        <section class="contract-config" aria-label="Configuração do contrato">
+          <span class="eyebrow">Contrato</span>
+          <label>
+            Vídeos contratados
+            <input id="targetVideosInput" type="number" min="0" step="1">
+          </label>
+          <label>
+            Criativos contratados
+            <input id="targetCreativesInput" type="number" min="0" step="1">
+          </label>
+        </section>
+
+        <nav class="side-nav" aria-label="Atalhos">
+          <a href="#novo">Novo item</a>
+          <a href="#rapido">Preenchimento rápido</a>
+          <a href="#resumo">Resumo</a>
+          <a href="#relatorio">Relatório</a>
+        </nav>
+
+        <div class="sidebar-actions" aria-label="Exportação e backup">
+          <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
+          <button id="backupButton" class="secondary-action-button" type="button">Salvar dados</button>
+          <button id="restoreButton" class="secondary-action-button" type="button">Restaurar dados</button>
+          <input id="restoreInput" type="file" accept="application/json,.json" hidden>
+        </div>
+      </aside>
+
+      <div class="content-shell">
+      <section class="entry-panel" id="novo" aria-label="Adicionar produção">
+        <div>
+          <span class="eyebrow">Novo item</span>
+          <h1>Adicionar produção ao relatório</h1>
+        </div>
+
+        <form id="entryForm" class="entry-form">
+          <label>
+            Seção
+            <select id="sectionInput">
+              <option value="">Principal</option>
+              <option>Datas Comemorativas</option>
+              <option>Aniversariantes</option>
+              <option>Solicitação avulsa</option>
+            </select>
+          </label>
+
+          <label class="topic-field">
+            Tema
+            <input id="topicInput" type="text" placeholder="Ex.: Campanha de Dia das Mães" required>
+          </label>
+
+          <label>
+            Material
+            <select id="materialInput"></select>
+          </label>
+
+          <label>
+            Data
+            <input id="dateInput" type="date" required>
+          </label>
+
+          <button class="primary-button" type="submit">Adicionar</button>
+        </form>
+      </section>
+
+      <section class="assistant-panel" id="rapido" aria-label="Preenchimento rápido">
+        <div class="assistant-copy">
+          <span class="eyebrow">Preenchimento rápido</span>
+          <h2>Descreva o que foi feito</h2>
+        </div>
+
+        <div class="assistant-grid">
+          <textarea
+            id="quickTextInput"
+            placeholder="Ex.: Sua internet pode até estar rápida 16 05 Mais velocidade, mais conexão 13.05&#10;1 grid composta por 3 artes dia 26 e um reels postado ontem&#10;01/05 - Dia do Trabalho 10/05 - Dia das Mães"
+          ></textarea>
+
+          <div class="assistant-actions">
+            <button id="interpretButton" class="secondary-button" type="button">Interpretar</button>
+            <button id="addParsedButton" class="primary-button" type="button" disabled>Adicionar interpretados</button>
+          </div>
+        </div>
+
+        <div id="parsePreview" class="parse-preview"></div>
+      </section>
+
+      <section class="contract-summary" id="resumo" aria-label="Resumo de contrato">
+        <article class="contract-card video-contract">
+          <span>Vídeos no contrato</span>
+          <strong id="contractVideoCount">0 / 0</strong>
+          <div class="progress-track"><span id="contractVideoProgress"></span></div>
+        </article>
+        <article class="contract-card creative-contract">
+          <span>Criativos no contrato</span>
+          <strong id="contractCreativeCount">0 / 0</strong>
+          <div class="progress-track"><span id="contractCreativeProgress"></span></div>
+        </article>
+      </section>
+
+      <section class="stats-grid" id="statsGrid" aria-label="Totais por material"></section>
+
+      <article class="report-card" id="relatorio">
+        <header class="report-header">
+          <div>
+            <span class="eyebrow" id="monthTitle">MAIO</span>
+            <h2 id="reportTitle">Relatório de Produção</h2>
+          </div>
+          <span class="total-pill" id="summaryNote">0 itens</span>
+        </header>
+
+        <section id="reportSections" class="report-sections" aria-label="Itens produzidos"></section>
+      </article>
+
+      <dialog id="editDialog" class="edit-dialog">
+        <form id="editForm" method="dialog">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Editar item</span>
+              <h2>Corrigir produção</h2>
+            </div>
+            <button id="closeEditButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <label>
+            Seção
+            <select id="editSectionInput">
+              <option value="">Principal</option>
+              <option>Datas Comemorativas</option>
+              <option>Aniversariantes</option>
+              <option>Solicitação avulsa</option>
+            </select>
+          </label>
+
+          <label>
+            Tema
+            <input id="editTopicInput" type="text" required>
+          </label>
+
+          <label>
+            Material
+            <select id="editMaterialInput"></select>
+          </label>
+
+          <label>
+            Data
+            <input id="editDateInput" type="date" required>
+          </label>
+
+          <div class="dialog-actions">
+            <button id="deleteEditButton" class="danger-button" type="button">Excluir</button>
+            <button class="primary-button" type="submit">Salvar alterações</button>
+          </div>
+        </form>
+      </dialog>
+      </div>
+    </main>
+
+    <script src="config.js?v=supabase-1"></script>
+    <script src="shared-data.js?v=supabase-1"></script>
+    <script src="app.js?v=supabase-1"></script>
+  </body>
+</html>
