@@ -228,6 +228,13 @@ saveLocalState();
 const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 
 const elements = {
+  appShell: document.querySelector("#appShell"),
+  loginScreen: document.querySelector("#loginScreen"),
+  loginEmailInput: document.querySelector("#loginEmailInput"),
+  loginPasswordInput: document.querySelector("#loginPasswordInput"),
+  loginButton: document.querySelector("#loginButton"),
+  signupButton: document.querySelector("#signupButton"),
+  loginStatus: document.querySelector("#loginStatus"),
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
@@ -432,18 +439,37 @@ function isSupabaseSessionValid() {
   return !expiresAt || expiresAt * 1000 > Date.now() + 30000;
 }
 
+function requiresLogin() {
+  return hasSupabaseBackend() && !isSupabaseSessionValid();
+}
+
+function setLoginStatus(message) {
+  if (elements.loginStatus) elements.loginStatus.textContent = message;
+  if (elements.authStatus) elements.authStatus.textContent = message;
+}
+
 function renderAuthState() {
-  if (!elements.authPanel) return;
-
   const hasBackend = hasSupabaseBackend();
-  elements.authPanel.hidden = !hasBackend;
-
-  if (!hasBackend) return;
-
   const isLoggedIn = isSupabaseSessionValid();
+  const mustLogin = hasBackend && !isLoggedIn;
+
+  if (elements.loginScreen) elements.loginScreen.hidden = !mustLogin;
+  if (elements.appShell) elements.appShell.hidden = mustLogin;
+  if (elements.authPanel) elements.authPanel.hidden = !hasBackend || mustLogin;
+
+  if (!hasBackend) {
+    setLoginStatus("Modo local ativo.");
+    return;
+  }
+
   elements.authStatus.textContent = isLoggedIn
     ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
     : "Entre para sincronizar os dados entre dispositivos.";
+  if (elements.loginStatus) {
+    elements.loginStatus.textContent = isLoggedIn
+      ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
+      : "Use o acesso Luck para continuar.";
+  }
   elements.authEmailInput.hidden = isLoggedIn;
   elements.authPasswordInput.hidden = isLoggedIn;
   elements.authLoginButton.hidden = isLoggedIn;
@@ -453,15 +479,31 @@ function renderAuthState() {
 
 function readAuthCredentials() {
   const config = getSupabaseConfig();
-  const email = elements.authEmailInput.value.trim();
-  const password = elements.authPasswordInput.value;
+  const email = (elements.loginEmailInput.value || elements.authEmailInput.value).trim();
+  const password = elements.loginPasswordInput.value || elements.authPasswordInput.value;
 
   if (!email || !password) {
-    showSaveDialog("Acesso necessário", "Informe o e-mail e a senha para conectar ao banco de dados.");
+    setLoginStatus("Informe o e-mail e a senha para continuar.");
     return null;
   }
 
   return { config, email, password };
+}
+
+function setAuthBusy(isBusy, message) {
+  elements.loginButton.disabled = isBusy;
+  elements.signupButton.disabled = isBusy;
+  elements.authLoginButton.disabled = isBusy;
+  elements.authSignupButton.disabled = isBusy;
+  if (message) setLoginStatus(message);
+}
+
+function startAuthenticatedApp() {
+  renderAuthState();
+  populateControls();
+  render();
+  exposeBackupData();
+  loadRemoteState();
 }
 
 function handleSupabaseSession(session) {
@@ -470,8 +512,9 @@ function handleSupabaseSession(session) {
     expires_at: session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)
   });
   elements.authPasswordInput.value = "";
+  elements.loginPasswordInput.value = "";
   setSyncStatus("Banco conectado. Carregando dados...", "online");
-  loadRemoteState();
+  startAuthenticatedApp();
 }
 
 async function signInSupabase() {
@@ -480,8 +523,7 @@ async function signInSupabase() {
 
   const { config, email, password } = credentials;
 
-  elements.authLoginButton.disabled = true;
-  elements.authStatus.textContent = "Entrando...";
+  setAuthBusy(true, "Entrando...");
 
   try {
     const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
@@ -499,9 +541,9 @@ async function signInSupabase() {
   } catch (error) {
     saveSupabaseSession(null);
     setSyncStatus("Não foi possível entrar no Supabase.", "error");
-    showSaveDialog("Não foi possível entrar", "Confira o e-mail e a senha do acesso Luck.");
+    setLoginStatus("Não foi possível entrar. Confira o e-mail e a senha.");
   } finally {
-    elements.authLoginButton.disabled = false;
+    setAuthBusy(false);
     renderAuthState();
   }
 }
@@ -513,12 +555,11 @@ async function signUpSupabase() {
   const { config, email, password } = credentials;
 
   if (password.length < 8) {
-    showSaveDialog("Senha curta", "Use uma senha com pelo menos 8 caracteres.");
+    setLoginStatus("Use uma senha com pelo menos 8 caracteres.");
     return;
   }
 
-  elements.authSignupButton.disabled = true;
-  elements.authStatus.textContent = "Criando acesso...";
+  setAuthBusy(true, "Criando acesso...");
 
   try {
     const response = await fetch(`${config.url}/auth/v1/signup`, {
@@ -541,12 +582,13 @@ async function signUpSupabase() {
     }
 
     elements.authPasswordInput.value = "";
-    showSaveDialog("Confirme o e-mail", "Enviamos uma confirmação para o e-mail informado. Confirme e depois clique em Entrar.");
+    elements.loginPasswordInput.value = "";
+    setLoginStatus("Confirme o e-mail enviado e depois clique em Entrar.");
   } catch (error) {
     setSyncStatus("Não foi possível criar o acesso.", "error");
-    showSaveDialog("Não foi possível criar", "Verifique o e-mail e tente novamente. Se o acesso já existir, use Entrar.");
+    setLoginStatus("Não foi possível criar. Se o acesso já existir, use Entrar.");
   } finally {
-    elements.authSignupButton.disabled = false;
+    setAuthBusy(false);
     renderAuthState();
   }
 }
@@ -555,6 +597,7 @@ function signOutSupabase() {
   saveSupabaseSession(null);
   remoteSyncReady = false;
   setSyncStatus("Sessão encerrada. Entre para sincronizar os dados.");
+  setLoginStatus("Sessão encerrada. Entre novamente para continuar.");
 }
 
 function getCurrentState() {
@@ -1587,6 +1630,11 @@ elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
+elements.loginButton.addEventListener("click", signInSupabase);
+elements.signupButton.addEventListener("click", signUpSupabase);
+elements.loginPasswordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") signInSupabase();
+});
 elements.authLoginButton.addEventListener("click", signInSupabase);
 elements.authPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") signInSupabase();
@@ -1598,10 +1646,9 @@ elements.saveDialog.addEventListener("click", (event) => {
   if (event.target === elements.saveDialog) elements.saveDialog.close();
 });
 
-populateControls();
-render();
-exposeBackupData();
 renderAuthState();
-loadRemoteState();
+if (!requiresLogin()) {
+  startAuthenticatedApp();
+}
 
 window.parseProductionText = parseProductionText;
