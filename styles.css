@@ -127,6 +127,34 @@ select {
   color: #991b1b;
 }
 
+.auth-panel {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.auth-panel[hidden] {
+  display: none;
+}
+
+.auth-panel p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.auth-logout-button {
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  padding: 0 14px;
+}
+
 .brand span,
 .eyebrow {
   color: var(--blue);
