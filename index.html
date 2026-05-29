@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=login-harmonico-1">
+    <link rel="stylesheet" href="styles.css?v=google-button-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
       <div class="login-card">
-        <img src="luck-logo.svg" alt="Luck">
+        <img class="login-logo" src="luck-logo.svg" alt="Luck">
         <span class="eyebrow">Relatórios</span>
         <h1>Acesse sua área</h1>
         <p>Entre para visualizar, editar e sincronizar os relatórios de produção da Luck.</p>
@@ -25,7 +25,10 @@
         </label>
 
         <button id="loginButton" class="export-main-button" type="button">Entrar</button>
-        <button id="googleLoginButton" class="google-login-button" type="button">Entrar com Google</button>
+        <button id="googleLoginButton" class="google-login-button" type="button">
+          <img src="google-logo.svg" alt="" aria-hidden="true">
+          <span>Continue with Google</span>
+        </button>
         <button id="signupButton" class="auth-logout-button" type="button">Criar acesso</button>
         <p id="loginStatus" class="login-status">Use o acesso Luck para continuar.</p>
       </div>
@@ -230,6 +233,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=login-timeout-1"></script>
+    <script src="app.js?v=google-button-1"></script>
   </body>
 </html>
