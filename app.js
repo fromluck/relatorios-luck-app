@@ -234,6 +234,7 @@ const elements = {
   loginEmailInput: document.querySelector("#loginEmailInput"),
   loginPasswordInput: document.querySelector("#loginPasswordInput"),
   loginButton: document.querySelector("#loginButton"),
+  googleLoginButton: document.querySelector("#googleLoginButton"),
   signupButton: document.querySelector("#signupButton"),
   loginStatus: document.querySelector("#loginStatus"),
   companySelect: document.querySelector("#companySelect"),
@@ -413,6 +414,10 @@ function hasSupabaseBackend() {
   return Boolean(config.url && config.anonKey);
 }
 
+function isGoogleAuthEnabled() {
+  return Boolean(window.LUCK_SUPABASE?.googleAuthEnabled);
+}
+
 function loadSupabaseSession() {
   const saved = localStorage.getItem(SUPABASE_SESSION_KEY);
   if (!saved) return null;
@@ -449,6 +454,42 @@ function setLoginStatus(message) {
   if (elements.authStatus) elements.authStatus.textContent = message;
 }
 
+function getAuthRedirectUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const payload = token.split(".")[1];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(window.atob(normalized));
+  } catch {
+    return {};
+  }
+}
+
+function captureSupabaseOAuthSession() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const accessToken = params.get("access_token");
+
+  if (!accessToken) return false;
+
+  const jwt = decodeJwtPayload(accessToken);
+  saveSupabaseSession({
+    access_token: accessToken,
+    refresh_token: params.get("refresh_token") || "",
+    expires_at: Number(params.get("expires_at") || 0) || Math.floor(Date.now() / 1000) + Number(params.get("expires_in") || 3600),
+    expires_in: Number(params.get("expires_in") || 3600),
+    token_type: params.get("token_type") || "bearer",
+    user: {
+      id: jwt.sub || "",
+      email: jwt.email || ""
+    }
+  });
+  window.history.replaceState({}, document.title, getAuthRedirectUrl());
+  return true;
+}
+
 function renderAuthState() {
   const hasBackend = hasSupabaseBackend();
   const isLoggedIn = isSupabaseSessionValid();
@@ -470,6 +511,12 @@ function renderAuthState() {
     elements.loginStatus.textContent = isLoggedIn
       ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
       : "Use o acesso Luck para continuar.";
+  }
+  if (elements.googleLoginButton) {
+    elements.googleLoginButton.disabled = !isGoogleAuthEnabled();
+    elements.googleLoginButton.title = isGoogleAuthEnabled()
+      ? "Entrar usando a conta Google"
+      : "Configure o provedor Google no Supabase para habilitar";
   }
   elements.authEmailInput.hidden = isLoggedIn;
   elements.authPasswordInput.hidden = isLoggedIn;
@@ -494,6 +541,7 @@ function readAuthCredentials() {
 function setAuthBusy(isBusy, message) {
   elements.loginButton.disabled = isBusy;
   elements.signupButton.disabled = isBusy;
+  elements.googleLoginButton.disabled = isBusy || !isGoogleAuthEnabled();
   elements.authLoginButton.disabled = isBusy;
   elements.authSignupButton.disabled = isBusy;
   if (message) setLoginStatus(message);
@@ -547,6 +595,23 @@ async function signInSupabase() {
     setAuthBusy(false);
     renderAuthState();
   }
+}
+
+function signInWithGoogle() {
+  const config = getSupabaseConfig();
+
+  if (!hasSupabaseBackend()) {
+    setLoginStatus("O banco de dados ainda não está configurado.");
+    return;
+  }
+
+  if (!isGoogleAuthEnabled()) {
+    setLoginStatus("O Google ainda precisa ser habilitado no Supabase.");
+    return;
+  }
+
+  const redirectTo = encodeURIComponent(getAuthRedirectUrl());
+  window.location.assign(`${config.url}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`);
 }
 
 async function signUpSupabase() {
@@ -1650,6 +1715,7 @@ elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.loginButton.addEventListener("click", signInSupabase);
+elements.googleLoginButton.addEventListener("click", signInWithGoogle);
 elements.signupButton.addEventListener("click", signUpSupabase);
 elements.loginPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") signInSupabase();
@@ -1674,6 +1740,7 @@ elements.editDialog.addEventListener("cancel", (event) => {
 });
 
 renderAuthState();
+captureSupabaseOAuthSession();
 if (!requiresLogin()) {
   startAuthenticatedApp();
 }
