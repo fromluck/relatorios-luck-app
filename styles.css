@@ -360,13 +360,6 @@ select {
   font-size: 19px;
 }
 
-.side-nav {
-  display: grid;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
 .contract-config {
   display: grid;
   gap: 10px;
@@ -376,22 +369,6 @@ select {
 
 .contract-config .eyebrow {
   margin-bottom: 2px;
-}
-
-.side-nav a {
-  display: block;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #334155;
-  padding: 11px 12px;
-  font-size: 13px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.side-nav a:hover {
-  background: #fff3eb;
-  color: #9a3900;
 }
 
 label {
@@ -1244,10 +1221,6 @@ td.action-cell {
     grid-column: 1 / -1;
   }
 
-  .side-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1288,10 +1261,6 @@ td.action-cell {
   .parse-row,
   .stats-grid {
     grid-template-columns: 1fr;
-  }
-
-  .side-nav {
-    grid-template-columns: 1fr 1fr;
   }
 
   .report-header,
