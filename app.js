@@ -566,6 +566,42 @@ function handleSupabaseSession(session) {
   startAuthenticatedApp();
 }
 
+async function parseSupabaseResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+function getSupabaseAuthMessage(payload, fallback) {
+  const rawMessage = [
+    payload?.msg,
+    payload?.message,
+    payload?.error_description,
+    payload?.error
+  ].filter(Boolean).join(" ");
+  const message = rawMessage.toLowerCase();
+
+  if (message.includes("email not confirmed") || message.includes("not confirmed")) {
+    return "O acesso foi criado, mas o e-mail ainda não foi confirmado. Confirme o e-mail recebido e tente entrar novamente.";
+  }
+
+  if (message.includes("invalid login credentials")) {
+    return "E-mail ou senha incorretos. Confira os dados e tente novamente.";
+  }
+
+  if (message.includes("already registered") || message.includes("user already")) {
+    return "Esse e-mail já tem acesso. Use Entrar com a senha cadastrada.";
+  }
+
+  if (message.includes("password") && message.includes("at least")) {
+    return "Use uma senha com pelo menos 8 caracteres.";
+  }
+
+  return rawMessage || fallback;
+}
+
 async function signInSupabase() {
   const credentials = readAuthCredentials();
   if (!credentials) return;
@@ -583,17 +619,21 @@ async function signInSupabase() {
       },
       body: JSON.stringify({ email, password })
     });
+    const session = await parseSupabaseResponse(response);
 
-    if (!response.ok) throw new Error("Login inválido.");
+    if (!response.ok) {
+      throw new Error(getSupabaseAuthMessage(session, "Não foi possível entrar. Confira o e-mail e a senha."));
+    }
 
-    handleSupabaseSession(await response.json());
+    handleSupabaseSession(session);
   } catch (error) {
+    const message = error?.message || "Não foi possível entrar. Confira o e-mail e a senha.";
     saveSupabaseSession(null);
     setSyncStatus("Não foi possível entrar no Supabase.", "error");
-    setLoginStatus("Não foi possível entrar. Confira o e-mail e a senha.");
+    setLoginStatus(message);
   } finally {
     setAuthBusy(false);
-    renderAuthState();
+    if (isSupabaseSessionValid()) renderAuthState();
   }
 }
 
@@ -636,10 +676,11 @@ async function signUpSupabase() {
       },
       body: JSON.stringify({ email, password })
     });
+    const session = await parseSupabaseResponse(response);
 
-    if (!response.ok) throw new Error("Não foi possível criar o acesso.");
-
-    const session = await response.json();
+    if (!response.ok) {
+      throw new Error(getSupabaseAuthMessage(session, "Não foi possível criar o acesso."));
+    }
 
     if (session.access_token) {
       handleSupabaseSession(session);
@@ -650,12 +691,14 @@ async function signUpSupabase() {
     elements.authPasswordInput.value = "";
     elements.loginPasswordInput.value = "";
     setLoginStatus("Confirme o e-mail enviado e depois clique em Entrar.");
+    showSaveDialog("Confirme seu e-mail", "Enviamos um link de confirmação. Depois de confirmar, volte aqui e clique em Entrar com o mesmo e-mail e senha.");
   } catch (error) {
+    const message = error?.message || "Não foi possível criar. Se o acesso já existir, use Entrar.";
     setSyncStatus("Não foi possível criar o acesso.", "error");
-    setLoginStatus("Não foi possível criar. Se o acesso já existir, use Entrar.");
+    setLoginStatus(message);
   } finally {
     setAuthBusy(false);
-    renderAuthState();
+    if (isSupabaseSessionValid()) renderAuthState();
   }
 }
 
