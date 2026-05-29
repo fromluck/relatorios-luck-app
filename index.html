@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=salvar-banco-3">
+    <link rel="stylesheet" href="styles.css?v=modal-salvar-1">
   </head>
   <body>
     <main class="app-shell">
@@ -43,13 +43,10 @@
           <a href="#relatorio">Relatório</a>
         </nav>
 
-        <div class="sidebar-actions" aria-label="Exportação e backup">
+        <div class="sidebar-actions" aria-label="Exportação e salvamento">
           <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
           <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
           <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
-          <button id="backupButton" class="secondary-action-button" type="button">Baixar backup</button>
-          <button id="restoreButton" class="secondary-action-button" type="button">Restaurar dados</button>
-          <input id="restoreInput" type="file" accept="application/json,.json" hidden>
         </div>
       </aside>
 
@@ -179,11 +176,20 @@
           </div>
         </form>
       </dialog>
+
+      <dialog id="saveDialog" class="save-dialog">
+        <div class="save-dialog-content">
+          <span class="eyebrow">Salvamento</span>
+          <h2 id="saveDialogTitle">Dados salvos</h2>
+          <p id="saveDialogMessage">As informações foram salvas.</p>
+          <button id="closeSaveDialogButton" class="export-main-button" type="button">Entendi</button>
+        </div>
+      </dialog>
       </div>
     </main>
 
-    <script src="config.js?v=salvar-banco-3"></script>
-    <script src="shared-data.js?v=salvar-banco-3"></script>
-    <script src="app.js?v=salvar-banco-3"></script>
+    <script src="config.js?v=modal-salvar-1"></script>
+    <script src="shared-data.js?v=modal-salvar-1"></script>
+    <script src="app.js?v=modal-salvar-1"></script>
   </body>
 </html>
