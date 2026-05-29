@@ -662,12 +662,34 @@ td.action-cell {
   border-radius: 8px;
   padding: 0;
   box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+  transform-origin: center;
 }
 
 .edit-dialog::backdrop,
 .save-dialog::backdrop {
   background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.edit-dialog[open],
+.save-dialog[open] {
+  animation: dialog-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.edit-dialog[open]::backdrop,
+.save-dialog[open]::backdrop {
+  animation: backdrop-in 640ms ease both;
+}
+
+.edit-dialog.is-closing[open],
+.save-dialog.is-closing[open] {
+  animation: dialog-out 260ms ease both;
+}
+
+.edit-dialog.is-closing[open]::backdrop,
+.save-dialog.is-closing[open]::backdrop {
+  animation: backdrop-out 260ms ease both;
 }
 
 .edit-dialog form {
@@ -698,6 +720,67 @@ td.action-cell {
   color: #475569;
   font-size: 14px;
   line-height: 1.5;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    background: rgba(15, 23, 42, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+
+  to {
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+  }
+
+  to {
+    background: rgba(15, 23, 42, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-dialog[open],
+  .save-dialog[open],
+  .edit-dialog[open]::backdrop,
+  .save-dialog[open]::backdrop {
+    animation-duration: 1ms;
+  }
 }
 
 .dialog-header {
