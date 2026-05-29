@@ -514,8 +514,8 @@ function renderAuthState() {
   }
   if (elements.googleLoginButton) {
     const googleEnabled = isGoogleAuthEnabled();
-    elements.googleLoginButton.hidden = !googleEnabled;
-    elements.googleLoginButton.disabled = !googleEnabled;
+    elements.googleLoginButton.hidden = false;
+    elements.googleLoginButton.disabled = false;
     elements.googleLoginButton.title = googleEnabled
       ? "Entrar usando a conta Google"
       : "Configure o provedor Google no Supabase para habilitar";
@@ -543,7 +543,7 @@ function readAuthCredentials() {
 function setAuthBusy(isBusy, message) {
   elements.loginButton.disabled = isBusy;
   elements.signupButton.disabled = isBusy;
-  elements.googleLoginButton.disabled = isBusy || !isGoogleAuthEnabled();
+  elements.googleLoginButton.disabled = isBusy;
   elements.authLoginButton.disabled = isBusy;
   elements.authSignupButton.disabled = isBusy;
   if (message) setLoginStatus(message);
