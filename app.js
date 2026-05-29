@@ -225,6 +225,7 @@ let contractTargets = loadContractTargets();
 let supabaseSession = loadSupabaseSession();
 saveLocalState();
 
+const DIALOG_CLOSE_DELAY = 260;
 const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 
 const elements = {
@@ -626,9 +627,26 @@ function showSaveDialog(title, message) {
   elements.saveDialogTitle.textContent = title;
   elements.saveDialogMessage.textContent = message;
 
-  if (!elements.saveDialog.open) {
-    elements.saveDialog.showModal();
+  openDialogSmooth(elements.saveDialog);
+}
+
+function openDialogSmooth(dialog) {
+  dialog.classList.remove("is-closing");
+  if (!dialog.open) dialog.showModal();
+}
+
+function closeDialogSmooth(dialog, afterClose) {
+  if (!dialog?.open) {
+    afterClose?.();
+    return;
   }
+
+  dialog.classList.add("is-closing");
+  window.setTimeout(() => {
+    dialog.close();
+    dialog.classList.remove("is-closing");
+    afterClose?.();
+  }, DIALOG_CLOSE_DELAY);
 }
 
 function scheduleRemoteSave() {
@@ -1511,12 +1529,13 @@ function openEditItem(itemId) {
   elements.editTopicInput.value = found.row.topic;
   elements.editMaterialInput.value = found.row.material;
   elements.editDateInput.value = found.row.date;
-  elements.editDialog.showModal();
+  openDialogSmooth(elements.editDialog);
 }
 
 function closeEditDialog() {
-  editingItemId = null;
-  elements.editDialog.close();
+  closeDialogSmooth(elements.editDialog, () => {
+    editingItemId = null;
+  });
 }
 
 function saveEditedItem(event) {
@@ -1641,9 +1660,17 @@ elements.authPasswordInput.addEventListener("keydown", (event) => {
 });
 elements.authSignupButton.addEventListener("click", signUpSupabase);
 elements.authLogoutButton.addEventListener("click", signOutSupabase);
-elements.closeSaveDialogButton.addEventListener("click", () => elements.saveDialog.close());
+elements.closeSaveDialogButton.addEventListener("click", () => closeDialogSmooth(elements.saveDialog));
 elements.saveDialog.addEventListener("click", (event) => {
-  if (event.target === elements.saveDialog) elements.saveDialog.close();
+  if (event.target === elements.saveDialog) closeDialogSmooth(elements.saveDialog);
+});
+elements.saveDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.saveDialog);
+});
+elements.editDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeEditDialog();
 });
 
 renderAuthState();
