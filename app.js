@@ -8,6 +8,7 @@
 
 const STORAGE_KEY = "luck-production-reports-v2";
 const STATE_STORAGE_KEY = "luck-production-state-v1";
+const SUPABASE_SESSION_KEY = "luck-supabase-session-v1";
 const LEGACY_STORAGE_KEYS = [
   "luck-production-reports-v1",
   "luck-production-reports",
@@ -221,6 +222,7 @@ ensureRowIds();
 let parsedQuickItems = [];
 let editingItemId = null;
 let contractTargets = loadContractTargets();
+let supabaseSession = loadSupabaseSession();
 saveLocalState();
 
 const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
@@ -251,6 +253,13 @@ const elements = {
   pdfButton: document.querySelector("#pdfButton"),
   cloudSaveButton: document.querySelector("#cloudSaveButton"),
   syncStatus: document.querySelector("#syncStatus"),
+  authPanel: document.querySelector("#authPanel"),
+  authStatus: document.querySelector("#authStatus"),
+  authEmailInput: document.querySelector("#authEmailInput"),
+  authPasswordInput: document.querySelector("#authPasswordInput"),
+  authLoginButton: document.querySelector("#authLoginButton"),
+  authSignupButton: document.querySelector("#authSignupButton"),
+  authLogoutButton: document.querySelector("#authLogoutButton"),
   saveDialog: document.querySelector("#saveDialog"),
   saveDialogTitle: document.querySelector("#saveDialogTitle"),
   saveDialogMessage: document.querySelector("#saveDialogMessage"),
@@ -396,6 +405,158 @@ function hasSupabaseBackend() {
   return Boolean(config.url && config.anonKey);
 }
 
+function loadSupabaseSession() {
+  const saved = localStorage.getItem(SUPABASE_SESSION_KEY);
+  if (!saved) return null;
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return null;
+  }
+}
+
+function saveSupabaseSession(session) {
+  supabaseSession = session;
+  if (session) {
+    localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(session));
+  } else {
+    localStorage.removeItem(SUPABASE_SESSION_KEY);
+  }
+  renderAuthState();
+}
+
+function isSupabaseSessionValid() {
+  if (!supabaseSession?.access_token) return false;
+  const expiresAt = Number(supabaseSession.expires_at || 0);
+  return !expiresAt || expiresAt * 1000 > Date.now() + 30000;
+}
+
+function renderAuthState() {
+  if (!elements.authPanel) return;
+
+  const hasBackend = hasSupabaseBackend();
+  elements.authPanel.hidden = !hasBackend;
+
+  if (!hasBackend) return;
+
+  const isLoggedIn = isSupabaseSessionValid();
+  elements.authStatus.textContent = isLoggedIn
+    ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
+    : "Entre para sincronizar os dados entre dispositivos.";
+  elements.authEmailInput.hidden = isLoggedIn;
+  elements.authPasswordInput.hidden = isLoggedIn;
+  elements.authLoginButton.hidden = isLoggedIn;
+  elements.authSignupButton.hidden = isLoggedIn;
+  elements.authLogoutButton.hidden = !isLoggedIn;
+}
+
+function readAuthCredentials() {
+  const config = getSupabaseConfig();
+  const email = elements.authEmailInput.value.trim();
+  const password = elements.authPasswordInput.value;
+
+  if (!email || !password) {
+    showSaveDialog("Acesso necessário", "Informe o e-mail e a senha para conectar ao banco de dados.");
+    return null;
+  }
+
+  return { config, email, password };
+}
+
+function handleSupabaseSession(session) {
+  saveSupabaseSession({
+    ...session,
+    expires_at: session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)
+  });
+  elements.authPasswordInput.value = "";
+  setSyncStatus("Banco conectado. Carregando dados...", "online");
+  loadRemoteState();
+}
+
+async function signInSupabase() {
+  const credentials = readAuthCredentials();
+  if (!credentials) return;
+
+  const { config, email, password } = credentials;
+
+  elements.authLoginButton.disabled = true;
+  elements.authStatus.textContent = "Entrando...";
+
+  try {
+    const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        apikey: config.anonKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) throw new Error("Login inválido.");
+
+    handleSupabaseSession(await response.json());
+  } catch (error) {
+    saveSupabaseSession(null);
+    setSyncStatus("Não foi possível entrar no Supabase.", "error");
+    showSaveDialog("Não foi possível entrar", "Confira o e-mail e a senha do acesso Luck.");
+  } finally {
+    elements.authLoginButton.disabled = false;
+    renderAuthState();
+  }
+}
+
+async function signUpSupabase() {
+  const credentials = readAuthCredentials();
+  if (!credentials) return;
+
+  const { config, email, password } = credentials;
+
+  if (password.length < 8) {
+    showSaveDialog("Senha curta", "Use uma senha com pelo menos 8 caracteres.");
+    return;
+  }
+
+  elements.authSignupButton.disabled = true;
+  elements.authStatus.textContent = "Criando acesso...";
+
+  try {
+    const response = await fetch(`${config.url}/auth/v1/signup`, {
+      method: "POST",
+      headers: {
+        apikey: config.anonKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) throw new Error("Não foi possível criar o acesso.");
+
+    const session = await response.json();
+
+    if (session.access_token) {
+      handleSupabaseSession(session);
+      showSaveDialog("Acesso criado", "Acesso criado e conectado ao banco de dados.");
+      return;
+    }
+
+    elements.authPasswordInput.value = "";
+    showSaveDialog("Confirme o e-mail", "Enviamos uma confirmação para o e-mail informado. Confirme e depois clique em Entrar.");
+  } catch (error) {
+    setSyncStatus("Não foi possível criar o acesso.", "error");
+    showSaveDialog("Não foi possível criar", "Verifique o e-mail e tente novamente. Se o acesso já existir, use Entrar.");
+  } finally {
+    elements.authSignupButton.disabled = false;
+    renderAuthState();
+  }
+}
+
+function signOutSupabase() {
+  saveSupabaseSession(null);
+  remoteSyncReady = false;
+  setSyncStatus("Sessão encerrada. Entre para sincronizar os dados.");
+}
+
 function getCurrentState() {
   return {
     version: BACKUP_VERSION,
@@ -436,6 +597,12 @@ function scheduleRemoteSave() {
 
 function loadRemoteState() {
   if (hasSupabaseBackend()) {
+    renderAuthState();
+    if (!isSupabaseSessionValid()) {
+      remoteSyncReady = false;
+      setSyncStatus("Entre para sincronizar com o banco de dados.");
+      return;
+    }
     setSyncStatus("Carregando dados do banco...");
     loadSupabaseState();
     return;
@@ -544,7 +711,7 @@ async function saveSupabaseState(state) {
 function supabaseHeaders(config) {
   return {
     apikey: config.anonKey,
-    Authorization: `Bearer ${config.anonKey}`
+    Authorization: `Bearer ${isSupabaseSessionValid() ? supabaseSession.access_token : config.anonKey}`
   };
 }
 
@@ -578,6 +745,15 @@ async function saveRemoteState(options = {}) {
   }
 
   if (hasSupabaseBackend()) {
+    renderAuthState();
+    if (!isSupabaseSessionValid()) {
+      setSyncStatus("Entre para salvar no banco de dados.", "error");
+      if (!options.quiet) {
+        showSaveDialog("Acesso necessário", "Entre com o acesso Luck para salvar os dados no banco e sincronizar entre dispositivos.");
+      }
+      return false;
+    }
+
     const saved = await saveSupabaseState(state);
     if (!options.quiet) {
       showSaveDialog(
@@ -1411,6 +1587,12 @@ elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
+elements.authLoginButton.addEventListener("click", signInSupabase);
+elements.authPasswordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") signInSupabase();
+});
+elements.authSignupButton.addEventListener("click", signUpSupabase);
+elements.authLogoutButton.addEventListener("click", signOutSupabase);
 elements.closeSaveDialogButton.addEventListener("click", () => elements.saveDialog.close());
 elements.saveDialog.addEventListener("click", (event) => {
   if (event.target === elements.saveDialog) elements.saveDialog.close();
@@ -1419,6 +1601,7 @@ elements.saveDialog.addEventListener("click", (event) => {
 populateControls();
 render();
 exposeBackupData();
+renderAuthState();
 loadRemoteState();
 
 window.parseProductionText = parseProductionText;
