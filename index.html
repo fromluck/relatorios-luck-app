@@ -4,32 +4,44 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=sem-atalhos-1">
+    <link rel="stylesheet" href="styles.css?v=login-profissional-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
       <div class="login-card">
-        <div class="login-wordmark" aria-label="Luck">LUCK</div>
-        <span class="eyebrow">Relatórios</span>
+        <header class="login-brand">
+          <div class="login-wordmark" aria-label="Luck">LUCK</div>
+          <span>Relatórios</span>
+        </header>
+
         <h1>Acesse sua área</h1>
-        <p>Entre para visualizar, editar e sincronizar os relatórios de produção da Luck.</p>
 
-        <label>
-          E-mail
-          <input id="loginEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
-        </label>
+        <div class="login-form-panel">
+          <label>
+            E-mail
+            <input id="loginEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
+          </label>
 
-        <label>
-          Senha
-          <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Senha">
-        </label>
+          <label>
+            Senha
+            <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="Senha">
+          </label>
 
-        <button id="loginButton" class="export-main-button" type="button">Entrar</button>
+          <button id="loginButton" class="export-main-button" type="button">Entrar</button>
+        </div>
+
+        <div class="login-divider"><span>ou</span></div>
+
         <button id="googleLoginButton" class="google-login-button" type="button">
           <img src="google-logo.svg" alt="" aria-hidden="true">
           <span>Continue with Google</span>
         </button>
-        <button id="signupButton" class="auth-logout-button" type="button">Criar acesso</button>
+
+        <div class="signup-panel">
+          Novo na Luck?
+          <button id="signupButton" class="signup-link-button" type="button">Criar acesso</button>
+        </div>
+
         <p id="loginStatus" class="login-status">Use o acesso Luck para continuar.</p>
       </div>
     </section>
@@ -226,6 +238,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=sem-atalhos-1"></script>
+    <script src="app.js?v=login-profissional-1"></script>
   </body>
 </html>
