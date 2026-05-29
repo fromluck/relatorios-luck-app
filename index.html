@@ -48,6 +48,22 @@
           <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
           <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
         </div>
+
+        <section id="authPanel" class="auth-panel" aria-label="Acesso ao banco" hidden>
+          <span class="eyebrow">Acesso</span>
+          <p id="authStatus">Entre para sincronizar os dados.</p>
+          <label>
+            E-mail
+            <input id="authEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
+          </label>
+          <label>
+            Senha
+            <input id="authPasswordInput" type="password" autocomplete="current-password" placeholder="Senha">
+          </label>
+          <button id="authLoginButton" class="export-main-button" type="button">Entrar</button>
+          <button id="authSignupButton" class="auth-logout-button" type="button">Criar acesso</button>
+          <button id="authLogoutButton" class="auth-logout-button" type="button" hidden>Sair</button>
+        </section>
       </aside>
 
       <div class="content-shell">
@@ -188,8 +204,8 @@
       </div>
     </main>
 
-    <script src="config.js?v=modal-salvar-1"></script>
-    <script src="shared-data.js?v=modal-salvar-1"></script>
-    <script src="app.js?v=modal-salvar-1"></script>
+    <script src="config.js?v=supabase-auth-3"></script>
+    <script src="shared-data.js?v=supabase-auth-3"></script>
+    <script src="app.js?v=supabase-auth-3"></script>
   </body>
 </html>
