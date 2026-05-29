@@ -47,6 +47,9 @@ select {
 }
 
 .login-screen {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   min-height: 100vh;
   display: grid;
   align-items: start;
@@ -55,7 +58,38 @@ select {
   background: #ffffff;
 }
 
+.login-screen::before,
+.login-screen::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.login-screen::before {
+  z-index: -2;
+  background:
+    radial-gradient(ellipse at 43% 28%, rgba(234, 90, 0, 0.26) 0%, rgba(234, 90, 0, 0.16) 18%, transparent 48%),
+    radial-gradient(ellipse at 57% 29%, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 20%, transparent 50%),
+    radial-gradient(ellipse at 50% 64%, rgba(234, 90, 0, 0.12) 0%, transparent 42%);
+  filter: blur(34px) saturate(1.08);
+  opacity: 0.58;
+  transform: translate3d(0, 0, 0) scale(1.08);
+  animation: login-aurora 18s ease-in-out infinite alternate;
+}
+
+.login-screen::after {
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+  animation: login-noise 9s steps(6) infinite;
+}
+
 .login-card {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 14px;
   width: min(352px, 100%);
@@ -208,6 +242,37 @@ select {
   font-size: 12px !important;
   font-weight: 700;
   line-height: 1.35;
+}
+
+@keyframes login-aurora {
+  0% {
+    transform: translate3d(-4%, -1%, 0) scale(1.05) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.14) rotate(2deg);
+  }
+
+  100% {
+    transform: translate3d(-2%, 5%, 0) scale(1.09) rotate(-1deg);
+  }
+}
+
+@keyframes login-noise {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(-18px, 14px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-screen::before,
+  .login-screen::after {
+    animation: none;
+  }
 }
 
 .app-shell {
