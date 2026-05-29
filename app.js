@@ -576,6 +576,20 @@ async function parseSupabaseResponse(response) {
   }
 }
 
+async function fetchSupabaseAuth(url, options, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function getSupabaseAuthMessage(payload, fallback) {
   const rawMessage = [
     payload?.msg,
@@ -604,6 +618,14 @@ function getSupabaseAuthMessage(payload, fallback) {
   return rawMessage || fallback;
 }
 
+function getAuthErrorMessage(error, fallback) {
+  if (error?.name === "AbortError") {
+    return "A conexão demorou demais. Confira a internet e tente entrar novamente.";
+  }
+
+  return error?.message || fallback;
+}
+
 async function signInSupabase() {
   const credentials = readAuthCredentials();
   if (!credentials) return;
@@ -613,7 +635,7 @@ async function signInSupabase() {
   setAuthBusy(true, "Entrando...");
 
   try {
-    const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
+    const response = await fetchSupabaseAuth(`${config.url}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: {
         apikey: config.anonKey,
@@ -629,7 +651,7 @@ async function signInSupabase() {
 
     handleSupabaseSession(session);
   } catch (error) {
-    const message = error?.message || "Não foi possível entrar. Confira o e-mail e a senha.";
+    const message = getAuthErrorMessage(error, "Não foi possível entrar. Confira o e-mail e a senha.");
     saveSupabaseSession(null);
     setSyncStatus("Não foi possível entrar no Supabase.", "error");
     setLoginStatus(message);
@@ -670,7 +692,7 @@ async function signUpSupabase() {
   setAuthBusy(true, "Criando acesso...");
 
   try {
-    const response = await fetch(`${config.url}/auth/v1/signup`, {
+    const response = await fetchSupabaseAuth(`${config.url}/auth/v1/signup`, {
       method: "POST",
       headers: {
         apikey: config.anonKey,
@@ -695,7 +717,7 @@ async function signUpSupabase() {
     setLoginStatus("Confirme o e-mail enviado e depois clique em Entrar.");
     showSaveDialog("Confirme seu e-mail", "Enviamos um link de confirmação. Depois de confirmar, volte aqui e clique em Entrar com o mesmo e-mail e senha.");
   } catch (error) {
-    const message = error?.message || "Não foi possível criar. Se o acesso já existir, use Entrar.";
+    const message = getAuthErrorMessage(error, "Não foi possível criar. Se o acesso já existir, use Entrar.");
     setSyncStatus("Não foi possível criar o acesso.", "error");
     setLoginStatus(message);
   } finally {
