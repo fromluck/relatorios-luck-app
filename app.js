@@ -251,9 +251,10 @@ const elements = {
   pdfButton: document.querySelector("#pdfButton"),
   cloudSaveButton: document.querySelector("#cloudSaveButton"),
   syncStatus: document.querySelector("#syncStatus"),
-  backupButton: document.querySelector("#backupButton"),
-  restoreButton: document.querySelector("#restoreButton"),
-  restoreInput: document.querySelector("#restoreInput"),
+  saveDialog: document.querySelector("#saveDialog"),
+  saveDialogTitle: document.querySelector("#saveDialogTitle"),
+  saveDialogMessage: document.querySelector("#saveDialogMessage"),
+  closeSaveDialogButton: document.querySelector("#closeSaveDialogButton"),
   monthTitle: document.querySelector("#monthTitle"),
   reportTitle: document.querySelector("#reportTitle"),
   reportSections: document.querySelector("#reportSections"),
@@ -412,6 +413,20 @@ function setSyncStatus(message, type = "local") {
   elements.syncStatus.classList.toggle("is-error", type === "error");
 }
 
+function showSaveDialog(title, message) {
+  if (!elements.saveDialog) {
+    window.alert(message);
+    return;
+  }
+
+  elements.saveDialogTitle.textContent = title;
+  elements.saveDialogMessage.textContent = message;
+
+  if (!elements.saveDialog.open) {
+    elements.saveDialog.showModal();
+  }
+}
+
 function scheduleRemoteSave() {
   if (!remoteSyncReady || (!hasAppsScriptBackend() && !hasSupabaseBackend())) return;
 
@@ -553,22 +568,35 @@ async function saveRemoteState(options = {}) {
 
   if (hasAppsScriptBackend()) {
     const saved = await saveAppsScriptState(state);
-    if (!saved && !options.quiet) window.alert("Não consegui salvar no banco de dados.");
+    if (!options.quiet) {
+      showSaveDialog(
+        saved ? "Dados salvos" : "Não foi possível salvar",
+        saved ? "As informações de todas as empresas foram salvas no banco de dados." : "Não consegui salvar no banco de dados. Tente novamente em alguns instantes."
+      );
+    }
     return saved;
   }
 
   if (hasSupabaseBackend()) {
     const saved = await saveSupabaseState(state);
-    if (!saved && !options.quiet) window.alert("Não consegui salvar no banco de dados.");
+    if (!options.quiet) {
+      showSaveDialog(
+        saved ? "Dados salvos" : "Não foi possível salvar",
+        saved ? "As informações de todas as empresas foram salvas no banco de dados." : "Não consegui salvar no banco de dados. Tente novamente em alguns instantes."
+      );
+    }
     return saved;
   }
 
-  setSyncStatus("Modo local: conecte o banco para sincronizar entre dispositivos.", "error");
+  saveLocalState();
+  setSyncStatus("Dados salvos neste dispositivo. Conecte o banco para sincronizar entre aparelhos.");
   if (!options.quiet) {
-    window.alert("O banco de dados ainda não está conectado. Baixei um backup para você não perder as informações.");
-    saveBackupFile();
+    showSaveDialog(
+      "Dados salvos",
+      "As informações foram salvas neste dispositivo. Para aparecer em outros aparelhos, ainda precisamos conectar o banco de dados."
+    );
   }
-  return false;
+  return true;
 }
 
 function saveBackupFile() {
@@ -1383,9 +1411,10 @@ elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
-elements.backupButton.addEventListener("click", saveBackupFile);
-elements.restoreButton.addEventListener("click", () => elements.restoreInput.click());
-elements.restoreInput.addEventListener("change", restoreBackupFile);
+elements.closeSaveDialogButton.addEventListener("click", () => elements.saveDialog.close());
+elements.saveDialog.addEventListener("click", (event) => {
+  if (event.target === elements.saveDialog) elements.saveDialog.close();
+});
 
 populateControls();
 render();
