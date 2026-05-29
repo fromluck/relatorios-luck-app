@@ -45,7 +45,9 @@
 
         <div class="sidebar-actions" aria-label="Exportação e backup">
           <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
-          <button id="backupButton" class="secondary-action-button" type="button">Salvar dados</button>
+          <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
+          <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
+          <button id="backupButton" class="secondary-action-button" type="button">Baixar backup</button>
           <button id="restoreButton" class="secondary-action-button" type="button">Restaurar dados</button>
           <input id="restoreInput" type="file" accept="application/json,.json" hidden>
         </div>
