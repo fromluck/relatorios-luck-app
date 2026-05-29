@@ -295,6 +295,7 @@ select {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
   width: min(1360px, 100%);
   margin: 0 auto;
   padding: 22px;
@@ -322,7 +323,9 @@ select {
   position: static;
   display: grid;
   gap: 18px;
+  align-self: start;
   align-content: start;
+  height: max-content;
   padding: 18px;
 }
 
