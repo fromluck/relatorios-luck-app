@@ -386,18 +386,29 @@ select {
   color: #991b1b;
 }
 
-.auth-panel {
+.profile-panel {
   display: grid;
   gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
-.auth-panel[hidden] {
+.profile-panel[hidden] {
   display: none;
 }
 
-.auth-panel p {
+.profile-summary {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-summary strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.profile-panel p {
   margin: 0;
   color: #64748b;
   font-size: 12px;
