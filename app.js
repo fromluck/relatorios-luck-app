@@ -245,10 +245,6 @@ const elements = {
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
   searchInput: document.querySelector("#searchInput"),
-  sectionInput: document.querySelector("#sectionInput"),
-  topicInput: document.querySelector("#topicInput"),
-  materialInput: document.querySelector("#materialInput"),
-  dateInput: document.querySelector("#dateInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
   addParsedButton: document.querySelector("#addParsedButton"),
@@ -261,7 +257,6 @@ const elements = {
   editDateInput: document.querySelector("#editDateInput"),
   closeEditButton: document.querySelector("#closeEditButton"),
   deleteEditButton: document.querySelector("#deleteEditButton"),
-  entryForm: document.querySelector("#entryForm"),
   pdfButton: document.querySelector("#pdfButton"),
   cloudSaveButton: document.querySelector("#cloudSaveButton"),
   syncStatus: document.querySelector("#syncStatus"),
@@ -1312,10 +1307,10 @@ function populateControls() {
     .map((company) => `<option>${company}</option>`)
     .join("");
 
-  elements.materialInput.innerHTML = MATERIAL_TYPES
+  const materialOptions = MATERIAL_TYPES
     .map((type) => `<option>${type.label}</option>`)
     .join("");
-  elements.editMaterialInput.innerHTML = elements.materialInput.innerHTML;
+  elements.editMaterialInput.innerHTML = materialOptions;
 
   refreshMonthOptions();
 }
@@ -1445,36 +1440,10 @@ function render() {
 
   elements.monthTitle.textContent = formatMonth(report.month);
   elements.reportTitle.textContent = report.title;
-  elements.dateInput.value = `${report.month}-01`;
   elements.reportSections.innerHTML = sections.length
     ? sections.map(renderTable).join("")
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
   renderSummary(sections);
-}
-
-function addItem(event) {
-  event.preventDefault();
-
-  const report = getSelectedReport();
-  const sectionLabel = elements.sectionInput.value;
-  const topic = elements.topicInput.value.trim();
-  const material = elements.materialInput.value;
-  const date = elements.dateInput.value;
-
-  if (!topic || !date) return;
-
-  let section = report.sections.find((item) => item.label === sectionLabel);
-  if (!section) {
-    section = { label: sectionLabel, rows: [] };
-    report.sections.push(section);
-  }
-
-    section.rows.push({ topic: fixPortuguese(topic), material: normalizeMaterial(material), date });
-  ensureRowIds();
-  section.rows.sort((a, b) => a.date.localeCompare(b.date));
-  saveReports();
-  elements.topicInput.value = "";
-  render();
 }
 
 function normalizeText(value) {
@@ -1914,7 +1883,6 @@ elements.monthSelect.addEventListener("change", () => {
   render();
 });
 elements.searchInput?.addEventListener("input", render);
-elements.entryForm.addEventListener("submit", addItem);
 elements.interpretButton.addEventListener("click", parseQuickText);
 elements.addParsedButton.addEventListener("click", addParsedItems);
 elements.parsePreview.addEventListener("change", (event) => {
