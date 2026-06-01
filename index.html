@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=compensacao-contrato-1">
+    <link rel="stylesheet" href="styles.css?v=desfazer-compensacao-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -150,7 +150,10 @@
           <small id="contractCreativeDetail">Meta mensal: 0</small>
         </article>
         <div class="compensation-actions">
-          <button id="autoCompensateButton" class="secondary-button" type="button">Compensar pendências</button>
+          <div class="compensation-buttons">
+            <button id="autoCompensateButton" class="secondary-button" type="button">Compensar pendências</button>
+            <button id="undoCompensationButton" class="secondary-button undo-button" type="button">Desfazer</button>
+          </div>
           <small id="compensationHint">Use produções de outro mês para quitar pendências sem perder o histórico.</small>
         </div>
       </section>
@@ -241,6 +244,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=compensacao-contrato-1"></script>
+    <script src="app.js?v=desfazer-compensacao-1"></script>
   </body>
 </html>
