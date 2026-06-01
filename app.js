@@ -284,6 +284,8 @@ const elements = {
   contractCreativeCount: document.querySelector("#contractCreativeCount"),
   contractVideoProgress: document.querySelector("#contractVideoProgress"),
   contractCreativeProgress: document.querySelector("#contractCreativeProgress"),
+  contractVideoDetail: document.querySelector("#contractVideoDetail"),
+  contractCreativeDetail: document.querySelector("#contractCreativeDetail"),
   summaryNote: document.querySelector("#summaryNote")
 };
 
@@ -1292,8 +1294,58 @@ function getSelectedReport() {
   return ensureReport(company, month);
 }
 
+function getReportRows(report) {
+  return (report?.sections || []).flatMap((section) => section.rows || []);
+}
+
 function getContractTarget(company) {
   return contractTargets[company] || { videos: 0, creatives: 0 };
+}
+
+function getContractCounts(report) {
+  const rows = Array.isArray(report) ? report : getReportRows(report);
+
+  return {
+    videos: rows.filter((row) => normalizeMaterial(row.material) === "Vídeo (Reels)").length,
+    creatives: rows.filter((row) => normalizeMaterial(row.material) === "Criativo (Arte)").length
+  };
+}
+
+function updateBacklog(previousBacklog, monthlyTarget, produced) {
+  if (!monthlyTarget) return 0;
+  return Math.max(0, previousBacklog + monthlyTarget - produced);
+}
+
+function getPreviousContractBacklog(company, month) {
+  const targets = getContractTarget(company);
+  const backlog = { videos: 0, creatives: 0 };
+  const previousReports = reportData
+    .filter((report) => report.company === company && report.month < month)
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  previousReports.forEach((report) => {
+    const counts = getContractCounts(report);
+    backlog.videos = updateBacklog(backlog.videos, targets.videos || 0, counts.videos);
+    backlog.creatives = updateBacklog(backlog.creatives, targets.creatives || 0, counts.creatives);
+  });
+
+  return backlog;
+}
+
+function missingText(count) {
+  if (count <= 0) return "Quitado.";
+  return count === 1 ? "Falta 1." : `Faltam ${count}.`;
+}
+
+function contractDetailText(monthlyTarget, previousBacklog, produced) {
+  if (!monthlyTarget) return "Sem meta configurada.";
+
+  const effectiveTarget = monthlyTarget + previousBacklog;
+  const targetText = previousBacklog
+    ? `${monthlyTarget} do mês + ${previousBacklog} pendentes`
+    : `Meta mensal: ${monthlyTarget}`;
+
+  return `${targetText}. ${missingText(effectiveTarget - produced)}`;
 }
 
 function syncTargetInputs() {
@@ -1397,7 +1449,7 @@ function renderTable(section) {
 
 function renderSummary(sections) {
   const rows = sections.flatMap((section) => section.rows);
-  renderContractSummary(rows);
+  renderContractSummary();
 
   elements.statsGrid.innerHTML = MATERIAL_TYPES
     .map((type) => {
@@ -1415,18 +1467,22 @@ function renderSummary(sections) {
   elements.summaryNote.textContent = `${rows.length} itens no total`;
 }
 
-function renderContractSummary(rows) {
+function renderContractSummary() {
   const report = getSelectedReport();
   const targets = getContractTarget(report.company);
-  const videos = rows.filter((row) => normalizeMaterial(row.material) === "Vídeo (Reels)").length;
-  const creatives = rows.filter((row) => row.material === "Criativo (Arte)").length;
-  const videoTarget = targets.videos || videos || 0;
-  const creativeTarget = targets.creatives || creatives || 0;
+  const counts = getContractCounts(getReportRows(report));
+  const previousBacklog = getPreviousContractBacklog(report.company, report.month);
+  const monthlyVideoTarget = targets.videos || 0;
+  const monthlyCreativeTarget = targets.creatives || 0;
+  const videoTarget = monthlyVideoTarget ? monthlyVideoTarget + previousBacklog.videos : 0;
+  const creativeTarget = monthlyCreativeTarget ? monthlyCreativeTarget + previousBacklog.creatives : 0;
 
-  elements.contractVideoCount.textContent = videoTarget ? `${videos} / ${videoTarget}` : `${videos}`;
-  elements.contractCreativeCount.textContent = creativeTarget ? `${creatives} / ${creativeTarget}` : `${creatives}`;
-  elements.contractVideoProgress.style.width = `${progressPercent(videos, videoTarget)}%`;
-  elements.contractCreativeProgress.style.width = `${progressPercent(creatives, creativeTarget)}%`;
+  elements.contractVideoCount.textContent = videoTarget ? `${counts.videos} / ${videoTarget}` : `${counts.videos}`;
+  elements.contractCreativeCount.textContent = creativeTarget ? `${counts.creatives} / ${creativeTarget}` : `${counts.creatives}`;
+  elements.contractVideoDetail.textContent = contractDetailText(monthlyVideoTarget, previousBacklog.videos, counts.videos);
+  elements.contractCreativeDetail.textContent = contractDetailText(monthlyCreativeTarget, previousBacklog.creatives, counts.creatives);
+  elements.contractVideoProgress.style.width = `${progressPercent(counts.videos, videoTarget)}%`;
+  elements.contractCreativeProgress.style.width = `${progressPercent(counts.creatives, creativeTarget)}%`;
 }
 
 function progressPercent(current, target) {
