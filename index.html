@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=novo-mes-2">
+    <link rel="stylesheet" href="styles.css?v=perfil-sidebar-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -81,20 +81,21 @@
           <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
         </div>
 
-        <section id="authPanel" class="auth-panel" aria-label="Acesso ao banco" hidden>
-          <span class="eyebrow">Acesso</span>
-          <p id="authStatus">Entre para sincronizar os dados.</p>
+        <section id="authPanel" class="profile-panel" aria-label="Perfil" hidden>
+          <span class="eyebrow">Perfil</span>
+          <div class="profile-summary">
+            <strong id="profileDisplayName">Luck</strong>
+            <p id="authStatus">Perfil conectado.</p>
+          </div>
           <label>
-            E-mail
-            <input id="authEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
+            Nome
+            <input id="profileFirstNameInput" type="text" autocomplete="given-name" placeholder="Nome">
           </label>
           <label>
-            Senha
-            <input id="authPasswordInput" type="password" autocomplete="current-password" placeholder="Senha">
+            Sobrenome
+            <input id="profileLastNameInput" type="text" autocomplete="family-name" placeholder="Sobrenome">
           </label>
-          <button id="authLoginButton" class="export-main-button" type="button">Entrar</button>
-          <button id="authSignupButton" class="auth-logout-button" type="button">Criar acesso</button>
-          <button id="authLogoutButton" class="auth-logout-button" type="button" hidden>Sair</button>
+          <button id="authLogoutButton" class="auth-logout-button" type="button">Sair</button>
         </section>
       </aside>
 
@@ -238,6 +239,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=novo-mes-2"></script>
+    <script src="app.js?v=perfil-sidebar-1"></script>
   </body>
 </html>
