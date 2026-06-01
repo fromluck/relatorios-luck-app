@@ -242,6 +242,7 @@ const elements = {
   loginStatus: document.querySelector("#loginStatus"),
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
+  deleteMonthButton: document.querySelector("#deleteMonthButton"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
   searchInput: document.querySelector("#searchInput"),
@@ -276,6 +277,10 @@ const elements = {
   saveDialogTitle: document.querySelector("#saveDialogTitle"),
   saveDialogMessage: document.querySelector("#saveDialogMessage"),
   closeSaveDialogButton: document.querySelector("#closeSaveDialogButton"),
+  deleteMonthDialog: document.querySelector("#deleteMonthDialog"),
+  deleteMonthMessage: document.querySelector("#deleteMonthMessage"),
+  cancelDeleteMonthButton: document.querySelector("#cancelDeleteMonthButton"),
+  confirmDeleteMonthButton: document.querySelector("#confirmDeleteMonthButton"),
   monthTitle: document.querySelector("#monthTitle"),
   reportTitle: document.querySelector("#reportTitle"),
   reportSections: document.querySelector("#reportSections"),
@@ -1242,6 +1247,14 @@ function getSelectableMonths(company) {
     .reverse();
 }
 
+function getFallbackMonthAfterDelete(company, deletedMonth) {
+  const remainingMonths = getSelectableMonths(company).filter((month) => month !== deletedMonth);
+  const currentMonth = currentMonthKey();
+
+  if (remainingMonths.includes(currentMonth)) return currentMonth;
+  return remainingMonths[0] || currentMonth;
+}
+
 function buildEmptyReport(company, month) {
   return {
     company,
@@ -1887,6 +1900,33 @@ function deleteEditingItem() {
   closeEditDialog();
 }
 
+function openDeleteMonthDialog() {
+  const company = elements.companySelect.value;
+  const month = elements.monthSelect.value;
+  const report = reportData.find((item) => item.company === company && item.month === month);
+  const itemCount = getReportRows(report).length;
+
+  elements.deleteMonthMessage.textContent = `Isso vai remover ${formatMonth(month).toLowerCase()} de ${company}, com ${itemCount} ${itemCount === 1 ? "item" : "itens"}.`;
+  openDialogSmooth(elements.deleteMonthDialog);
+}
+
+function confirmDeleteMonth() {
+  const company = elements.companySelect.value;
+  const month = elements.monthSelect.value;
+
+  reportData = reportData.filter((report) => !(report.company === company && report.month === month));
+  const nextMonth = getFallbackMonthAfterDelete(company, month);
+  ensureReport(company, nextMonth, { save: false });
+  saveReports();
+  exposeBackupData();
+  refreshMonthOptions();
+  elements.monthSelect.value = nextMonth;
+  render();
+  closeDialogSmooth(elements.deleteMonthDialog, () => {
+    showSaveDialog("Mês excluído", `${formatMonth(month)} foi removido de ${company}.`);
+  });
+}
+
 function fileSafeName(value) {
   return value.toLowerCase().replaceAll(" ", "-").replace(/[^a-z0-9-]/g, "");
 }
@@ -1900,7 +1940,8 @@ function exposeBackupData() {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     reports: reportData,
-    contractTargets
+    contractTargets,
+    profile: profileData
   };
   let backupNode = document.querySelector("#backupData");
   if (!backupNode) {
@@ -1938,6 +1979,7 @@ elements.monthSelect.addEventListener("change", () => {
   refreshMonthOptions();
   render();
 });
+elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
 elements.addParsedButton.addEventListener("click", addParsedItems);
@@ -1985,6 +2027,15 @@ elements.saveDialog.addEventListener("click", (event) => {
 elements.saveDialog.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDialogSmooth(elements.saveDialog);
+});
+elements.cancelDeleteMonthButton.addEventListener("click", () => closeDialogSmooth(elements.deleteMonthDialog));
+elements.confirmDeleteMonthButton.addEventListener("click", confirmDeleteMonth);
+elements.deleteMonthDialog.addEventListener("click", (event) => {
+  if (event.target === elements.deleteMonthDialog) closeDialogSmooth(elements.deleteMonthDialog);
+});
+elements.deleteMonthDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.deleteMonthDialog);
 });
 elements.editDialog.addEventListener("cancel", (event) => {
   event.preventDefault();
