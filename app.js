@@ -17,6 +17,7 @@ const LEGACY_STORAGE_KEYS = [
   "reports"
 ];
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
+const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const BACKUP_VERSION = 1;
 const CONTRACT_TARGETS = {
   "Alsol Telecom": { videos: 4, creatives: 8 },
@@ -223,6 +224,7 @@ let parsedQuickItems = [];
 let editingItemId = null;
 let contractTargets = loadContractTargets();
 let supabaseSession = loadSupabaseSession();
+let profileData = loadProfile();
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -264,10 +266,9 @@ const elements = {
   syncStatus: document.querySelector("#syncStatus"),
   authPanel: document.querySelector("#authPanel"),
   authStatus: document.querySelector("#authStatus"),
-  authEmailInput: document.querySelector("#authEmailInput"),
-  authPasswordInput: document.querySelector("#authPasswordInput"),
-  authLoginButton: document.querySelector("#authLoginButton"),
-  authSignupButton: document.querySelector("#authSignupButton"),
+  profileDisplayName: document.querySelector("#profileDisplayName"),
+  profileFirstNameInput: document.querySelector("#profileFirstNameInput"),
+  profileLastNameInput: document.querySelector("#profileLastNameInput"),
   authLogoutButton: document.querySelector("#authLogoutButton"),
   saveDialog: document.querySelector("#saveDialog"),
   saveDialogTitle: document.querySelector("#saveDialogTitle"),
@@ -310,6 +311,7 @@ function getSharedState() {
   return {
     reports: window.LUCK_SHARED_BACKUP.reports,
     contractTargets: window.LUCK_SHARED_BACKUP.contractTargets || null,
+    profile: window.LUCK_SHARED_BACKUP.profile || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -380,11 +382,63 @@ function loadContractTargets() {
   }
 }
 
+function normalizeProfile(profile) {
+  return {
+    firstName: String(profile?.firstName || "").trim(),
+    lastName: String(profile?.lastName || "").trim()
+  };
+}
+
+function loadProfile() {
+  const sharedState = getSharedState();
+  const sharedProfile = normalizeProfile(sharedState?.profile);
+  const savedState = readSavedState();
+
+  if (savedState?.profile && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeProfile(savedState.profile);
+  }
+
+  const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeProfile(JSON.parse(saved));
+    } catch {
+      return sharedProfile;
+    }
+  }
+
+  return sharedProfile;
+}
+
+function getProfileDisplayName() {
+  const fullName = [profileData.firstName, profileData.lastName].filter(Boolean).join(" ");
+  return fullName || "Luck";
+}
+
+function syncProfilePanel() {
+  if (elements.profileFirstNameInput) elements.profileFirstNameInput.value = profileData.firstName;
+  if (elements.profileLastNameInput) elements.profileLastNameInput.value = profileData.lastName;
+  if (elements.profileDisplayName) elements.profileDisplayName.textContent = getProfileDisplayName();
+  if (elements.authStatus) elements.authStatus.textContent = "Configurações do perfil.";
+}
+
+function saveProfile() {
+  profileData = normalizeProfile({
+    firstName: elements.profileFirstNameInput?.value,
+    lastName: elements.profileLastNameInput?.value
+  });
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+  saveLocalState();
+  scheduleRemoteSave();
+  syncProfilePanel();
+}
+
 function saveLocalState() {
   const state = getCurrentState();
   localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
 }
 
 function saveContractTargets() {
@@ -451,7 +505,6 @@ function requiresLogin() {
 
 function setLoginStatus(message) {
   if (elements.loginStatus) elements.loginStatus.textContent = message;
-  if (elements.authStatus) elements.authStatus.textContent = message;
 }
 
 function getAuthRedirectUrl() {
@@ -501,12 +554,11 @@ function renderAuthState() {
 
   if (!hasBackend) {
     setLoginStatus("Modo local ativo.");
+    syncProfilePanel();
     return;
   }
 
-  elements.authStatus.textContent = isLoggedIn
-    ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
-    : "Entre para sincronizar os dados entre dispositivos.";
+  syncProfilePanel();
   if (elements.loginStatus) {
     elements.loginStatus.textContent = isLoggedIn
       ? `Conectado como ${supabaseSession.user?.email || "Luck"}.`
@@ -520,17 +572,13 @@ function renderAuthState() {
       ? "Entrar usando a conta Google"
       : "Configure o provedor Google no Supabase para habilitar";
   }
-  elements.authEmailInput.hidden = isLoggedIn;
-  elements.authPasswordInput.hidden = isLoggedIn;
-  elements.authLoginButton.hidden = isLoggedIn;
-  elements.authSignupButton.hidden = isLoggedIn;
-  elements.authLogoutButton.hidden = !isLoggedIn;
+  if (elements.authLogoutButton) elements.authLogoutButton.hidden = !isLoggedIn;
 }
 
 function readAuthCredentials() {
   const config = getSupabaseConfig();
-  const email = (elements.loginEmailInput.value || elements.authEmailInput.value).trim();
-  const password = elements.loginPasswordInput.value || elements.authPasswordInput.value;
+  const email = elements.loginEmailInput.value.trim();
+  const password = elements.loginPasswordInput.value;
 
   if (!email || !password) {
     setLoginStatus("Informe o e-mail e a senha para continuar.");
@@ -544,8 +592,6 @@ function setAuthBusy(isBusy, message) {
   elements.loginButton.disabled = isBusy;
   elements.signupButton.disabled = isBusy;
   elements.googleLoginButton.disabled = isBusy;
-  elements.authLoginButton.disabled = isBusy;
-  elements.authSignupButton.disabled = isBusy;
   if (message) setLoginStatus(message);
 }
 
@@ -562,7 +608,6 @@ function handleSupabaseSession(session) {
     ...session,
     expires_at: session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)
   });
-  elements.authPasswordInput.value = "";
   elements.loginPasswordInput.value = "";
   setSyncStatus("Banco conectado. Carregando dados...", "online");
   startAuthenticatedApp();
@@ -712,7 +757,6 @@ async function signUpSupabase() {
       return;
     }
 
-    elements.authPasswordInput.value = "";
     elements.loginPasswordInput.value = "";
     setLoginStatus("Confirme o e-mail enviado e depois clique em Entrar.");
     showSaveDialog("Confirme seu e-mail", "Enviamos um link de confirmação. Depois de confirmar, volte aqui e clique em Entrar com o mesmo e-mail e senha.");
@@ -738,7 +782,8 @@ function getCurrentState() {
     version: BACKUP_VERSION,
     updatedAt: new Date().toISOString(),
     reports: reportData,
-    contractTargets
+    contractTargets,
+    profile: profileData
   };
 }
 
@@ -819,9 +864,12 @@ function loadRemoteState() {
           ...CONTRACT_TARGETS,
           ...(state.contractTargets || contractTargets)
         };
+        profileData = normalizeProfile(state.profile || profileData);
         ensureRowIds();
         saveReports();
         saveContractTargets();
+        saveLocalState();
+        syncProfilePanel();
         populateControls();
         render();
         exposeBackupData();
@@ -856,9 +904,12 @@ async function loadSupabaseState() {
         ...CONTRACT_TARGETS,
         ...(record.state.contractTargets || contractTargets)
       };
+      profileData = normalizeProfile(record.state.profile || profileData);
       ensureRowIds();
       saveReports();
       saveContractTargets();
+      saveLocalState();
+      syncProfilePanel();
       populateControls();
       render();
       exposeBackupData();
@@ -1006,9 +1057,12 @@ function restoreBackupFile(event) {
         ...CONTRACT_TARGETS,
         ...(payload.contractTargets || contractTargets)
       };
+      profileData = normalizeProfile(payload.profile || profileData);
       ensureRowIds();
       saveReports();
       saveContractTargets();
+      saveLocalState();
+      syncProfilePanel();
       populateControls();
 
       if ([...elements.companySelect.options].some((option) => option.value === selectedCompany)) {
@@ -1850,11 +1904,8 @@ elements.signupButton.addEventListener("click", signUpSupabase);
 elements.loginPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") signInSupabase();
 });
-elements.authLoginButton.addEventListener("click", signInSupabase);
-elements.authPasswordInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") signInSupabase();
-});
-elements.authSignupButton.addEventListener("click", signUpSupabase);
+elements.profileFirstNameInput.addEventListener("input", saveProfile);
+elements.profileLastNameInput.addEventListener("input", saveProfile);
 elements.authLogoutButton.addEventListener("click", signOutSupabase);
 elements.closeSaveDialogButton.addEventListener("click", () => closeDialogSmooth(elements.saveDialog));
 elements.saveDialog.addEventListener("click", (event) => {
