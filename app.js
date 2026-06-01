@@ -256,6 +256,7 @@ const elements = {
   editTopicInput: document.querySelector("#editTopicInput"),
   editMaterialInput: document.querySelector("#editMaterialInput"),
   editDateInput: document.querySelector("#editDateInput"),
+  editContractMonthInput: document.querySelector("#editContractMonthInput"),
   closeEditButton: document.querySelector("#closeEditButton"),
   deleteEditButton: document.querySelector("#deleteEditButton"),
   pdfButton: document.querySelector("#pdfButton"),
@@ -291,6 +292,8 @@ const elements = {
   contractCreativeProgress: document.querySelector("#contractCreativeProgress"),
   contractVideoDetail: document.querySelector("#contractVideoDetail"),
   contractCreativeDetail: document.querySelector("#contractCreativeDetail"),
+  autoCompensateButton: document.querySelector("#autoCompensateButton"),
+  compensationHint: document.querySelector("#compensationHint"),
   summaryNote: document.querySelector("#summaryNote")
 };
 
@@ -1137,7 +1140,8 @@ function normalizeReportData(reports) {
       rows: section.rows.map((row) => ({
         ...row,
         topic: fixPortuguese(row.topic),
-        material: normalizeMaterial(row.material)
+        material: normalizeMaterial(row.material),
+        contractMonth: row.contractMonth || undefined
       }))
     }))
   }));
@@ -1315,13 +1319,61 @@ function getContractTarget(company) {
   return contractTargets[company] || { videos: 0, creatives: 0 };
 }
 
-function getContractCounts(report) {
-  const rows = Array.isArray(report) ? report : getReportRows(report);
+function getRowContractMonth(row, reportMonth) {
+  return row.contractMonth || reportMonth;
+}
 
-  return {
-    videos: rows.filter((row) => normalizeMaterial(row.material) === "Vídeo (Reels)").length,
-    creatives: rows.filter((row) => normalizeMaterial(row.material) === "Criativo (Arte)").length
-  };
+function isMetricMaterial(row, metric) {
+  const material = normalizeMaterial(row.material);
+  if (metric === "videos") return material === "Vídeo (Reels)";
+  return material === "Criativo (Arte)";
+}
+
+function getMetricLabel(metric) {
+  return metric === "videos" ? "vídeo" : "criativo";
+}
+
+function getMetricPlural(metric, count) {
+  if (metric === "videos") return count === 1 ? "vídeo" : "vídeos";
+  return count === 1 ? "criativo" : "criativos";
+}
+
+function getCompanyProductionRows(company) {
+  return reportData
+    .filter((report) => report.company === company)
+    .flatMap((report) => getReportRows(report).map((row) => ({ report, row })));
+}
+
+function getContractMonthsForCompany(company) {
+  return unique([
+    ...getCompanyMonths(company),
+    ...getCompanyProductionRows(company).map(({ report, row }) => getRowContractMonth(row, report.month))
+  ])
+    .filter(Boolean)
+    .sort();
+}
+
+function getContractCountsForMonth(company, month) {
+  const counts = { videos: 0, creatives: 0 };
+
+  getCompanyProductionRows(company).forEach(({ report, row }) => {
+    if (getRowContractMonth(row, report.month) !== month) return;
+    if (isMetricMaterial(row, "videos")) counts.videos += 1;
+    if (isMetricMaterial(row, "creatives")) counts.creatives += 1;
+  });
+
+  return counts;
+}
+
+function getActualContractCounts(report) {
+  const counts = { videos: 0, creatives: 0 };
+
+  getReportRows(report).forEach((row) => {
+    if (isMetricMaterial(row, "videos")) counts.videos += 1;
+    if (isMetricMaterial(row, "creatives")) counts.creatives += 1;
+  });
+
+  return counts;
 }
 
 function updateBacklog(previousBacklog, monthlyTarget, produced) {
@@ -1332,12 +1384,10 @@ function updateBacklog(previousBacklog, monthlyTarget, produced) {
 function getPreviousContractBacklog(company, month) {
   const targets = getContractTarget(company);
   const backlog = { videos: 0, creatives: 0 };
-  const previousReports = reportData
-    .filter((report) => report.company === company && report.month < month)
-    .sort((a, b) => a.month.localeCompare(b.month));
+  const previousMonths = getContractMonthsForCompany(company).filter((item) => item < month);
 
-  previousReports.forEach((report) => {
-    const counts = getContractCounts(report);
+  previousMonths.forEach((previousMonth) => {
+    const counts = getContractCountsForMonth(company, previousMonth);
     backlog.videos = updateBacklog(backlog.videos, targets.videos || 0, counts.videos);
     backlog.creatives = updateBacklog(backlog.creatives, targets.creatives || 0, counts.creatives);
   });
@@ -1345,12 +1395,220 @@ function getPreviousContractBacklog(company, month) {
   return backlog;
 }
 
+function getDirectDeficit(company, month, metric) {
+  const targets = getContractTarget(company);
+  const target = metric === "videos" ? targets.videos || 0 : targets.creatives || 0;
+  const counts = getContractCountsForMonth(company, month);
+  const produced = metric === "videos" ? counts.videos : counts.creatives;
+
+  return Math.max(0, target - produced);
+}
+
+function groupRowsByMonth(rows, monthGetter) {
+  return rows.reduce((groups, item) => {
+    const month = monthGetter(item);
+    groups[month] = (groups[month] || 0) + 1;
+    return groups;
+  }, {});
+}
+
+function formatMonthGroups(groups, connector = "de") {
+  return Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, count]) => `${count} ${connector} ${formatMonth(month)}`)
+    .join(", ");
+}
+
+function getReceivedCompensations(company, month) {
+  return getCompanyProductionRows(company)
+    .filter(({ report, row }) => report.month !== month && getRowContractMonth(row, report.month) === month)
+    .sort((a, b) => `${a.report.month}-${a.row.date}`.localeCompare(`${b.report.month}-${b.row.date}`));
+}
+
+function getSentCompensations(report) {
+  return getReportRows(report)
+    .filter((row) => getRowContractMonth(row, report.month) !== report.month)
+    .map((row) => ({ report, row }))
+    .sort((a, b) => `${a.row.contractMonth}-${a.row.date}`.localeCompare(`${b.row.contractMonth}-${b.row.date}`));
+}
+
+function isRowFreeForContract(row, reportMonth) {
+  return getRowContractMonth(row, reportMonth) === reportMonth;
+}
+
+function getAssignableRowsAfter(company, month, metric) {
+  return getCompanyProductionRows(company)
+    .filter(({ report, row }) => report.month > month && isMetricMaterial(row, metric) && isRowFreeForContract(row, report.month))
+    .sort((a, b) => `${a.report.month}-${a.row.date}`.localeCompare(`${b.report.month}-${b.row.date}`));
+}
+
+function getAssignableRowsInReport(report, metric) {
+  return getReportRows(report)
+    .filter((row) => isMetricMaterial(row, metric) && isRowFreeForContract(row, report.month))
+    .map((row) => ({ report, row }))
+    .sort((a, b) => a.row.date.localeCompare(b.row.date));
+}
+
+function getPreviousDirectDeficits(company, month, metric) {
+  return getContractMonthsForCompany(company)
+    .filter((previousMonth) => previousMonth < month)
+    .map((previousMonth) => ({
+      month: previousMonth,
+      missing: getDirectDeficit(company, previousMonth, metric)
+    }))
+    .filter((item) => item.missing > 0);
+}
+
+function getSelectedMonthCompensationPlan(report) {
+  const metrics = ["videos", "creatives"];
+  const futurePlan = metrics.map((metric) => {
+    const missing = getDirectDeficit(report.company, report.month, metric);
+    const available = getAssignableRowsAfter(report.company, report.month, metric).length;
+    return { metric, missing, available, usable: Math.min(missing, available) };
+  });
+  const futureUsable = futurePlan.reduce((total, item) => total + item.usable, 0);
+
+  if (futureUsable > 0) {
+    return {
+      mode: "future-to-current",
+      plan: futurePlan,
+      total: futureUsable,
+      label: "Quitar este mês com produções seguintes",
+      hint: `Há ${futureUsable} ${futureUsable === 1 ? "item disponível" : "itens disponíveis"} em meses seguintes para compensar ${formatMonth(report.month).toLowerCase()}.`
+    };
+  }
+
+  const previousPlan = metrics.map((metric) => {
+    const deficits = getPreviousDirectDeficits(report.company, report.month, metric);
+    const missing = deficits.reduce((total, item) => total + item.missing, 0);
+    const available = getAssignableRowsInReport(report, metric).length;
+    return { metric, deficits, missing, available, usable: Math.min(missing, available) };
+  });
+  const previousUsable = previousPlan.reduce((total, item) => total + item.usable, 0);
+
+  if (previousUsable > 0) {
+    return {
+      mode: "current-to-previous",
+      plan: previousPlan,
+      total: previousUsable,
+      label: "Usar este mês para pendências anteriores",
+      hint: `Há ${previousUsable} ${previousUsable === 1 ? "item livre" : "itens livres"} neste mês para quitar pendências anteriores.`
+    };
+  }
+
+  return {
+    mode: "none",
+    plan: [],
+    total: 0,
+    label: "Compensar pendências",
+    hint: "Sem pendências com produção disponível para compensar agora."
+  };
+}
+
+function syncCompensationAction(report) {
+  const compensationPlan = getSelectedMonthCompensationPlan(report);
+
+  elements.autoCompensateButton.textContent = compensationPlan.label;
+  elements.autoCompensateButton.disabled = compensationPlan.total === 0;
+  elements.compensationHint.textContent = compensationPlan.hint;
+}
+
+function applyFutureRowsToCurrentMonth(report, plan) {
+  let total = 0;
+  const totals = { videos: 0, creatives: 0 };
+
+  plan.forEach(({ metric, usable }) => {
+    const rows = getAssignableRowsAfter(report.company, report.month, metric).slice(0, usable);
+
+    rows.forEach(({ row }) => {
+      row.contractMonth = report.month;
+      total += 1;
+      totals[metric] += 1;
+    });
+  });
+
+  return { total, totals };
+}
+
+function applyCurrentRowsToPreviousMonths(report, plan) {
+  let total = 0;
+  const totals = { videos: 0, creatives: 0 };
+
+  plan.forEach(({ metric, deficits }) => {
+    const rows = getAssignableRowsInReport(report, metric);
+    let rowIndex = 0;
+
+    deficits.forEach((deficit) => {
+      for (let index = 0; index < deficit.missing && rowIndex < rows.length; index += 1) {
+        rows[rowIndex].row.contractMonth = deficit.month;
+        rowIndex += 1;
+        total += 1;
+        totals[metric] += 1;
+      }
+    });
+  });
+
+  return { total, totals };
+}
+
+function compensationResultMessage(result) {
+  const parts = [];
+
+  if (result.totals.videos) parts.push(`${result.totals.videos} ${getMetricPlural("videos", result.totals.videos)}`);
+  if (result.totals.creatives) parts.push(`${result.totals.creatives} ${getMetricPlural("creatives", result.totals.creatives)}`);
+
+  return parts.join(" e ");
+}
+
+function autoCompensateContract() {
+  const report = getSelectedReport();
+  const compensationPlan = getSelectedMonthCompensationPlan(report);
+
+  if (!compensationPlan.total) {
+    showSaveDialog("Sem compensação disponível", "Não há itens livres suficientes em outros meses para compensar agora.");
+    return;
+  }
+
+  const result = compensationPlan.mode === "future-to-current"
+    ? applyFutureRowsToCurrentMonth(report, compensationPlan.plan)
+    : applyCurrentRowsToPreviousMonths(report, compensationPlan.plan);
+
+  if (!result.total) {
+    showSaveDialog("Sem compensação disponível", "Não consegui encontrar itens livres para compensar.");
+    return;
+  }
+
+  saveReports();
+  render();
+  showSaveDialog(
+    "Compensação aplicada",
+    `${compensationResultMessage(result)} ${result.total === 1 ? "foi vinculado" : "foram vinculados"} ao mês correto do contrato.`
+  );
+}
+
 function missingText(count) {
   if (count <= 0) return "Quitado.";
   return count === 1 ? "Falta 1." : `Faltam ${count}.`;
 }
 
-function contractDetailText(monthlyTarget, previousBacklog, produced) {
+function compensationText(company, month, metric) {
+  const received = getReceivedCompensations(company, month).filter(({ row }) => isMetricMaterial(row, metric));
+  const report = reportData.find((item) => item.company === company && item.month === month);
+  const sent = report ? getSentCompensations(report).filter(({ row }) => isMetricMaterial(row, metric)) : [];
+  const parts = [];
+
+  if (received.length) {
+    parts.push(`Entraram ${formatMonthGroups(groupRowsByMonth(received, ({ report: sourceReport }) => sourceReport.month))}.`);
+  }
+
+  if (sent.length) {
+    parts.push(`Saíram ${formatMonthGroups(groupRowsByMonth(sent, ({ row }) => getRowContractMonth(row, month)), "para")}.`);
+  }
+
+  return parts.join(" ");
+}
+
+function contractDetailText(monthlyTarget, previousBacklog, produced, compensation = "") {
   if (!monthlyTarget) return "Sem meta configurada.";
 
   const effectiveTarget = monthlyTarget + previousBacklog;
@@ -1358,7 +1616,10 @@ function contractDetailText(monthlyTarget, previousBacklog, produced) {
     ? `${monthlyTarget} do mês + ${previousBacklog} pendentes`
     : `Meta mensal: ${monthlyTarget}`;
 
-  return `${targetText}. ${missingText(effectiveTarget - produced)}`;
+  return [targetText, missingText(effectiveTarget - produced), compensation]
+    .filter(Boolean)
+    .join(". ")
+    .replaceAll("..", ".");
 }
 
 function syncTargetInputs() {
@@ -1415,7 +1676,15 @@ function getVisibleSections(report) {
     .filter((section) => section.rows.length > 0);
 }
 
-function renderTable(section) {
+function renderAllocationNote(row, report) {
+  const contractMonth = getRowContractMonth(row, report.month);
+
+  if (contractMonth === report.month) return "";
+
+  return `<small class="allocation-note">Conta para ${formatMonth(contractMonth)}</small>`;
+}
+
+function renderTable(section, report) {
   const title = section.label || "Principal";
 
   return `
@@ -1441,7 +1710,10 @@ function renderTable(section) {
               const meta = materialMeta(material);
               return `
                 <tr>
-                  <td title="${row.topic}">${row.topic}</td>
+                  <td title="${row.topic}">
+                    <span class="topic-title">${row.topic}</span>
+                    ${renderAllocationNote(row, report)}
+                  </td>
                   <td class="material-cell">
                     <span class="tag" style="--tag-color: ${meta.color}">${material}</span>
                   </td>
@@ -1450,6 +1722,58 @@ function renderTable(section) {
                     <button class="row-action" type="button" data-edit-id="${row.id}">Editar</button>
                     <button class="row-action danger" type="button" data-remove-id="${row.id}">Excluir</button>
                   </td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </section>
+  `;
+}
+
+function renderReceivedCompensations(report) {
+  const query = elements.searchInput?.value.trim().toLowerCase() || "";
+  const rows = getReceivedCompensations(report.company, report.month)
+    .filter(({ report: sourceReport, row }) =>
+      !query || [sourceReport.month, formatMonth(sourceReport.month), row.topic, row.material, formatDate(row.date)]
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+
+  if (!rows.length) return "";
+
+  return `
+    <section class="section-block compensation-section">
+      <div class="section-title">
+        <h3>Compensações recebidas</h3>
+        <span>${rows.length} ${rows.length === 1 ? "item" : "itens"}</span>
+      </div>
+      <table class="production-table">
+        <colgroup><col><col><col><col></colgroup>
+        <thead>
+          <tr>
+            <th>Tema</th>
+            <th>Material</th>
+            <th>Produzido em</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(({ report: sourceReport, row }) => {
+              const material = normalizeMaterial(row.material);
+              const meta = materialMeta(material);
+              return `
+                <tr>
+                  <td title="${row.topic}">
+                    <span class="topic-title">${row.topic}</span>
+                    <small class="allocation-note">Veio de ${formatMonth(sourceReport.month)}</small>
+                  </td>
+                  <td class="material-cell">
+                    <span class="tag" style="--tag-color: ${meta.color}">${material}</span>
+                  </td>
+                  <td class="date-cell">${formatMonth(sourceReport.month)}</td>
+                  <td class="date-cell">${formatDate(row.date)}</td>
                 </tr>
               `;
             })
@@ -1483,7 +1807,7 @@ function renderSummary(sections) {
 function renderContractSummary() {
   const report = getSelectedReport();
   const targets = getContractTarget(report.company);
-  const counts = getContractCounts(getReportRows(report));
+  const counts = getContractCountsForMonth(report.company, report.month);
   const previousBacklog = getPreviousContractBacklog(report.company, report.month);
   const monthlyVideoTarget = targets.videos || 0;
   const monthlyCreativeTarget = targets.creatives || 0;
@@ -1492,10 +1816,21 @@ function renderContractSummary() {
 
   elements.contractVideoCount.textContent = videoTarget ? `${counts.videos} / ${videoTarget}` : `${counts.videos}`;
   elements.contractCreativeCount.textContent = creativeTarget ? `${counts.creatives} / ${creativeTarget}` : `${counts.creatives}`;
-  elements.contractVideoDetail.textContent = contractDetailText(monthlyVideoTarget, previousBacklog.videos, counts.videos);
-  elements.contractCreativeDetail.textContent = contractDetailText(monthlyCreativeTarget, previousBacklog.creatives, counts.creatives);
+  elements.contractVideoDetail.textContent = contractDetailText(
+    monthlyVideoTarget,
+    previousBacklog.videos,
+    counts.videos,
+    compensationText(report.company, report.month, "videos")
+  );
+  elements.contractCreativeDetail.textContent = contractDetailText(
+    monthlyCreativeTarget,
+    previousBacklog.creatives,
+    counts.creatives,
+    compensationText(report.company, report.month, "creatives")
+  );
   elements.contractVideoProgress.style.width = `${progressPercent(counts.videos, videoTarget)}%`;
   elements.contractCreativeProgress.style.width = `${progressPercent(counts.creatives, creativeTarget)}%`;
+  syncCompensationAction(report);
 }
 
 function progressPercent(current, target) {
@@ -1506,11 +1841,13 @@ function progressPercent(current, target) {
 function render() {
   const report = getSelectedReport();
   const sections = getVisibleSections(report);
+  const reportTables = sections.map((section) => renderTable(section, report)).join("");
+  const compensationTables = renderReceivedCompensations(report);
 
   elements.monthTitle.textContent = formatMonth(report.month);
   elements.reportTitle.textContent = report.title;
-  elements.reportSections.innerHTML = sections.length
-    ? sections.map(renderTable).join("")
+  elements.reportSections.innerHTML = reportTables || compensationTables
+    ? `${reportTables}${compensationTables}`
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
   renderSummary(sections);
 }
@@ -1844,6 +2181,25 @@ function findItem(itemId) {
   return null;
 }
 
+function getContractMonthOptions(company, sourceMonth) {
+  return unique([...getContractMonthsForCompany(company), ...monthsUntilCurrent(), sourceMonth])
+    .filter((month) => month <= sourceMonth)
+    .sort()
+    .reverse();
+}
+
+function fillEditContractMonthOptions(found) {
+  const contractMonth = getRowContractMonth(found.row, found.report.month);
+
+  elements.editContractMonthInput.innerHTML = getContractMonthOptions(found.report.company, found.report.month)
+    .map((month) => {
+      const suffix = month === found.report.month ? " (mês da produção)" : "";
+      return `<option value="${month}">${formatMonth(month)}${suffix}</option>`;
+    })
+    .join("");
+  elements.editContractMonthInput.value = contractMonth;
+}
+
 function openEditItem(itemId) {
   const found = findItem(itemId);
   if (!found) return;
@@ -1853,6 +2209,7 @@ function openEditItem(itemId) {
   elements.editTopicInput.value = found.row.topic;
   elements.editMaterialInput.value = found.row.material;
   elements.editDateInput.value = found.row.date;
+  fillEditContractMonthOptions(found);
   openDialogSmooth(elements.editDialog);
 }
 
@@ -1873,7 +2230,10 @@ function saveEditedItem(event) {
     ...found.row,
     topic: fixPortuguese(elements.editTopicInput.value.trim()),
     material: normalizeMaterial(elements.editMaterialInput.value),
-    date: elements.editDateInput.value
+    date: elements.editDateInput.value,
+    contractMonth: elements.editContractMonthInput.value === found.report.month
+      ? undefined
+      : elements.editContractMonthInput.value
   };
 
   found.section.rows = found.section.rows.filter((row) => row.id !== editingItemId);
@@ -1983,6 +2343,7 @@ elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
 elements.addParsedButton.addEventListener("click", addParsedItems);
+elements.autoCompensateButton.addEventListener("click", autoCompensateContract);
 elements.parsePreview.addEventListener("change", (event) => {
   const materialSelect = event.target.closest("[data-preview-material]");
   if (!materialSelect) return;
