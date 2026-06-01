@@ -760,6 +760,13 @@ h1 {
   line-height: 1;
 }
 
+.contract-card small {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .video-contract {
   border-top: 5px solid var(--video);
 }
