@@ -308,7 +308,6 @@ select {
 }
 
 .control-bar,
-.entry-panel,
 .assistant-panel,
 .report-card,
 .stat-card,
@@ -624,12 +623,6 @@ button {
   padding: 0 14px;
 }
 
-.entry-panel {
-  display: grid;
-  gap: 16px;
-  padding: 18px;
-}
-
 .assistant-panel {
   display: grid;
   gap: 14px;
@@ -729,13 +722,6 @@ p {
 h1 {
   margin-top: 4px;
   font-size: 22px;
-}
-
-.entry-form {
-  display: grid;
-  grid-template-columns: 170px minmax(260px, 1fr) 190px 160px auto;
-  gap: 12px;
-  align-items: end;
 }
 
 .stats-grid {
@@ -1177,7 +1163,6 @@ td.action-cell {
 
   .control-bar,
   .sidebar,
-  .entry-panel,
   .assistant-panel,
   .row-action,
   .action-column,
@@ -1382,14 +1367,6 @@ td.action-cell {
 }
 
 @media (max-width: 1180px) and (min-width: 921px) {
-  .entry-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .topic-field {
-    grid-column: 1 / -1;
-  }
-
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1405,7 +1382,6 @@ td.action-cell {
   }
 
   .control-bar,
-  .entry-form,
   .assistant-grid,
   .parse-row {
     grid-template-columns: 1fr 1fr;
@@ -1413,7 +1389,6 @@ td.action-cell {
 
   .brand,
   .search-field,
-  .topic-field,
   .actions {
     grid-column: 1 / -1;
   }
@@ -1449,7 +1424,6 @@ td.action-cell {
   }
 
   .control-bar,
-  .entry-form,
   .assistant-grid,
   .parse-row,
   .stats-grid {
