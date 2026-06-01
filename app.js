@@ -1125,6 +1125,60 @@ function monthYear(month) {
   return { year, monthNumber };
 }
 
+function currentMonthKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthsUntilCurrent() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+
+  return Array.from({ length: currentMonth }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
+}
+
+function getCompanyMonths(company) {
+  return reportData
+    .filter((report) => report.company === company)
+    .map((report) => report.month);
+}
+
+function getSelectableMonths(company) {
+  return unique([...getCompanyMonths(company), ...monthsUntilCurrent()])
+    .sort()
+    .reverse();
+}
+
+function buildEmptyReport(company, month) {
+  return {
+    company,
+    month,
+    title: `Relatório de Produção - ${company}`,
+    sections: [
+      { label: "", rows: [] },
+      { label: "Datas Comemorativas", rows: [] },
+      { label: "Aniversariantes", rows: [] },
+      { label: "Solicitação avulsa", rows: [] }
+    ]
+  };
+}
+
+function ensureReport(company, month, options = {}) {
+  let report = reportData.find((item) => item.company === company && item.month === month);
+
+  if (!report) {
+    report = buildEmptyReport(company, month);
+    reportData.push(report);
+    if (options.save) {
+      saveReports();
+      exposeBackupData();
+    }
+  }
+
+  return report;
+}
+
 function toTitleCase(value) {
   return value
     .toLowerCase()
@@ -1140,9 +1194,12 @@ function materialMeta(material) {
 }
 
 function getSelectedReport() {
-  return reportData.find(
-    (report) => report.company === elements.companySelect.value && report.month === elements.monthSelect.value
-  ) || reportData[0];
+  const company = elements.companySelect.value;
+  const month = elements.monthSelect.value;
+
+  if (!company || !month) return reportData[0];
+
+  return ensureReport(company, month);
 }
 
 function getContractTarget(company) {
@@ -1170,18 +1227,20 @@ function populateControls() {
 
 function refreshMonthOptions() {
   const selectedMonth = elements.monthSelect.value;
-  const months = reportData
-    .filter((report) => report.company === elements.companySelect.value)
-    .map((report) => report.month)
-    .sort()
-    .reverse();
+  const company = elements.companySelect.value;
+  const existingMonths = new Set(getCompanyMonths(company));
+  const months = getSelectableMonths(company);
+  const latestExistingMonth = [...existingMonths].sort().reverse()[0];
+  const preferredMonth = months.includes(selectedMonth)
+    ? selectedMonth
+    : latestExistingMonth || currentMonthKey();
 
   elements.monthSelect.innerHTML = months
-    .map((month) => `<option value="${month}">${formatMonth(month)}</option>`)
+    .map((month) => `<option value="${month}">${formatMonth(month)}${existingMonths.has(month) ? "" : " (novo)"}</option>`)
     .join("");
 
-  if (months.includes(selectedMonth)) {
-    elements.monthSelect.value = selectedMonth;
+  if (months.includes(preferredMonth)) {
+    elements.monthSelect.value = preferredMonth;
   }
 
   syncTargetInputs();
@@ -1754,7 +1813,10 @@ elements.targetCreativesInput.addEventListener("input", () => {
   saveContractTargets();
   render();
 });
-elements.monthSelect.addEventListener("change", render);
+elements.monthSelect.addEventListener("change", () => {
+  ensureReport(elements.companySelect.value, elements.monthSelect.value, { save: true });
+  render();
+});
 elements.searchInput?.addEventListener("input", render);
 elements.entryForm.addEventListener("submit", addItem);
 elements.interpretButton.addEventListener("click", parseQuickText);
