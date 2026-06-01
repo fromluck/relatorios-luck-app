@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=contrato-acumulado-1">
+    <link rel="stylesheet" href="styles.css?v=excluir-mes-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -62,6 +62,8 @@
           Mês
           <select id="monthSelect"></select>
         </label>
+
+        <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
 
         <section class="contract-config" aria-label="Configuração do contrato">
           <span class="eyebrow">Contrato</span>
@@ -213,11 +215,23 @@
           <button id="closeSaveDialogButton" class="export-main-button" type="button">Entendi</button>
         </div>
       </dialog>
+
+      <dialog id="deleteMonthDialog" class="save-dialog delete-month-dialog">
+        <div class="save-dialog-content">
+          <span class="eyebrow">Exclusão</span>
+          <h2>Excluir mês?</h2>
+          <p id="deleteMonthMessage">Esse mês será removido do cliente selecionado.</p>
+          <div class="dialog-actions">
+            <button id="cancelDeleteMonthButton" class="secondary-button" type="button">Cancelar</button>
+            <button id="confirmDeleteMonthButton" class="danger-button" type="button">Excluir mês</button>
+          </div>
+        </div>
+      </dialog>
       </div>
     </main>
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=contrato-acumulado-1"></script>
+    <script src="app.js?v=excluir-mes-1"></script>
   </body>
 </html>
