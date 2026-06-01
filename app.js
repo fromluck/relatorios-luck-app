@@ -293,6 +293,7 @@ const elements = {
   contractVideoDetail: document.querySelector("#contractVideoDetail"),
   contractCreativeDetail: document.querySelector("#contractCreativeDetail"),
   autoCompensateButton: document.querySelector("#autoCompensateButton"),
+  undoCompensationButton: document.querySelector("#undoCompensationButton"),
   compensationHint: document.querySelector("#compensationHint"),
   summaryNote: document.querySelector("#summaryNote")
 };
@@ -1507,10 +1508,14 @@ function getSelectedMonthCompensationPlan(report) {
 
 function syncCompensationAction(report) {
   const compensationPlan = getSelectedMonthCompensationPlan(report);
+  const undoCount = getRelatedCompensations(report).length;
 
   elements.autoCompensateButton.textContent = compensationPlan.label;
   elements.autoCompensateButton.disabled = compensationPlan.total === 0;
-  elements.compensationHint.textContent = compensationPlan.hint;
+  elements.undoCompensationButton.disabled = undoCount === 0;
+  elements.compensationHint.textContent = undoCount
+    ? `${compensationPlan.hint} ${undoCount} ${undoCount === 1 ? "compensação pode" : "compensações podem"} ser desfeita${undoCount === 1 ? "" : "s"}.`
+    : compensationPlan.hint;
 }
 
 function applyFutureRowsToCurrentMonth(report, plan) {
@@ -1557,7 +1562,7 @@ function compensationResultMessage(result) {
   if (result.totals.videos) parts.push(`${result.totals.videos} ${getMetricPlural("videos", result.totals.videos)}`);
   if (result.totals.creatives) parts.push(`${result.totals.creatives} ${getMetricPlural("creatives", result.totals.creatives)}`);
 
-  return parts.join(" e ");
+  return parts.join(" e ") || `${result.total || 0} ${result.total === 1 ? "item" : "itens"}`;
 }
 
 function autoCompensateContract() {
@@ -1583,6 +1588,37 @@ function autoCompensateContract() {
   showSaveDialog(
     "Compensação aplicada",
     `${compensationResultMessage(result)} ${result.total === 1 ? "foi vinculado" : "foram vinculados"} ao mês correto do contrato.`
+  );
+}
+
+function getRelatedCompensations(report) {
+  const sent = getSentCompensations(report);
+  const received = getReceivedCompensations(report.company, report.month);
+
+  return [...sent, ...received];
+}
+
+function undoCompensationContract() {
+  const report = getSelectedReport();
+  const relatedCompensations = getRelatedCompensations(report);
+  const totals = { videos: 0, creatives: 0 };
+
+  if (!relatedCompensations.length) {
+    showSaveDialog("Nada para desfazer", "Este mês não tem compensações aplicadas.");
+    return;
+  }
+
+  relatedCompensations.forEach(({ row }) => {
+    if (isMetricMaterial(row, "videos")) totals.videos += 1;
+    if (isMetricMaterial(row, "creatives")) totals.creatives += 1;
+    delete row.contractMonth;
+  });
+
+  saveReports();
+  render();
+  showSaveDialog(
+    "Compensação desfeita",
+    `${compensationResultMessage({ totals, total: relatedCompensations.length })} ${relatedCompensations.length === 1 ? "voltou" : "voltaram"} para o mês original de produção.`
   );
 }
 
@@ -2344,6 +2380,7 @@ elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
 elements.addParsedButton.addEventListener("click", addParsedItems);
 elements.autoCompensateButton.addEventListener("click", autoCompensateContract);
+elements.undoCompensationButton.addEventListener("click", undoCompensationContract);
 elements.parsePreview.addEventListener("change", (event) => {
   const materialSelect = event.target.closest("[data-preview-material]");
   if (!materialSelect) return;
