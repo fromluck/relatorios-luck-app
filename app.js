@@ -1815,6 +1815,7 @@ elements.targetCreativesInput.addEventListener("input", () => {
 });
 elements.monthSelect.addEventListener("change", () => {
   ensureReport(elements.companySelect.value, elements.monthSelect.value, { save: true });
+  refreshMonthOptions();
   render();
 });
 elements.searchInput?.addEventListener("input", render);
