@@ -598,6 +598,19 @@ button:focus-visible {
   box-shadow: 0 0 0 3px rgba(234, 90, 0, 0.16);
 }
 
+.sidebar-danger-button {
+  min-height: 34px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sidebar-danger-button:hover {
+  background: #ffedd5;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -1035,6 +1048,10 @@ td.action-cell {
   color: #475569;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.delete-month-dialog .save-dialog-content {
+  border-top-color: #dc2626;
 }
 
 @keyframes dialog-in {
