@@ -18,6 +18,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
+const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
 const CONTRACT_TARGETS = {
   "Alsol Telecom": { videos: 4, creatives: 8 },
@@ -266,7 +267,13 @@ const elements = {
   syncStatus: document.querySelector("#syncStatus"),
   authPanel: document.querySelector("#authPanel"),
   authStatus: document.querySelector("#authStatus"),
+  profileButton: document.querySelector("#profileButton"),
+  profileMenu: document.querySelector("#profileMenu"),
+  profileEditButton: document.querySelector("#profileEditButton"),
+  profileEditForm: document.querySelector("#profileEditForm"),
+  profileAvatar: document.querySelector("#profileAvatar"),
   profileDisplayName: document.querySelector("#profileDisplayName"),
+  profileEmail: document.querySelector("#profileEmail"),
   profileFirstNameInput: document.querySelector("#profileFirstNameInput"),
   profileLastNameInput: document.querySelector("#profileLastNameInput"),
   authLogoutButton: document.querySelector("#authLogoutButton"),
@@ -383,10 +390,12 @@ function loadContractTargets() {
 }
 
 function normalizeProfile(profile) {
-  return {
-    firstName: String(profile?.firstName || "").trim(),
-    lastName: String(profile?.lastName || "").trim()
-  };
+  const firstName = String(profile?.firstName || "").trim();
+  const lastName = String(profile?.lastName || "").trim();
+
+  if (!firstName && !lastName) return { ...DEFAULT_PROFILE };
+
+  return { firstName, lastName };
 }
 
 function loadProfile() {
@@ -412,14 +421,28 @@ function loadProfile() {
 
 function getProfileDisplayName() {
   const fullName = [profileData.firstName, profileData.lastName].filter(Boolean).join(" ");
-  return fullName || "Luck";
+  return fullName || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.lastName}`;
+}
+
+function getProfileEmail() {
+  return supabaseSession?.user?.email || "lucasrppe@gmail.com";
+}
+
+function getProfileInitials() {
+  const names = getProfileDisplayName().split(" ").filter(Boolean);
+  return names
+    .slice(0, 2)
+    .map((name) => name.charAt(0).toUpperCase())
+    .join("") || "LC";
 }
 
 function syncProfilePanel() {
   if (elements.profileFirstNameInput) elements.profileFirstNameInput.value = profileData.firstName;
   if (elements.profileLastNameInput) elements.profileLastNameInput.value = profileData.lastName;
   if (elements.profileDisplayName) elements.profileDisplayName.textContent = getProfileDisplayName();
-  if (elements.authStatus) elements.authStatus.textContent = "Configurações do perfil.";
+  if (elements.profileEmail) elements.profileEmail.textContent = getProfileEmail();
+  if (elements.profileAvatar) elements.profileAvatar.textContent = getProfileInitials();
+  if (elements.authStatus) elements.authStatus.textContent = "Conta Luck conectada.";
 }
 
 function saveProfile() {
@@ -431,6 +454,23 @@ function saveProfile() {
   saveLocalState();
   scheduleRemoteSave();
   syncProfilePanel();
+}
+
+function setProfileMenuOpen(isOpen) {
+  if (!elements.profileMenu || !elements.profileButton) return;
+
+  elements.profileMenu.hidden = !isOpen;
+  elements.profileButton.setAttribute("aria-expanded", String(isOpen));
+}
+
+function toggleProfileMenu() {
+  setProfileMenuOpen(Boolean(elements.profileMenu?.hidden));
+}
+
+function toggleProfileEditor() {
+  if (!elements.profileEditForm) return;
+
+  elements.profileEditForm.hidden = !elements.profileEditForm.hidden;
 }
 
 function saveLocalState() {
@@ -771,6 +811,7 @@ async function signUpSupabase() {
 }
 
 function signOutSupabase() {
+  setProfileMenuOpen(false);
   saveSupabaseSession(null);
   remoteSyncReady = false;
   setSyncStatus("Sessão encerrada. Entre para sincronizar os dados.");
@@ -1904,9 +1945,15 @@ elements.signupButton.addEventListener("click", signUpSupabase);
 elements.loginPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") signInSupabase();
 });
+elements.profileButton.addEventListener("click", toggleProfileMenu);
+elements.profileEditButton.addEventListener("click", toggleProfileEditor);
 elements.profileFirstNameInput.addEventListener("input", saveProfile);
 elements.profileLastNameInput.addEventListener("input", saveProfile);
 elements.authLogoutButton.addEventListener("click", signOutSupabase);
+document.addEventListener("click", (event) => {
+  if (elements.authPanel?.contains(event.target)) return;
+  setProfileMenuOpen(false);
+});
 elements.closeSaveDialogButton.addEventListener("click", () => closeDialogSmooth(elements.saveDialog));
 elements.saveDialog.addEventListener("click", (event) => {
   if (event.target === elements.saveDialog) closeDialogSmooth(elements.saveDialog);
