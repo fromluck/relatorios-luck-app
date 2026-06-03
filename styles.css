@@ -314,6 +314,7 @@ select {
 }
 
 .control-bar,
+.context-panel,
 .assistant-panel,
 .report-card,
 .pending-card,
@@ -343,6 +344,19 @@ select {
   gap: 12px;
   align-items: end;
   padding: 14px;
+}
+
+.context-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 240px) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 18px;
+}
+
+.context-panel .sidebar-danger-button {
+  min-width: 150px;
+  padding: 0 16px;
 }
 
 .brand {
@@ -1467,6 +1481,7 @@ td.action-cell {
   }
 
   .control-bar,
+  .context-panel,
   .sidebar,
   .assistant-panel,
   .compensation-actions,
@@ -1691,6 +1706,7 @@ td.action-cell {
   }
 
   .control-bar,
+  .context-panel,
   .assistant-grid,
   .parse-row {
     grid-template-columns: 1fr 1fr;
@@ -1755,6 +1771,7 @@ td.action-cell {
   }
 
   .control-bar,
+  .context-panel,
   .assistant-grid,
   .parse-row,
   .stats-grid,
