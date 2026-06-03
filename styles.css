@@ -1111,6 +1111,12 @@ h1 {
   padding: 20px;
 }
 
+.finance-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px);
+  justify-content: start;
+}
+
 .company-settings-body {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
