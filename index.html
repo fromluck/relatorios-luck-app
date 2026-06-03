@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=perfil-popups-1">
+    <link rel="stylesheet" href="styles.css?v=perfil-completo-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -429,6 +429,21 @@
             <button id="closeProfileEditDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
           </div>
 
+          <section class="profile-photo-editor" aria-label="Foto de perfil">
+            <span id="profilePhotoPreview" class="account-avatar-large">LC</span>
+            <div>
+              <strong>Foto de perfil</strong>
+              <small>Use uma imagem quadrada para ficar melhor no menu.</small>
+              <div class="profile-photo-actions">
+                <label class="file-button">
+                  Escolher foto
+                  <input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp">
+                </label>
+                <button id="removeProfilePhotoButton" class="secondary-button" type="button">Remover</button>
+              </div>
+            </div>
+          </section>
+
           <label>
             Nome
             <input id="profileFirstNameInput" type="text" autocomplete="given-name" placeholder="Nome">
@@ -438,6 +453,28 @@
             Sobrenome
             <input id="profileLastNameInput" type="text" autocomplete="family-name" placeholder="Sobrenome">
           </label>
+
+          <label>
+            E-mail da conta
+            <input id="profileEmailInput" type="email" autocomplete="email" placeholder="email@luck.com">
+          </label>
+
+          <section class="password-panel" aria-label="Alterar senha">
+            <div>
+              <strong>Alterar senha</strong>
+              <small>Deixe os campos em branco para manter a senha atual.</small>
+            </div>
+            <label>
+              Nova senha
+              <input id="profilePasswordInput" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+            </label>
+            <label>
+              Confirmar nova senha
+              <input id="profilePasswordConfirmInput" type="password" autocomplete="new-password" placeholder="Repita a nova senha">
+            </label>
+          </section>
+
+          <p id="profileEditStatus" class="profile-edit-status" role="status"></p>
 
           <div class="dialog-actions">
             <button id="cancelProfileEditButton" class="secondary-button" type="button">Cancelar</button>
@@ -486,6 +523,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=perfil-popups-1"></script>
+    <script src="app.js?v=perfil-completo-1"></script>
   </body>
 </html>
