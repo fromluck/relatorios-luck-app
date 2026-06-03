@@ -322,13 +322,29 @@ const elements = {
   authStatus: document.querySelector("#authStatus"),
   profileButton: document.querySelector("#profileButton"),
   profileMenu: document.querySelector("#profileMenu"),
+  profileAccountButton: document.querySelector("#profileAccountButton"),
   profileEditButton: document.querySelector("#profileEditButton"),
+  profileSettingsButton: document.querySelector("#profileSettingsButton"),
   profileEditForm: document.querySelector("#profileEditForm"),
   profileAvatar: document.querySelector("#profileAvatar"),
   profileDisplayName: document.querySelector("#profileDisplayName"),
   profileEmail: document.querySelector("#profileEmail"),
   profileFirstNameInput: document.querySelector("#profileFirstNameInput"),
   profileLastNameInput: document.querySelector("#profileLastNameInput"),
+  accountDialog: document.querySelector("#accountDialog"),
+  closeAccountDialogButton: document.querySelector("#closeAccountDialogButton"),
+  accountDialogAvatar: document.querySelector("#accountDialogAvatar"),
+  accountDialogName: document.querySelector("#accountDialogName"),
+  accountDialogEmail: document.querySelector("#accountDialogEmail"),
+  accountDialogStatus: document.querySelector("#accountDialogStatus"),
+  accountDialogSync: document.querySelector("#accountDialogSync"),
+  profileEditDialog: document.querySelector("#profileEditDialog"),
+  closeProfileEditDialogButton: document.querySelector("#closeProfileEditDialogButton"),
+  cancelProfileEditButton: document.querySelector("#cancelProfileEditButton"),
+  settingsDialog: document.querySelector("#settingsDialog"),
+  closeSettingsDialogButton: document.querySelector("#closeSettingsDialogButton"),
+  settingsSyncText: document.querySelector("#settingsSyncText"),
+  settingsSyncBadge: document.querySelector("#settingsSyncBadge"),
   authLogoutButton: document.querySelector("#authLogoutButton"),
   saveDialog: document.querySelector("#saveDialog"),
   saveDialogTitle: document.querySelector("#saveDialogTitle"),
@@ -697,10 +713,30 @@ function syncProfilePanel() {
   if (elements.profileDisplayName) elements.profileDisplayName.textContent = getProfileDisplayName();
   if (elements.profileEmail) elements.profileEmail.textContent = getProfileEmail();
   if (elements.profileAvatar) elements.profileAvatar.textContent = getProfileInitials();
+  if (elements.accountDialogAvatar) elements.accountDialogAvatar.textContent = getProfileInitials();
+  if (elements.accountDialogName) elements.accountDialogName.textContent = getProfileDisplayName();
+  if (elements.accountDialogEmail) elements.accountDialogEmail.textContent = getProfileEmail();
+  if (elements.accountDialogStatus) {
+    elements.accountDialogStatus.textContent = isSupabaseSessionValid()
+      ? "Conta conectada com acesso ao sistema."
+      : "Modo local ou sessão desconectada.";
+  }
+  if (elements.accountDialogSync) {
+    elements.accountDialogSync.textContent = hasSupabaseBackend()
+      ? "Banco Supabase configurado para sincronizar os dados."
+      : "Modo local ativo neste navegador.";
+  }
+  if (elements.settingsSyncText) {
+    elements.settingsSyncText.textContent = hasSupabaseBackend()
+      ? "Os dados podem ser sincronizados entre dispositivos após salvar."
+      : "Sem banco conectado: os dados ficam salvos neste navegador.";
+  }
+  if (elements.settingsSyncBadge) elements.settingsSyncBadge.textContent = hasSupabaseBackend() ? "Online" : "Local";
   if (elements.authStatus) elements.authStatus.textContent = "Conta Luck conectada.";
 }
 
-function saveProfile() {
+function saveProfile(event) {
+  event?.preventDefault();
   profileData = normalizeProfile({
     firstName: elements.profileFirstNameInput?.value,
     lastName: elements.profileLastNameInput?.value
@@ -709,6 +745,12 @@ function saveProfile() {
   saveLocalState();
   scheduleRemoteSave();
   syncProfilePanel();
+
+  if (event) {
+    closeDialogSmooth(elements.profileEditDialog, () => {
+      showSaveDialog("Perfil atualizado", "As informações do perfil foram salvas.");
+    });
+  }
 }
 
 function setProfileMenuOpen(isOpen) {
@@ -722,10 +764,22 @@ function toggleProfileMenu() {
   setProfileMenuOpen(Boolean(elements.profileMenu?.hidden));
 }
 
-function toggleProfileEditor() {
-  if (!elements.profileEditForm) return;
+function openAccountDialog() {
+  setProfileMenuOpen(false);
+  syncProfilePanel();
+  openDialogSmooth(elements.accountDialog);
+}
 
-  elements.profileEditForm.hidden = !elements.profileEditForm.hidden;
+function openProfileEditDialog() {
+  setProfileMenuOpen(false);
+  syncProfilePanel();
+  openDialogSmooth(elements.profileEditDialog);
+}
+
+function openSettingsDialog() {
+  setProfileMenuOpen(false);
+  syncProfilePanel();
+  openDialogSmooth(elements.settingsDialog);
 }
 
 function saveLocalState() {
@@ -3399,9 +3453,14 @@ elements.loginPasswordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") signInSupabase();
 });
 elements.profileButton.addEventListener("click", toggleProfileMenu);
-elements.profileEditButton.addEventListener("click", toggleProfileEditor);
-elements.profileFirstNameInput.addEventListener("input", saveProfile);
-elements.profileLastNameInput.addEventListener("input", saveProfile);
+elements.profileAccountButton.addEventListener("click", openAccountDialog);
+elements.profileEditButton.addEventListener("click", openProfileEditDialog);
+elements.profileSettingsButton.addEventListener("click", openSettingsDialog);
+elements.profileEditForm.addEventListener("submit", saveProfile);
+elements.closeAccountDialogButton.addEventListener("click", () => closeDialogSmooth(elements.accountDialog));
+elements.closeProfileEditDialogButton.addEventListener("click", () => closeDialogSmooth(elements.profileEditDialog));
+elements.cancelProfileEditButton.addEventListener("click", () => closeDialogSmooth(elements.profileEditDialog));
+elements.closeSettingsDialogButton.addEventListener("click", () => closeDialogSmooth(elements.settingsDialog));
 elements.authLogoutButton.addEventListener("click", signOutSupabase);
 document.addEventListener("click", (event) => {
   if (elements.authPanel?.contains(event.target)) return;
@@ -3427,6 +3486,27 @@ elements.deleteMonthDialog.addEventListener("cancel", (event) => {
 elements.editDialog.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeEditDialog();
+});
+elements.accountDialog.addEventListener("click", (event) => {
+  if (event.target === elements.accountDialog) closeDialogSmooth(elements.accountDialog);
+});
+elements.accountDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.accountDialog);
+});
+elements.profileEditDialog.addEventListener("click", (event) => {
+  if (event.target === elements.profileEditDialog) closeDialogSmooth(elements.profileEditDialog);
+});
+elements.profileEditDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.profileEditDialog);
+});
+elements.settingsDialog.addEventListener("click", (event) => {
+  if (event.target === elements.settingsDialog) closeDialogSmooth(elements.settingsDialog);
+});
+elements.settingsDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.settingsDialog);
 });
 
 renderAuthState();
