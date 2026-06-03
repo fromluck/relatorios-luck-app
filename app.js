@@ -250,6 +250,10 @@ const elements = {
   loginStatus: document.querySelector("#loginStatus"),
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
+  reportViewButton: document.querySelector("#reportViewButton"),
+  pendingViewButton: document.querySelector("#pendingViewButton"),
+  reportView: document.querySelector("#reportView"),
+  pendingView: document.querySelector("#pendingView"),
   deleteMonthButton: document.querySelector("#deleteMonthButton"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
@@ -677,10 +681,56 @@ function setAuthBusy(isBusy, message) {
   if (message) setLoginStatus(message);
 }
 
+function getRequestedView() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("page") === "pendencias" || window.location.hash === "#pendencias") {
+    return "pendencias";
+  }
+
+  return "relatorios";
+}
+
+function updateViewUrl(view, replace = false) {
+  const url = new URL(window.location.href);
+  if (view === "pendencias") {
+    url.searchParams.set("page", "pendencias");
+  } else {
+    url.searchParams.delete("page");
+  }
+  url.hash = "";
+
+  const state = { view };
+  if (url.toString() === window.location.href) return;
+  if (replace) {
+    window.history.replaceState(state, document.title, url);
+    return;
+  }
+
+  window.history.pushState(state, document.title, url);
+}
+
+function setActiveView(view, options = {}) {
+  const activeView = view === "pendencias" ? "pendencias" : "relatorios";
+  const isPendingView = activeView === "pendencias";
+
+  elements.reportView.hidden = isPendingView;
+  elements.pendingView.hidden = !isPendingView;
+  elements.reportViewButton.classList.toggle("is-active", !isPendingView);
+  elements.pendingViewButton.classList.toggle("is-active", isPendingView);
+  elements.reportViewButton.setAttribute("aria-pressed", String(!isPendingView));
+  elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
+
+  if (options.updateUrl) updateViewUrl(activeView, Boolean(options.replaceUrl));
+  if (options.scroll !== false) {
+    window.scrollTo({ top: 0, behavior: options.smooth ? "smooth" : "auto" });
+  }
+}
+
 function startAuthenticatedApp() {
   renderAuthState();
   populateControls();
   render();
+  setActiveView(getRequestedView(), { scroll: false, updateUrl: window.location.hash === "#pendencias", replaceUrl: true });
   exposeBackupData();
   loadRemoteState();
 }
@@ -2598,6 +2648,15 @@ elements.monthSelect.addEventListener("change", () => {
   ensureReport(elements.companySelect.value, elements.monthSelect.value, { save: true });
   refreshMonthOptions();
   render();
+});
+elements.reportViewButton.addEventListener("click", () => {
+  setActiveView("relatorios", { updateUrl: true, smooth: true });
+});
+elements.pendingViewButton.addEventListener("click", () => {
+  setActiveView("pendencias", { updateUrl: true, smooth: true });
+});
+window.addEventListener("popstate", () => {
+  setActiveView(getRequestedView(), { scroll: false });
 });
 elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
