@@ -22,7 +22,8 @@ const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
-const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
+const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
+const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const BACKUP_VERSION = 1;
 const PENDING_COLUMNS = [
   { id: "conteudos", label: "Conteúdos" },
@@ -245,6 +246,7 @@ let companySettings = loadCompanySettings();
 syncContractTargetsFromCompanySettings();
 let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
+let profilePhotoDraft = profileData.avatarDataUrl || "";
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let selectedFinanceMonth = loadFinanceMonth();
@@ -329,8 +331,15 @@ const elements = {
   profileAvatar: document.querySelector("#profileAvatar"),
   profileDisplayName: document.querySelector("#profileDisplayName"),
   profileEmail: document.querySelector("#profileEmail"),
+  profilePhotoPreview: document.querySelector("#profilePhotoPreview"),
+  profilePhotoInput: document.querySelector("#profilePhotoInput"),
+  removeProfilePhotoButton: document.querySelector("#removeProfilePhotoButton"),
   profileFirstNameInput: document.querySelector("#profileFirstNameInput"),
   profileLastNameInput: document.querySelector("#profileLastNameInput"),
+  profileEmailInput: document.querySelector("#profileEmailInput"),
+  profilePasswordInput: document.querySelector("#profilePasswordInput"),
+  profilePasswordConfirmInput: document.querySelector("#profilePasswordConfirmInput"),
+  profileEditStatus: document.querySelector("#profileEditStatus"),
   accountDialog: document.querySelector("#accountDialog"),
   closeAccountDialogButton: document.querySelector("#closeAccountDialogButton"),
   accountDialogAvatar: document.querySelector("#accountDialogAvatar"),
@@ -578,10 +587,14 @@ function getCompanySetting(company) {
 function normalizeProfile(profile) {
   const firstName = String(profile?.firstName || "").trim();
   const lastName = String(profile?.lastName || "").trim();
+  const email = String(profile?.email || "").trim();
+  const avatarDataUrl = String(profile?.avatarDataUrl || "").startsWith("data:image/")
+    ? String(profile.avatarDataUrl)
+    : "";
 
-  if (!firstName && !lastName) return { ...DEFAULT_PROFILE };
+  if (!firstName && !lastName && !email && !avatarDataUrl) return { ...DEFAULT_PROFILE };
 
-  return { firstName, lastName };
+  return { firstName, lastName, email, avatarDataUrl };
 }
 
 function loadProfile() {
@@ -696,7 +709,7 @@ function getProfileDisplayName() {
 }
 
 function getProfileEmail() {
-  return supabaseSession?.user?.email || "lucasrppe@gmail.com";
+  return profileData.email || supabaseSession?.user?.email || "lucasrppe@gmail.com";
 }
 
 function getProfileInitials() {
@@ -707,13 +720,24 @@ function getProfileInitials() {
     .join("") || "LC";
 }
 
+function renderAvatarElement(element, avatarDataUrl = profileData.avatarDataUrl) {
+  if (!element) return;
+
+  const hasImage = Boolean(avatarDataUrl);
+  element.classList.toggle("has-image", hasImage);
+  element.style.backgroundImage = hasImage ? `url("${avatarDataUrl}")` : "";
+  element.textContent = hasImage ? "" : getProfileInitials();
+}
+
 function syncProfilePanel() {
   if (elements.profileFirstNameInput) elements.profileFirstNameInput.value = profileData.firstName;
   if (elements.profileLastNameInput) elements.profileLastNameInput.value = profileData.lastName;
+  if (elements.profileEmailInput) elements.profileEmailInput.value = getProfileEmail();
   if (elements.profileDisplayName) elements.profileDisplayName.textContent = getProfileDisplayName();
   if (elements.profileEmail) elements.profileEmail.textContent = getProfileEmail();
-  if (elements.profileAvatar) elements.profileAvatar.textContent = getProfileInitials();
-  if (elements.accountDialogAvatar) elements.accountDialogAvatar.textContent = getProfileInitials();
+  renderAvatarElement(elements.profileAvatar);
+  renderAvatarElement(elements.accountDialogAvatar);
+  renderAvatarElement(elements.profilePhotoPreview, profilePhotoDraft);
   if (elements.accountDialogName) elements.accountDialogName.textContent = getProfileDisplayName();
   if (elements.accountDialogEmail) elements.accountDialogEmail.textContent = getProfileEmail();
   if (elements.accountDialogStatus) {
@@ -735,21 +759,103 @@ function syncProfilePanel() {
   if (elements.authStatus) elements.authStatus.textContent = "Conta Luck conectada.";
 }
 
-function saveProfile(event) {
-  event?.preventDefault();
-  profileData = normalizeProfile({
-    firstName: elements.profileFirstNameInput?.value,
-    lastName: elements.profileLastNameInput?.value
-  });
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
-  saveLocalState();
-  scheduleRemoteSave();
-  syncProfilePanel();
+function setProfileEditStatus(message = "", type = "") {
+  if (!elements.profileEditStatus) return;
 
-  if (event) {
-    closeDialogSmooth(elements.profileEditDialog, () => {
-      showSaveDialog("Perfil atualizado", "As informações do perfil foram salvas.");
+  elements.profileEditStatus.textContent = message;
+  elements.profileEditStatus.classList.toggle("is-error", type === "error");
+  elements.profileEditStatus.classList.toggle("is-success", type === "success");
+}
+
+async function updateSupabaseUser(updates) {
+  const config = getSupabaseConfig();
+  const response = await fetchSupabaseAuth(`${config.url}/auth/v1/user`, {
+    method: "PUT",
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${supabaseSession.access_token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updates)
+  });
+  const payload = await parseSupabaseResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getSupabaseAuthMessage(payload, "Não foi possível atualizar os dados da conta."));
+  }
+
+  return payload;
+}
+
+async function saveProfile(event) {
+  event?.preventDefault();
+  const nextEmail = elements.profileEmailInput?.value.trim() || "";
+  const currentEmail = getProfileEmail();
+  const nextPassword = elements.profilePasswordInput?.value || "";
+  const nextPasswordConfirm = elements.profilePasswordConfirmInput?.value || "";
+
+  if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+    setProfileEditStatus("Informe um e-mail válido.", "error");
+    return;
+  }
+
+  if (nextPassword || nextPasswordConfirm) {
+    if (nextPassword.length < 8) {
+      setProfileEditStatus("A nova senha precisa ter pelo menos 8 caracteres.", "error");
+      return;
+    }
+
+    if (nextPassword !== nextPasswordConfirm) {
+      setProfileEditStatus("A confirmação da senha não confere.", "error");
+      return;
+    }
+  }
+
+  const accountUpdates = {};
+  if (nextEmail && nextEmail !== currentEmail) accountUpdates.email = nextEmail;
+  if (nextPassword) accountUpdates.password = nextPassword;
+
+  setProfileEditStatus("Salvando perfil...");
+
+  try {
+    if (Object.keys(accountUpdates).length) {
+      if (!hasSupabaseBackend() || !isSupabaseSessionValid()) {
+        throw new Error("Entre na conta Luck para alterar e-mail ou senha.");
+      }
+
+      const updatedUser = await updateSupabaseUser(accountUpdates);
+      if (accountUpdates.email) {
+        const updatedEmail = updatedUser?.email || accountUpdates.email;
+        profileData.email = updatedEmail;
+        if (supabaseSession?.user) {
+          saveSupabaseSession({
+            ...supabaseSession,
+            user: { ...supabaseSession.user, email: updatedEmail }
+          });
+        }
+      }
+    }
+
+    profileData = normalizeProfile({
+      ...profileData,
+      firstName: elements.profileFirstNameInput?.value,
+      lastName: elements.profileLastNameInput?.value,
+      email: profileData.email,
+      avatarDataUrl: profilePhotoDraft
     });
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+    saveLocalState();
+    scheduleRemoteSave();
+    syncProfilePanel();
+    elements.profilePasswordInput.value = "";
+    elements.profilePasswordConfirmInput.value = "";
+
+    closeDialogSmooth(elements.profileEditDialog, () => {
+      const accountText = nextPassword ? " A senha também foi atualizada." : "";
+      showSaveDialog("Perfil atualizado", `As informações do perfil foram salvas.${accountText}`);
+    });
+  } catch (error) {
+    setProfileEditStatus(error?.message || "Não foi possível salvar o perfil.", "error");
   }
 }
 
@@ -772,7 +878,12 @@ function openAccountDialog() {
 
 function openProfileEditDialog() {
   setProfileMenuOpen(false);
+  profilePhotoDraft = profileData.avatarDataUrl || "";
   syncProfilePanel();
+  if (elements.profilePhotoInput) elements.profilePhotoInput.value = "";
+  if (elements.profilePasswordInput) elements.profilePasswordInput.value = "";
+  if (elements.profilePasswordConfirmInput) elements.profilePasswordConfirmInput.value = "";
+  setProfileEditStatus("");
   openDialogSmooth(elements.profileEditDialog);
 }
 
@@ -780,6 +891,38 @@ function openSettingsDialog() {
   setProfileMenuOpen(false);
   syncProfilePanel();
   openDialogSmooth(elements.settingsDialog);
+}
+
+function handleProfilePhotoChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setProfileEditStatus("Escolha uma imagem em PNG, JPG ou WebP.", "error");
+    event.target.value = "";
+    return;
+  }
+
+  if (file.size > PROFILE_PHOTO_MAX_SIZE) {
+    setProfileEditStatus("Escolha uma imagem menor que 1,5 MB.", "error");
+    event.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    profilePhotoDraft = String(reader.result || "");
+    renderAvatarElement(elements.profilePhotoPreview, profilePhotoDraft);
+    setProfileEditStatus("Foto pronta para salvar.", "success");
+  });
+  reader.readAsDataURL(file);
+}
+
+function removeProfilePhoto() {
+  profilePhotoDraft = "";
+  if (elements.profilePhotoInput) elements.profilePhotoInput.value = "";
+  renderAvatarElement(elements.profilePhotoPreview, "");
+  setProfileEditStatus("Foto removida. Salve o perfil para confirmar.", "success");
 }
 
 function saveLocalState() {
@@ -3457,6 +3600,8 @@ elements.profileAccountButton.addEventListener("click", openAccountDialog);
 elements.profileEditButton.addEventListener("click", openProfileEditDialog);
 elements.profileSettingsButton.addEventListener("click", openSettingsDialog);
 elements.profileEditForm.addEventListener("submit", saveProfile);
+elements.profilePhotoInput.addEventListener("change", handleProfilePhotoChange);
+elements.removeProfilePhotoButton.addEventListener("click", removeProfilePhoto);
 elements.closeAccountDialogButton.addEventListener("click", () => closeDialogSmooth(elements.accountDialog));
 elements.closeProfileEditDialogButton.addEventListener("click", () => closeDialogSmooth(elements.profileEditDialog));
 elements.cancelProfileEditButton.addEventListener("click", () => closeDialogSmooth(elements.profileEditDialog));
