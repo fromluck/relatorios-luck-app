@@ -310,6 +310,7 @@ select {
 .control-bar,
 .assistant-panel,
 .report-card,
+.pending-card,
 .stat-card,
 .sidebar {
   border: 1px solid var(--line);
@@ -359,6 +360,24 @@ select {
 .sidebar-actions {
   display: grid;
   gap: 8px;
+}
+
+.sidebar-link-button {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  padding: 0 14px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.sidebar-link-button:hover {
+  background: #ffedd5;
 }
 
 .sync-status {
@@ -905,6 +924,10 @@ h1 {
   overflow: hidden;
 }
 
+.pending-card {
+  overflow: hidden;
+}
+
 .report-header {
   display: flex;
   align-items: center;
@@ -934,6 +957,120 @@ h1 {
   display: grid;
   gap: 20px;
   padding: 20px;
+}
+
+.pending-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(190px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding: 18px;
+}
+
+.pending-column {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 190px;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  background: #111827;
+  padding: 10px;
+}
+
+.pending-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pending-column-header span {
+  color: #94a3b8;
+}
+
+.pending-list {
+  display: grid;
+  gap: 8px;
+  min-height: 88px;
+}
+
+.pending-item {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #2d3748;
+  border-radius: 7px;
+  background: #1f2329;
+  color: #f8fafc;
+  padding: 10px;
+}
+
+.pending-item p {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.pending-item-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.pending-item-actions select {
+  min-height: 30px;
+  border-color: #475569;
+  background: #111827;
+  color: #f8fafc;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.pending-add-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.pending-add-form input {
+  min-height: 34px;
+  border-color: #2d3748;
+  background: #0b1220;
+  color: #ffffff;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.pending-add-form input::placeholder {
+  color: #94a3b8;
+}
+
+.pending-add-form button {
+  min-height: 34px;
+  border: 1px solid #475569;
+  background: #111827;
+  color: #ffffff;
+  padding: 0;
+  font-size: 18px;
+}
+
+.pending-empty {
+  display: grid;
+  place-items: center;
+  min-height: 70px;
+  border: 1px dashed #334155;
+  border-radius: 7px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
 }
 
 .section-block {
@@ -1246,6 +1383,7 @@ td.action-cell {
   .sidebar,
   .assistant-panel,
   .compensation-actions,
+  .pending-card,
   .row-action,
   .action-column,
   .action-cell {
