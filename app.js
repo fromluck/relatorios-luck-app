@@ -22,6 +22,7 @@ const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
+const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
 const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const BACKUP_VERSION = 1;
@@ -247,10 +248,12 @@ syncContractTargetsFromCompanySettings();
 let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let profilePhotoDraft = profileData.avatarDataUrl || "";
+let selectedTheme = loadTheme();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
+applyTheme(selectedTheme);
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -352,6 +355,7 @@ const elements = {
   cancelProfileEditButton: document.querySelector("#cancelProfileEditButton"),
   settingsDialog: document.querySelector("#settingsDialog"),
   closeSettingsDialogButton: document.querySelector("#closeSettingsDialogButton"),
+  settingsThemeText: document.querySelector("#settingsThemeText"),
   settingsSyncText: document.querySelector("#settingsSyncText"),
   settingsSyncBadge: document.querySelector("#settingsSyncBadge"),
   authLogoutButton: document.querySelector("#authLogoutButton"),
@@ -597,6 +601,24 @@ function normalizeProfile(profile) {
   return { firstName, lastName, email, avatarDataUrl };
 }
 
+function normalizeTheme(theme) {
+  return theme === "dark" ? "dark" : "light";
+}
+
+function loadTheme() {
+  const sharedState = getSharedState();
+  const savedState = readSavedState();
+
+  if (savedState?.theme && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeTheme(savedState.theme);
+  }
+
+  const saved = localStorage.getItem(THEME_STORAGE_KEY);
+  if (saved) return normalizeTheme(saved);
+
+  return normalizeTheme(sharedState?.theme);
+}
+
 function loadProfile() {
   const sharedState = getSharedState();
   const sharedProfile = normalizeProfile(sharedState?.profile);
@@ -757,6 +779,7 @@ function syncProfilePanel() {
   }
   if (elements.settingsSyncBadge) elements.settingsSyncBadge.textContent = hasSupabaseBackend() ? "Online" : "Local";
   if (elements.authStatus) elements.authStatus.textContent = "Conta Luck conectada.";
+  syncThemeControls();
 }
 
 function setProfileEditStatus(message = "", type = "") {
@@ -893,6 +916,35 @@ function openSettingsDialog() {
   openDialogSmooth(elements.settingsDialog);
 }
 
+function syncThemeControls() {
+  document.querySelectorAll("[data-theme-option]").forEach((button) => {
+    const isActive = button.dataset.themeOption === selectedTheme;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  const themeText = document.querySelector("#settingsThemeText");
+  if (themeText) {
+    themeText.textContent = selectedTheme === "dark"
+      ? "Tema escuro ativo para reduzir brilho e destacar os dados."
+      : "Tema claro ativo com identidade visual da Luck.";
+  }
+}
+
+function applyTheme(theme, options = {}) {
+  selectedTheme = normalizeTheme(theme);
+  document.documentElement.dataset.theme = selectedTheme;
+  document.documentElement.style.colorScheme = selectedTheme;
+  syncThemeControls();
+
+  if (options.save) {
+    localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+    saveLocalState();
+    scheduleRemoteSave();
+    exposeBackupData();
+  }
+}
+
 function handleProfilePhotoChange(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -936,6 +988,7 @@ function saveLocalState() {
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+  localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
 }
 
 function saveCompanySettings() {
@@ -1364,6 +1417,7 @@ function getCurrentState() {
     contractTargets,
     companySettings,
     profile: profileData,
+    theme: selectedTheme,
     pendingBoards,
     financialRecords
   };
@@ -1449,6 +1503,8 @@ function loadRemoteState() {
         companySettings = normalizeCompanySettings(state.companySettings || companySettings);
         syncContractTargetsFromCompanySettings();
         profileData = normalizeProfile(state.profile || profileData);
+        selectedTheme = normalizeTheme(state.theme || selectedTheme);
+        applyTheme(selectedTheme);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
         ensureRowIds();
@@ -1493,6 +1549,8 @@ async function loadSupabaseState() {
       companySettings = normalizeCompanySettings(record.state.companySettings || companySettings);
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(record.state.profile || profileData);
+      selectedTheme = normalizeTheme(record.state.theme || selectedTheme);
+      applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
       ensureRowIds();
@@ -1650,6 +1708,8 @@ function restoreBackupFile(event) {
       companySettings = normalizeCompanySettings(payload.companySettings || companySettings);
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(payload.profile || profileData);
+      selectedTheme = normalizeTheme(payload.theme || selectedTheme);
+      applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
       ensureRowIds();
@@ -3503,6 +3563,7 @@ function exposeBackupData() {
     contractTargets,
     companySettings,
     profile: profileData,
+    theme: selectedTheme,
     pendingBoards,
     financialRecords
   };
@@ -3599,6 +3660,9 @@ elements.profileButton.addEventListener("click", toggleProfileMenu);
 elements.profileAccountButton.addEventListener("click", openAccountDialog);
 elements.profileEditButton.addEventListener("click", openProfileEditDialog);
 elements.profileSettingsButton.addEventListener("click", openSettingsDialog);
+document.querySelectorAll("[data-theme-option]").forEach((button) => {
+  button.addEventListener("click", () => applyTheme(button.dataset.themeOption, { save: true }));
+});
 elements.profileEditForm.addEventListener("submit", saveProfile);
 elements.profilePhotoInput.addEventListener("change", handleProfilePhotoChange);
 elements.removeProfilePhotoButton.addEventListener("click", removeProfilePhoto);
