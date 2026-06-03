@@ -20,6 +20,7 @@ const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
+const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
@@ -247,6 +248,7 @@ let profileData = loadProfile();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let selectedFinanceMonth = loadFinanceMonth();
+let selectedPendingMonth = loadPendingMonth();
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -353,6 +355,7 @@ const elements = {
   pendingMonthTitle: document.querySelector("#pendingMonthTitle"),
   pendingTitle: document.querySelector("#pendingTitle"),
   pendingTotal: document.querySelector("#pendingTotal"),
+  pendingMonthSelect: document.querySelector("#pendingMonthSelect"),
   pendingBoard: document.querySelector("#pendingBoard")
 };
 
@@ -662,6 +665,11 @@ function loadFinanceMonth() {
   return isValidMonth(saved) ? saved : currentMonthKey();
 }
 
+function loadPendingMonth() {
+  const saved = localStorage.getItem(PENDING_MONTH_STORAGE_KEY);
+  return isValidMonth(saved) ? saved : currentMonthKey();
+}
+
 function isValidMonth(value) {
   return /^\d{4}-\d{2}$/.test(String(value || ""));
 }
@@ -729,6 +737,7 @@ function saveLocalState() {
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
+  localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
 }
 
@@ -950,7 +959,7 @@ function setActiveView(view, options = {}) {
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
-  elements.contextPanel.hidden = isFinanceView;
+  elements.contextPanel.hidden = isFinanceView || isPendingView;
   elements.reportViewButton.classList.toggle("is-active", activeView === "relatorios");
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
@@ -1692,13 +1701,12 @@ function escapeHTML(value) {
     .replaceAll("'", "&#039;");
 }
 
-function pendingBoardKey(company, month) {
-  return `${company}::${month}`;
+function pendingBoardKey(month) {
+  return `luck::${month}`;
 }
 
-function getPendingBoard(company, month) {
-  const key = pendingBoardKey(company, month);
-
+function migrateLegacyPendingBoards(month) {
+  const key = pendingBoardKey(month);
   if (!pendingBoards[key]) pendingBoards[key] = {};
 
   PENDING_COLUMNS.forEach((column) => {
@@ -1707,12 +1715,35 @@ function getPendingBoard(company, month) {
     }
   });
 
+  Object.entries(pendingBoards).forEach(([legacyKey, board]) => {
+    if (legacyKey === key || !legacyKey.endsWith(`::${month}`) || !board || typeof board !== "object") return;
+
+    PENDING_COLUMNS.forEach((column) => {
+      if (Array.isArray(board[column.id])) {
+        pendingBoards[key][column.id].push(...board[column.id]);
+      }
+    });
+    delete pendingBoards[legacyKey];
+  });
+
   return pendingBoards[key];
 }
 
+function getPendingBoard(month) {
+  const key = pendingBoardKey(month);
+  if (!pendingBoards[key]) pendingBoards[key] = {};
+
+  PENDING_COLUMNS.forEach((column) => {
+    if (!Array.isArray(pendingBoards[key][column.id])) {
+      pendingBoards[key][column.id] = [];
+    }
+  });
+
+  return migrateLegacyPendingBoards(month);
+}
+
 function getSelectedPendingBoard() {
-  const report = getSelectedReport();
-  return getPendingBoard(report.company, report.month);
+  return getPendingBoard(selectedPendingMonth);
 }
 
 function getReportRows(report) {
@@ -2106,6 +2137,7 @@ function populateControls() {
   elements.editMaterialInput.innerHTML = materialOptions;
 
   refreshMonthOptions();
+  refreshPendingMonthOptions();
   refreshFinanceMonthOptions();
 }
 
@@ -2134,6 +2166,30 @@ function getFinanceRecordMonths() {
   return Object.keys(financialRecords)
     .map((key) => key.split("::").pop())
     .filter(isValidMonth);
+}
+
+function getPendingBoardMonths() {
+  return Object.keys(pendingBoards)
+    .map((key) => key.split("::").pop())
+    .filter(isValidMonth);
+}
+
+function getSelectablePendingMonths() {
+  return unique([...monthsUntilCurrent(), ...getPendingBoardMonths()])
+    .sort()
+    .reverse();
+}
+
+function refreshPendingMonthOptions() {
+  const months = getSelectablePendingMonths();
+  const preferredMonth = months.includes(selectedPendingMonth) ? selectedPendingMonth : currentMonthKey();
+
+  elements.pendingMonthSelect.innerHTML = months
+    .map((month) => `<option value="${month}">${formatMonth(month)}</option>`)
+    .join("");
+
+  selectedPendingMonth = preferredMonth;
+  elements.pendingMonthSelect.value = selectedPendingMonth;
 }
 
 function getSelectableFinanceMonths() {
@@ -2351,14 +2407,13 @@ function renderPendingRow(row) {
 }
 
 function renderPendingBoard() {
-  const report = getSelectedReport();
-  const board = getPendingBoard(report.company, report.month);
+  const board = getPendingBoard(selectedPendingMonth);
   const rows = getPendingRows(board);
   const doneCount = rows.filter((row) => row.status === "done").length;
   const pendingCount = rows.length - doneCount;
 
-  elements.pendingMonthTitle.textContent = formatMonth(report.month);
-  elements.pendingTitle.textContent = `Pendências - ${report.company}`;
+  elements.pendingMonthTitle.textContent = formatMonth(selectedPendingMonth);
+  elements.pendingTitle.textContent = "Pendências - Luck";
   elements.pendingTotal.textContent = `${pendingCount} pendentes`;
   elements.pendingBoard.innerHTML = `
     <section class="pending-overview" aria-label="Resumo das pendências">
@@ -2395,7 +2450,7 @@ function renderPendingBoard() {
     <section class="pending-list-table" aria-label="Lista de pendências">
       ${rows.length
         ? rows.map(renderPendingRow).join("")
-        : `<div class="empty-state">Nenhuma pendência cadastrada para este cliente e mês.</div>`}
+        : `<div class="empty-state">Nenhuma pendência cadastrada na Luck neste mês.</div>`}
     </section>
   `;
 }
@@ -3016,14 +3071,6 @@ function renameCompanyReferences(oldName, nextName) {
     report.title = `Relatório de Produção - ${nextName}`;
   });
 
-  Object.entries(pendingBoards).forEach(([key, board]) => {
-    const [company, month] = key.split("::");
-    if (company !== oldName) return;
-
-    delete pendingBoards[key];
-    pendingBoards[pendingBoardKey(nextName, month)] = board;
-  });
-
   delete companySettings[oldName];
   delete contractTargets[oldName];
 }
@@ -3231,7 +3278,6 @@ function confirmDeleteMonth() {
   const month = elements.monthSelect.value;
 
   reportData = reportData.filter((report) => !(report.company === company && report.month === month));
-  delete pendingBoards[pendingBoardKey(company, month)];
   const nextMonth = getFallbackMonthAfterDelete(company, month);
   ensureReport(company, nextMonth, { save: false });
   saveReports();
@@ -3307,6 +3353,11 @@ elements.financeMonthSelect.addEventListener("change", () => {
   selectedFinanceMonth = elements.financeMonthSelect.value;
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   renderFinance();
+});
+elements.pendingMonthSelect.addEventListener("change", () => {
+  selectedPendingMonth = elements.pendingMonthSelect.value;
+  localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
+  renderPendingBoard();
 });
 elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
