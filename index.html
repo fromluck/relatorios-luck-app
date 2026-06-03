@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=pendencias-pagina-2">
+    <link rel="stylesheet" href="styles.css?v=empresas-config-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -65,18 +65,6 @@
 
         <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
 
-        <section class="contract-config" aria-label="Configuração do contrato">
-          <span class="eyebrow">Contrato</span>
-          <label>
-            Vídeos contratados
-            <input id="targetVideosInput" type="number" min="0" step="1">
-          </label>
-          <label>
-            Criativos contratados
-            <input id="targetCreativesInput" type="number" min="0" step="1">
-          </label>
-        </section>
-
         <div class="sidebar-actions" aria-label="Exportação e salvamento">
           <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
           <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
@@ -84,6 +72,7 @@
           <div class="view-switch" aria-label="Telas do sistema">
             <button id="reportViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">Relatórios</button>
             <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Pendências</button>
+            <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Empresas</button>
           </div>
         </div>
 
@@ -192,6 +181,88 @@
       </article>
       </div>
 
+      <div id="companyView" class="app-view" hidden>
+      <section class="company-settings-card" id="empresas" aria-label="Configurações da empresa">
+        <header class="report-header">
+          <div>
+            <span class="eyebrow">Empresas</span>
+            <h2>Configurações da empresa</h2>
+          </div>
+          <span class="total-pill" id="companySettingsBadge">Cliente atual</span>
+        </header>
+
+        <div class="company-settings-body">
+          <form id="companySettingsForm" class="company-settings-form">
+            <div class="settings-copy">
+              <span class="eyebrow">Empresa selecionada</span>
+              <h3 id="companySettingsTitle">Rede de Postos SJ</h3>
+              <p>Cadastre os dados que ajudam a identificar o cliente e mantenha aqui a meta mensal do contrato.</p>
+            </div>
+
+            <div class="settings-grid">
+              <label>
+                Nome da empresa
+                <input id="companyNameInput" type="text" required placeholder="Ex.: Rede de Postos SJ">
+              </label>
+              <label>
+                Segmento
+                <input id="companySegmentInput" type="text" placeholder="Ex.: Telecom, varejo, construção">
+              </label>
+              <label>
+                Responsável
+                <input id="companyContactInput" type="text" placeholder="Nome do contato">
+              </label>
+              <label>
+                Contato
+                <input id="companyContactInfoInput" type="text" placeholder="WhatsApp ou e-mail">
+              </label>
+              <label>
+                Vídeos contratados
+                <input id="targetVideosInput" type="number" min="0" step="1">
+              </label>
+              <label>
+                Criativos contratados
+                <input id="targetCreativesInput" type="number" min="0" step="1">
+              </label>
+            </div>
+
+            <label>
+              Observações
+              <textarea id="companyNotesInput" rows="4" placeholder="Ex.: detalhes do contrato, preferências do cliente ou pontos de atenção"></textarea>
+            </label>
+
+            <div class="settings-actions">
+              <button id="saveCompanySettingsButton" class="export-main-button" type="submit">Salvar configuração</button>
+            </div>
+          </form>
+
+          <form id="newCompanyForm" class="new-company-form">
+            <div class="settings-copy">
+              <span class="eyebrow">Novo cliente</span>
+              <h3>Criar empresa</h3>
+              <p>Ao criar, o sistema já abre um relatório vazio para o mês selecionado.</p>
+            </div>
+
+            <label>
+              Nome da nova empresa
+              <input id="newCompanyNameInput" type="text" placeholder="Ex.: Cliente Novo">
+            </label>
+            <div class="settings-grid compact">
+              <label>
+                Vídeos
+                <input id="newCompanyVideosInput" type="number" min="0" step="1" value="0">
+              </label>
+              <label>
+                Criativos
+                <input id="newCompanyCreativesInput" type="number" min="0" step="1" value="0">
+              </label>
+            </div>
+            <button id="createCompanyButton" class="secondary-button" type="submit">Criar empresa</button>
+          </form>
+        </div>
+      </section>
+      </div>
+
       <dialog id="editDialog" class="edit-dialog">
         <form id="editForm" method="dialog">
           <div class="dialog-header">
@@ -264,6 +335,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=pendencias-pagina-2"></script>
+    <script src="app.js?v=empresas-config-1"></script>
   </body>
 </html>
