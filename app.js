@@ -17,6 +17,7 @@ const LEGACY_STORAGE_KEYS = [
   "reports"
 ];
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
+const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
@@ -231,6 +232,8 @@ ensureRowIds();
 let parsedQuickItems = [];
 let editingItemId = null;
 let contractTargets = loadContractTargets();
+let companySettings = loadCompanySettings();
+syncContractTargetsFromCompanySettings();
 let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
@@ -252,11 +255,25 @@ const elements = {
   monthSelect: document.querySelector("#monthSelect"),
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
+  companyViewButton: document.querySelector("#companyViewButton"),
   reportView: document.querySelector("#reportView"),
   pendingView: document.querySelector("#pendingView"),
+  companyView: document.querySelector("#companyView"),
   deleteMonthButton: document.querySelector("#deleteMonthButton"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
+  companySettingsForm: document.querySelector("#companySettingsForm"),
+  companySettingsTitle: document.querySelector("#companySettingsTitle"),
+  companySettingsBadge: document.querySelector("#companySettingsBadge"),
+  companyNameInput: document.querySelector("#companyNameInput"),
+  companySegmentInput: document.querySelector("#companySegmentInput"),
+  companyContactInput: document.querySelector("#companyContactInput"),
+  companyContactInfoInput: document.querySelector("#companyContactInfoInput"),
+  companyNotesInput: document.querySelector("#companyNotesInput"),
+  newCompanyForm: document.querySelector("#newCompanyForm"),
+  newCompanyNameInput: document.querySelector("#newCompanyNameInput"),
+  newCompanyVideosInput: document.querySelector("#newCompanyVideosInput"),
+  newCompanyCreativesInput: document.querySelector("#newCompanyCreativesInput"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -340,6 +357,7 @@ function getSharedState() {
   return {
     reports: window.LUCK_SHARED_BACKUP.reports,
     contractTargets: window.LUCK_SHARED_BACKUP.contractTargets || null,
+    companySettings: window.LUCK_SHARED_BACKUP.companySettings || null,
     profile: window.LUCK_SHARED_BACKUP.profile || null,
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
@@ -410,6 +428,106 @@ function loadContractTargets() {
   } catch {
     return { ...CONTRACT_TARGETS };
   }
+}
+
+function normalizeCompanyName(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function getKnownCompanyNames(settings = companySettings, targets = contractTargets) {
+  return unique([
+    ...initialReports.map((report) => report.company),
+    ...reportData.map((report) => report.company),
+    ...Object.keys(CONTRACT_TARGETS),
+    ...Object.keys(targets || {}),
+    ...Object.keys(settings || {})
+  ].map(normalizeCompanyName).filter(Boolean));
+}
+
+function normalizeCompanySetting(company, setting = {}, targets = contractTargets) {
+  const normalizedCompany = normalizeCompanyName(setting.name || company);
+  const target = targets?.[company] || CONTRACT_TARGETS[company] || {};
+  const videos = Number(setting.videos ?? target.videos ?? 0);
+  const creatives = Number(setting.creatives ?? target.creatives ?? 0);
+
+  return {
+    name: normalizedCompany,
+    segment: String(setting.segment || "").trim(),
+    contact: String(setting.contact || "").trim(),
+    contactInfo: String(setting.contactInfo || "").trim(),
+    notes: String(setting.notes || "").trim(),
+    videos: Number.isFinite(videos) ? Math.max(0, videos) : 0,
+    creatives: Number.isFinite(creatives) ? Math.max(0, creatives) : 0
+  };
+}
+
+function normalizeCompanySettings(settings = {}, targets = contractTargets) {
+  const nextSettings = {};
+  const knownNames = unique([
+    ...initialReports.map((report) => report.company),
+    ...reportData.map((report) => report.company),
+    ...Object.keys(CONTRACT_TARGETS),
+    ...Object.keys(targets || {}),
+    ...Object.keys(settings || {})
+  ].map(normalizeCompanyName).filter(Boolean));
+
+  knownNames.forEach((company) => {
+    nextSettings[company] = normalizeCompanySetting(company, settings?.[company] || {}, targets);
+  });
+
+  return nextSettings;
+}
+
+function loadCompanySettings() {
+  const sharedState = getSharedState();
+  const sharedSettings = sharedState?.companySettings;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && sharedSettings && typeof sharedSettings === "object") {
+    return normalizeCompanySettings(sharedSettings);
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.companySettings && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeCompanySettings(savedState.companySettings);
+  }
+
+  const saved = localStorage.getItem(COMPANY_SETTINGS_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeCompanySettings(JSON.parse(saved));
+    } catch {
+      return normalizeCompanySettings(sharedSettings || {});
+    }
+  }
+
+  return normalizeCompanySettings(sharedSettings || {});
+}
+
+function syncContractTargetsFromCompanySettings() {
+  contractTargets = {
+    ...CONTRACT_TARGETS,
+    ...contractTargets
+  };
+
+  Object.entries(companySettings || {}).forEach(([company, setting]) => {
+    contractTargets[company] = {
+      videos: Number(setting.videos) || 0,
+      creatives: Number(setting.creatives) || 0
+    };
+  });
+}
+
+function getCompanySetting(company) {
+  const normalizedCompany = normalizeCompanyName(company);
+  if (!normalizedCompany) return normalizeCompanySetting("");
+
+  if (!companySettings[normalizedCompany]) {
+    companySettings[normalizedCompany] = normalizeCompanySetting(normalizedCompany);
+    syncContractTargetsFromCompanySettings();
+  }
+
+  return companySettings[normalizedCompany];
 }
 
 function normalizeProfile(profile) {
@@ -514,11 +632,19 @@ function toggleProfileEditor() {
 }
 
 function saveLocalState() {
+  syncContractTargetsFromCompanySettings();
   const state = getCurrentState();
   localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
+  localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+}
+
+function saveCompanySettings() {
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
 }
 
 function saveContractTargets() {
@@ -683,6 +809,10 @@ function setAuthBusy(isBusy, message) {
 
 function getRequestedView() {
   const params = new URLSearchParams(window.location.search);
+  if (params.get("page") === "empresas" || window.location.hash === "#empresas") {
+    return "empresas";
+  }
+
   if (params.get("page") === "pendencias" || window.location.hash === "#pendencias") {
     return "pendencias";
   }
@@ -692,8 +822,8 @@ function getRequestedView() {
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (view === "pendencias") {
-    url.searchParams.set("page", "pendencias");
+  if (view === "pendencias" || view === "empresas") {
+    url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
   }
@@ -710,15 +840,19 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const activeView = view === "pendencias" ? "pendencias" : "relatorios";
+  const activeView = ["pendencias", "empresas"].includes(view) ? view : "relatorios";
   const isPendingView = activeView === "pendencias";
+  const isCompanyView = activeView === "empresas";
 
-  elements.reportView.hidden = isPendingView;
+  elements.reportView.hidden = isPendingView || isCompanyView;
   elements.pendingView.hidden = !isPendingView;
-  elements.reportViewButton.classList.toggle("is-active", !isPendingView);
+  elements.companyView.hidden = !isCompanyView;
+  elements.reportViewButton.classList.toggle("is-active", activeView === "relatorios");
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
-  elements.reportViewButton.setAttribute("aria-pressed", String(!isPendingView));
+  elements.companyViewButton.classList.toggle("is-active", isCompanyView);
+  elements.reportViewButton.setAttribute("aria-pressed", String(activeView === "relatorios"));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
+  elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
 
   if (options.updateUrl) updateViewUrl(activeView, Boolean(options.replaceUrl));
   if (options.scroll !== false) {
@@ -730,7 +864,7 @@ function startAuthenticatedApp() {
   renderAuthState();
   populateControls();
   render();
-  setActiveView(getRequestedView(), { scroll: false, updateUrl: window.location.hash === "#pendencias", replaceUrl: true });
+  setActiveView(getRequestedView(), { scroll: false, updateUrl: ["#pendencias", "#empresas"].includes(window.location.hash), replaceUrl: true });
   exposeBackupData();
   loadRemoteState();
 }
@@ -916,6 +1050,7 @@ function getCurrentState() {
     updatedAt: new Date().toISOString(),
     reports: reportData,
     contractTargets,
+    companySettings,
     profile: profileData,
     pendingBoards
   };
@@ -998,11 +1133,13 @@ function loadRemoteState() {
           ...CONTRACT_TARGETS,
           ...(state.contractTargets || contractTargets)
         };
+        companySettings = normalizeCompanySettings(state.companySettings || companySettings);
+        syncContractTargetsFromCompanySettings();
         profileData = normalizeProfile(state.profile || profileData);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         ensureRowIds();
         saveReports();
-        saveContractTargets();
+        saveCompanySettings();
         saveLocalState();
         syncProfilePanel();
         populateControls();
@@ -1039,11 +1176,13 @@ async function loadSupabaseState() {
         ...CONTRACT_TARGETS,
         ...(record.state.contractTargets || contractTargets)
       };
+      companySettings = normalizeCompanySettings(record.state.companySettings || companySettings);
+      syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(record.state.profile || profileData);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       ensureRowIds();
       saveReports();
-      saveContractTargets();
+      saveCompanySettings();
       saveLocalState();
       syncProfilePanel();
       populateControls();
@@ -1193,11 +1332,13 @@ function restoreBackupFile(event) {
         ...CONTRACT_TARGETS,
         ...(payload.contractTargets || contractTargets)
       };
+      companySettings = normalizeCompanySettings(payload.companySettings || companySettings);
+      syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(payload.profile || profileData);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       ensureRowIds();
       saveReports();
-      saveContractTargets();
+      saveCompanySettings();
       saveLocalState();
       syncProfilePanel();
       populateControls();
@@ -1467,6 +1608,14 @@ function getReportRows(report) {
 }
 
 function getContractTarget(company) {
+  const setting = companySettings?.[company];
+  if (setting) {
+    return {
+      videos: Number(setting.videos) || 0,
+      creatives: Number(setting.creatives) || 0
+    };
+  }
+
   return contractTargets[company] || { videos: 0, creatives: 0 };
 }
 
@@ -1809,15 +1958,35 @@ function contractDetailText(monthlyTarget, previousBacklog, produced, compensati
 }
 
 function syncTargetInputs() {
-  const targets = getContractTarget(elements.companySelect.value);
-  elements.targetVideosInput.value = targets.videos || 0;
-  elements.targetCreativesInput.value = targets.creatives || 0;
+  syncCompanySettingsInputs();
+}
+
+function syncCompanySettingsInputs() {
+  const company = elements.companySelect.value;
+  const settings = getCompanySetting(company);
+
+  elements.companySettingsTitle.textContent = company || "Empresa";
+  elements.companySettingsBadge.textContent = company || "Cliente atual";
+  elements.companyNameInput.value = settings.name || company || "";
+  elements.companySegmentInput.value = settings.segment || "";
+  elements.companyContactInput.value = settings.contact || "";
+  elements.companyContactInfoInput.value = settings.contactInfo || "";
+  elements.companyNotesInput.value = settings.notes || "";
+  elements.targetVideosInput.value = settings.videos || 0;
+  elements.targetCreativesInput.value = settings.creatives || 0;
 }
 
 function populateControls() {
-  elements.companySelect.innerHTML = unique(reportData.map((report) => report.company))
+  const selectedCompany = elements.companySelect.value;
+  const companies = getKnownCompanyNames();
+
+  elements.companySelect.innerHTML = companies
     .map((company) => `<option>${company}</option>`)
     .join("");
+
+  if (companies.includes(selectedCompany)) {
+    elements.companySelect.value = selectedCompany;
+  }
 
   const materialOptions = MATERIAL_TYPES
     .map((type) => `<option>${type.label}</option>`)
@@ -2544,6 +2713,136 @@ function removePendingCard(cardId) {
   renderPendingBoard();
 }
 
+function findCompanyByName(name, ignoredName = "") {
+  const normalizedName = normalizeText(normalizeCompanyName(name));
+  const normalizedIgnoredName = normalizeText(normalizeCompanyName(ignoredName));
+
+  return getKnownCompanyNames().find((company) => {
+    const normalizedCompany = normalizeText(company);
+    return normalizedCompany === normalizedName && normalizedCompany !== normalizedIgnoredName;
+  });
+}
+
+function renameCompanyReferences(oldName, nextName) {
+  if (oldName === nextName) return;
+
+  reportData.forEach((report) => {
+    if (report.company !== oldName) return;
+
+    report.company = nextName;
+    report.title = `Relatório de Produção - ${nextName}`;
+  });
+
+  Object.entries(pendingBoards).forEach(([key, board]) => {
+    const [company, month] = key.split("::");
+    if (company !== oldName) return;
+
+    delete pendingBoards[key];
+    pendingBoards[pendingBoardKey(nextName, month)] = board;
+  });
+
+  delete companySettings[oldName];
+  delete contractTargets[oldName];
+}
+
+function readCompanySettingsForm(companyName) {
+  const videos = Number(elements.targetVideosInput.value);
+  const creatives = Number(elements.targetCreativesInput.value);
+
+  return normalizeCompanySetting(companyName, {
+    name: companyName,
+    segment: elements.companySegmentInput.value,
+    contact: elements.companyContactInput.value,
+    contactInfo: elements.companyContactInfoInput.value,
+    notes: elements.companyNotesInput.value,
+    videos: Number.isFinite(videos) ? videos : 0,
+    creatives: Number.isFinite(creatives) ? creatives : 0
+  });
+}
+
+function saveCompanySettingsForm(event) {
+  event.preventDefault();
+
+  const oldName = elements.companySelect.value;
+  const nextName = normalizeCompanyName(elements.companyNameInput.value);
+
+  if (!nextName) {
+    showSaveDialog("Nome obrigatório", "Informe o nome da empresa para salvar a configuração.");
+    return;
+  }
+
+  const duplicate = findCompanyByName(nextName, oldName);
+  if (duplicate) {
+    showSaveDialog("Empresa já existe", `${duplicate} já está cadastrada. Escolha outro nome.`);
+    return;
+  }
+
+  const selectedMonth = elements.monthSelect.value || currentMonthKey();
+  const settings = readCompanySettingsForm(nextName);
+
+  renameCompanyReferences(oldName, nextName);
+  companySettings[nextName] = settings;
+  contractTargets[nextName] = {
+    videos: settings.videos,
+    creatives: settings.creatives
+  };
+
+  ensureReport(nextName, selectedMonth, { save: false });
+  saveCompanySettings();
+  populateControls();
+  elements.companySelect.value = nextName;
+  refreshMonthOptions();
+  if ([...elements.monthSelect.options].some((option) => option.value === selectedMonth)) {
+    elements.monthSelect.value = selectedMonth;
+  }
+  syncCompanySettingsInputs();
+  render();
+  showSaveDialog("Empresa salva", `As configurações de ${nextName} foram atualizadas.`);
+}
+
+function createNewCompany(event) {
+  event.preventDefault();
+
+  const companyName = normalizeCompanyName(elements.newCompanyNameInput.value);
+  if (!companyName) {
+    showSaveDialog("Nome obrigatório", "Informe o nome da nova empresa.");
+    return;
+  }
+
+  const duplicate = findCompanyByName(companyName);
+  if (duplicate) {
+    showSaveDialog("Empresa já existe", `${duplicate} já está cadastrada no sistema.`);
+    return;
+  }
+
+  const selectedMonth = elements.monthSelect.value || currentMonthKey();
+  const videos = Number(elements.newCompanyVideosInput.value) || 0;
+  const creatives = Number(elements.newCompanyCreativesInput.value) || 0;
+
+  companySettings[companyName] = normalizeCompanySetting(companyName, {
+    videos,
+    creatives
+  });
+  contractTargets[companyName] = {
+    videos,
+    creatives
+  };
+  ensureReport(companyName, selectedMonth, { save: false });
+  saveCompanySettings();
+
+  populateControls();
+  elements.companySelect.value = companyName;
+  refreshMonthOptions();
+  elements.monthSelect.value = selectedMonth;
+  elements.newCompanyForm.reset();
+  elements.newCompanyVideosInput.value = "0";
+  elements.newCompanyCreativesInput.value = "0";
+  syncCompanySettingsInputs();
+  render();
+  setActiveView("empresas", { updateUrl: true });
+  showSaveDialog("Empresa criada", `${companyName} foi adicionada com um relatório vazio para ${formatMonth(selectedMonth)}.`);
+}
+
 function handlePendingBoardSubmit(event) {
   const form = event.target.closest("[data-pending-form]");
   if (!form) return;
@@ -2610,6 +2909,7 @@ function exposeBackupData() {
     exportedAt: new Date().toISOString(),
     reports: reportData,
     contractTargets,
+    companySettings,
     profile: profileData,
     pendingBoards
   };
@@ -2626,22 +2926,7 @@ function exposeBackupData() {
 
 elements.companySelect.addEventListener("change", () => {
   refreshMonthOptions();
-  render();
-});
-elements.targetVideosInput.addEventListener("input", () => {
-  contractTargets[elements.companySelect.value] = {
-    ...getContractTarget(elements.companySelect.value),
-    videos: Number(elements.targetVideosInput.value) || 0
-  };
-  saveContractTargets();
-  render();
-});
-elements.targetCreativesInput.addEventListener("input", () => {
-  contractTargets[elements.companySelect.value] = {
-    ...getContractTarget(elements.companySelect.value),
-    creatives: Number(elements.targetCreativesInput.value) || 0
-  };
-  saveContractTargets();
+  syncCompanySettingsInputs();
   render();
 });
 elements.monthSelect.addEventListener("change", () => {
@@ -2655,9 +2940,15 @@ elements.reportViewButton.addEventListener("click", () => {
 elements.pendingViewButton.addEventListener("click", () => {
   setActiveView("pendencias", { updateUrl: true });
 });
+elements.companyViewButton.addEventListener("click", () => {
+  syncCompanySettingsInputs();
+  setActiveView("empresas", { updateUrl: true });
+});
 window.addEventListener("popstate", () => {
   setActiveView(getRequestedView(), { scroll: false });
 });
+elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
+elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
