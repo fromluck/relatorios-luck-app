@@ -993,10 +993,18 @@ h1 {
   padding: 20px;
 }
 
+.pending-body,
 .pending-board {
   display: grid;
   gap: 16px;
+}
+
+.pending-body {
   padding: 20px;
+}
+
+.pending-board {
+  padding: 0;
 }
 
 .pending-overview,
@@ -1148,6 +1156,7 @@ h1 {
   padding: 20px;
 }
 
+.pending-toolbar,
 .finance-toolbar {
   display: grid;
   grid-template-columns: minmax(180px, 260px);
