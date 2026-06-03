@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=perfil-completo-1">
+    <link rel="stylesheet" href="styles.css?v=tema-escuro-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -504,9 +504,12 @@
             <article class="settings-row">
               <div>
                 <strong>Aparência</strong>
-                <small>Visual claro com identidade Luck.</small>
+                <small id="settingsThemeText">Escolha entre o visual claro ou escuro.</small>
               </div>
-              <span class="settings-badge">Claro</span>
+              <div class="theme-toggle" role="group" aria-label="Tema do sistema">
+                <button class="theme-option-button" type="button" data-theme-option="light" aria-pressed="true">Claro</button>
+                <button class="theme-option-button" type="button" data-theme-option="dark" aria-pressed="false">Escuro</button>
+              </div>
             </article>
             <article class="settings-row">
               <div>
@@ -523,6 +526,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=perfil-completo-1"></script>
+    <script src="app.js?v=tema-escuro-1"></script>
   </body>
 </html>
