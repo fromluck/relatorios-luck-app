@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=pendencias-luck-1">
+    <link rel="stylesheet" href="styles.css?v=perfil-popups-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -75,20 +75,9 @@
           </button>
 
           <div id="profileMenu" class="profile-menu" hidden>
-            <button type="button">Minha conta</button>
+            <button id="profileAccountButton" type="button">Minha conta</button>
             <button id="profileEditButton" type="button">Editar perfil</button>
-            <button type="button">Configurações</button>
-
-            <div id="profileEditForm" class="profile-edit-form" hidden>
-              <label>
-                Nome
-                <input id="profileFirstNameInput" type="text" autocomplete="given-name" placeholder="Nome">
-              </label>
-              <label>
-                Sobrenome
-                <input id="profileLastNameInput" type="text" autocomplete="family-name" placeholder="Sobrenome">
-              </label>
-            </div>
+            <button id="profileSettingsButton" type="button">Configurações</button>
 
             <button id="authLogoutButton" class="profile-logout-button" type="button">Sair</button>
           </div>
@@ -398,11 +387,105 @@
           </div>
         </div>
       </dialog>
+
+      <dialog id="accountDialog" class="save-dialog profile-dialog">
+        <div class="save-dialog-content">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Minha conta</span>
+              <h2>Conta Luck</h2>
+            </div>
+            <button id="closeAccountDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <section class="account-summary" aria-label="Resumo da conta">
+            <span id="accountDialogAvatar" class="account-avatar-large">LC</span>
+            <div>
+              <strong id="accountDialogName">Lucas Costa</strong>
+              <small id="accountDialogEmail">lucasrppe@gmail.com</small>
+            </div>
+          </section>
+
+          <dl class="dialog-info-list">
+            <div>
+              <dt>Status</dt>
+              <dd id="accountDialogStatus">Conta conectada</dd>
+            </div>
+            <div>
+              <dt>Sincronização</dt>
+              <dd id="accountDialogSync">Banco de dados Luck</dd>
+            </div>
+          </dl>
+        </div>
+      </dialog>
+
+      <dialog id="profileEditDialog" class="edit-dialog profile-dialog">
+        <form id="profileEditForm">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Editar perfil</span>
+              <h2>Dados do perfil</h2>
+            </div>
+            <button id="closeProfileEditDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <label>
+            Nome
+            <input id="profileFirstNameInput" type="text" autocomplete="given-name" placeholder="Nome">
+          </label>
+
+          <label>
+            Sobrenome
+            <input id="profileLastNameInput" type="text" autocomplete="family-name" placeholder="Sobrenome">
+          </label>
+
+          <div class="dialog-actions">
+            <button id="cancelProfileEditButton" class="secondary-button" type="button">Cancelar</button>
+            <button class="primary-button" type="submit">Salvar perfil</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="settingsDialog" class="save-dialog profile-dialog">
+        <div class="save-dialog-content">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Configurações</span>
+              <h2>Preferências do sistema</h2>
+            </div>
+            <button id="closeSettingsDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <section class="settings-list" aria-label="Preferências">
+            <article class="settings-row">
+              <div>
+                <strong>Idioma</strong>
+                <small>Interface configurada para português do Brasil.</small>
+              </div>
+              <span class="settings-badge">Português</span>
+            </article>
+            <article class="settings-row">
+              <div>
+                <strong>Aparência</strong>
+                <small>Visual claro com identidade Luck.</small>
+              </div>
+              <span class="settings-badge">Claro</span>
+            </article>
+            <article class="settings-row">
+              <div>
+                <strong>Banco de dados</strong>
+                <small id="settingsSyncText">Sincronização ativa quando a conta estiver conectada.</small>
+              </div>
+              <span id="settingsSyncBadge" class="settings-badge">Luck</span>
+            </article>
+          </section>
+        </div>
+      </dialog>
       </div>
     </main>
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=pendencias-luck-1"></script>
+    <script src="app.js?v=perfil-popups-1"></script>
   </body>
 </html>
