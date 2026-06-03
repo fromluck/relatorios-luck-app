@@ -307,6 +307,12 @@ select {
   min-width: 0;
 }
 
+.app-view {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
 .control-bar,
 .assistant-panel,
 .report-card,
@@ -362,7 +368,14 @@ select {
   gap: 8px;
 }
 
+.view-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .sidebar-link-button {
+  appearance: none;
   display: grid;
   place-items: center;
   min-height: 38px;
@@ -374,10 +387,21 @@ select {
   text-decoration: none;
   font-size: 13px;
   font-weight: 900;
+  cursor: pointer;
 }
 
 .sidebar-link-button:hover {
   background: #ffedd5;
+}
+
+.sidebar-link-button.is-active {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #ffffff;
+}
+
+.sidebar-link-button.is-active:hover {
+  background: #d94d00;
 }
 
 .sync-status {
