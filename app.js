@@ -2650,10 +2650,10 @@ elements.monthSelect.addEventListener("change", () => {
   render();
 });
 elements.reportViewButton.addEventListener("click", () => {
-  setActiveView("relatorios", { updateUrl: true, smooth: true });
+  setActiveView("relatorios", { updateUrl: true });
 });
 elements.pendingViewButton.addEventListener("click", () => {
-  setActiveView("pendencias", { updateUrl: true, smooth: true });
+  setActiveView("pendencias", { updateUrl: true });
 });
 window.addEventListener("popstate", () => {
   setActiveView(getRequestedView(), { scroll: false });
