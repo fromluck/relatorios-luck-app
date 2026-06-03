@@ -19,6 +19,7 @@ const LEGACY_STORAGE_KEYS = [
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
+const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
@@ -245,6 +246,7 @@ let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
+let selectedFinanceMonth = loadFinanceMonth();
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -252,6 +254,7 @@ const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "U
 
 const elements = {
   appShell: document.querySelector("#appShell"),
+  contextPanel: document.querySelector(".context-panel"),
   loginScreen: document.querySelector("#loginScreen"),
   loginEmailInput: document.querySelector("#loginEmailInput"),
   loginPasswordInput: document.querySelector("#loginPasswordInput"),
@@ -286,6 +289,7 @@ const elements = {
   newCompanyCreativesInput: document.querySelector("#newCompanyCreativesInput"),
   financeMonthTitle: document.querySelector("#financeMonthTitle"),
   financeTitle: document.querySelector("#financeTitle"),
+  financeMonthSelect: document.querySelector("#financeMonthSelect"),
   financeTotal: document.querySelector("#financeTotal"),
   financeSummary: document.querySelector("#financeSummary"),
   financeForm: document.querySelector("#financeForm"),
@@ -653,6 +657,15 @@ function loadFinancialRecords() {
   return clone(sharedRecords || {});
 }
 
+function loadFinanceMonth() {
+  const saved = localStorage.getItem(FINANCE_MONTH_STORAGE_KEY);
+  return isValidMonth(saved) ? saved : currentMonthKey();
+}
+
+function isValidMonth(value) {
+  return /^\d{4}-\d{2}$/.test(String(value || ""));
+}
+
 function getProfileDisplayName() {
   const fullName = [profileData.firstName, profileData.lastName].filter(Boolean).join(" ");
   return fullName || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.lastName}`;
@@ -715,6 +728,7 @@ function saveLocalState() {
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
+  localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
 }
 
@@ -936,6 +950,7 @@ function setActiveView(view, options = {}) {
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
+  elements.contextPanel.hidden = isFinanceView;
   elements.reportViewButton.classList.toggle("is-active", activeView === "relatorios");
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
@@ -2091,6 +2106,7 @@ function populateControls() {
   elements.editMaterialInput.innerHTML = materialOptions;
 
   refreshMonthOptions();
+  refreshFinanceMonthOptions();
 }
 
 function refreshMonthOptions() {
@@ -2112,6 +2128,30 @@ function refreshMonthOptions() {
   }
 
   syncTargetInputs();
+}
+
+function getFinanceRecordMonths() {
+  return Object.keys(financialRecords)
+    .map((key) => key.split("::").pop())
+    .filter(isValidMonth);
+}
+
+function getSelectableFinanceMonths() {
+  return unique([...monthsUntilCurrent(), ...getFinanceRecordMonths()])
+    .sort()
+    .reverse();
+}
+
+function refreshFinanceMonthOptions() {
+  const months = getSelectableFinanceMonths();
+  const preferredMonth = months.includes(selectedFinanceMonth) ? selectedFinanceMonth : currentMonthKey();
+
+  elements.financeMonthSelect.innerHTML = months
+    .map((month) => `<option value="${month}">${formatMonth(month)}</option>`)
+    .join("");
+
+  selectedFinanceMonth = preferredMonth;
+  elements.financeMonthSelect.value = selectedFinanceMonth;
 }
 
 function getVisibleSections(report) {
@@ -2360,13 +2400,19 @@ function renderPendingBoard() {
   `;
 }
 
-function financeRecordKey(company, month) {
-  return `${company}::${month}`;
+function financeRecordKey(month) {
+  return `luck::${month}`;
 }
 
-function getFinanceRecords(company, month) {
-  const key = financeRecordKey(company, month);
+function getFinanceRecords(month) {
+  const key = financeRecordKey(month);
   if (!Array.isArray(financialRecords[key])) financialRecords[key] = [];
+  Object.entries(financialRecords).forEach(([legacyKey, records]) => {
+    if (legacyKey === key || !legacyKey.endsWith(`::${month}`) || !Array.isArray(records)) return;
+
+    financialRecords[key].push(...records);
+    delete financialRecords[legacyKey];
+  });
   return financialRecords[key];
 }
 
@@ -2422,15 +2468,14 @@ function renderFinanceRow(record) {
 }
 
 function renderFinance() {
-  const report = getSelectedReport();
-  const records = getFinanceRecords(report.company, report.month);
+  const records = getFinanceRecords(selectedFinanceMonth);
 
-  elements.financeMonthTitle.textContent = formatMonth(report.month);
-  elements.financeTitle.textContent = `Financeiro - ${report.company}`;
+  elements.financeMonthTitle.textContent = formatMonth(selectedFinanceMonth);
+  elements.financeTitle.textContent = "Financeiro - Luck";
   renderFinanceSummary(records);
   elements.financeList.innerHTML = records.length
     ? records.map(renderFinanceRow).join("")
-    : `<div class="empty-state">Nenhum lançamento financeiro para este cliente e mês.</div>`;
+    : `<div class="empty-state">Nenhum lançamento financeiro da Luck neste mês.</div>`;
 }
 
 function renderContractSummary() {
@@ -2979,14 +3024,6 @@ function renameCompanyReferences(oldName, nextName) {
     pendingBoards[pendingBoardKey(nextName, month)] = board;
   });
 
-  Object.entries(financialRecords).forEach(([key, records]) => {
-    const [company, month] = key.split("::");
-    if (company !== oldName) return;
-
-    delete financialRecords[key];
-    financialRecords[financeRecordKey(nextName, month)] = records;
-  });
-
   delete companySettings[oldName];
   delete contractTargets[oldName];
 }
@@ -3092,7 +3129,6 @@ function createNewCompany(event) {
 function addFinanceRecord(event) {
   event.preventDefault();
 
-  const report = getSelectedReport();
   const description = fixPortuguese(elements.financeDescriptionInput.value.trim());
   const amount = Number(elements.financeAmountInput.value);
 
@@ -3101,7 +3137,7 @@ function addFinanceRecord(event) {
     return;
   }
 
-  getFinanceRecords(report.company, report.month).push({
+  getFinanceRecords(selectedFinanceMonth).push({
     id: `finance-${Math.random().toString(16).slice(2)}-${Date.now()}`,
     description,
     type: FINANCE_TYPES.includes(elements.financeTypeInput.value) ? elements.financeTypeInput.value : FINANCE_TYPES[0],
@@ -3118,8 +3154,7 @@ function addFinanceRecord(event) {
 }
 
 function updateFinanceStatus(recordId, status) {
-  const report = getSelectedReport();
-  const record = getFinanceRecords(report.company, report.month).find((item) => item.id === recordId);
+  const record = getFinanceRecords(selectedFinanceMonth).find((item) => item.id === recordId);
   if (!record) return;
 
   record.status = status === "paid" ? "paid" : "pending";
@@ -3128,9 +3163,8 @@ function updateFinanceStatus(recordId, status) {
 }
 
 function removeFinanceRecord(recordId) {
-  const report = getSelectedReport();
-  const records = getFinanceRecords(report.company, report.month);
-  const key = financeRecordKey(report.company, report.month);
+  const records = getFinanceRecords(selectedFinanceMonth);
+  const key = financeRecordKey(selectedFinanceMonth);
 
   financialRecords[key] = records.filter((record) => record.id !== recordId);
   saveFinancialRecords();
@@ -3198,7 +3232,6 @@ function confirmDeleteMonth() {
 
   reportData = reportData.filter((report) => !(report.company === company && report.month === month));
   delete pendingBoards[pendingBoardKey(company, month)];
-  delete financialRecords[financeRecordKey(company, month)];
   const nextMonth = getFallbackMonthAfterDelete(company, month);
   ensureReport(company, nextMonth, { save: false });
   saveReports();
@@ -3270,6 +3303,11 @@ window.addEventListener("popstate", () => {
 elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
 elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.financeForm.addEventListener("submit", addFinanceRecord);
+elements.financeMonthSelect.addEventListener("change", () => {
+  selectedFinanceMonth = elements.financeMonthSelect.value;
+  localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
+  renderFinance();
+});
 elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
