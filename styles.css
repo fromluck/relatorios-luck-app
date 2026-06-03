@@ -457,7 +457,7 @@ select {
 
 .profile-button {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -512,12 +512,6 @@ select {
   color: #64748b;
   font-size: 11px;
   font-weight: 700;
-}
-
-.profile-chevron {
-  color: #64748b;
-  font-size: 16px;
-  line-height: 1;
 }
 
 .profile-menu {
@@ -1048,7 +1042,7 @@ h1 {
 }
 
 .finance-form {
-  grid-template-columns: minmax(230px, 1fr) 150px 130px 150px 130px auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(120px, 150px) minmax(110px, 130px) minmax(135px, 150px) minmax(115px, 130px) 112px;
 }
 
 .pending-list-table,
@@ -1070,7 +1064,50 @@ h1 {
 }
 
 .finance-row {
-  grid-template-columns: minmax(260px, 1fr) 140px 130px auto;
+  grid-template-columns: minmax(240px, 1fr) minmax(120px, 140px) minmax(120px, 130px) 82px;
+}
+
+.finance-form .export-main-button {
+  min-width: 0;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.finance-row select {
+  min-width: 0;
+}
+
+.finance-row .row-action {
+  width: 76px;
+  justify-self: end;
+  padding: 0 8px;
+}
+
+.finance-summary-card.is-received {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.finance-summary-card.is-received strong {
+  color: #14532d;
+}
+
+.finance-summary-card.is-pending {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.finance-summary-card.is-pending strong {
+  color: #7f1d1d;
+}
+
+.finance-summary-card.is-forecast {
+  border-color: #86efac;
+  background: #dcfce7;
+}
+
+.finance-summary-card.is-forecast strong {
+  color: #14532d;
 }
 
 .pending-row.is-done {
