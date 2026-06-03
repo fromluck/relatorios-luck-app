@@ -2438,11 +2438,11 @@ function renderFinanceSummary(records) {
 
   elements.financeTotal.textContent = formatCurrency(total);
   elements.financeSummary.innerHTML = [
-    { label: "Recebido", value: paid },
-    { label: "Pendente", value: pending },
-    { label: "Total previsto", value: total }
+    { label: "Recebido", value: paid, className: "is-received" },
+    { label: "Pendente", value: pending, className: "is-pending" },
+    { label: "Total previsto", value: total, className: "is-forecast" }
   ].map((item) => `
-    <article>
+    <article class="finance-summary-card ${item.className}">
       <span>${item.label}</span>
       <strong>${formatCurrency(item.value)}</strong>
     </article>
