@@ -551,19 +551,6 @@ select {
   color: var(--blue);
 }
 
-.profile-edit-form {
-  display: grid;
-  gap: 8px;
-  margin: 4px 0;
-  padding: 8px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.profile-edit-form[hidden] {
-  display: none;
-}
-
 .profile-logout-button,
 .auth-logout-button {
   min-height: 38px;
@@ -1399,6 +1386,98 @@ td.action-cell {
 
 .delete-month-dialog .save-dialog-content {
   border-top-color: #dc2626;
+}
+
+.profile-dialog .save-dialog-content,
+.profile-dialog form {
+  border-top: 5px solid var(--blue);
+  border-top-color: var(--blue);
+}
+
+.account-summary {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 14px;
+}
+
+.account-avatar-large {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--blue);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.account-summary strong,
+.account-summary small {
+  display: block;
+}
+
+.account-summary strong {
+  font-size: 17px;
+}
+
+.account-summary small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dialog-info-list,
+.settings-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.dialog-info-list > div,
+.settings-row {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.dialog-info-list dt,
+.settings-row strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.dialog-info-list dd,
+.settings-row small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.settings-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.settings-badge {
+  border-radius: 999px;
+  background: #fff3eb;
+  color: #9a3900;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 @keyframes dialog-in {
