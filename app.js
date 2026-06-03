@@ -18,6 +18,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
+const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
@@ -27,6 +28,12 @@ const PENDING_COLUMNS = [
   { id: "avulso", label: "Avulso" },
   { id: "materiais", label: "Materiais" },
   { id: "aprovados", label: "Aprovados" }
+];
+const PENDING_TYPES = PENDING_COLUMNS.filter((column) => column.id !== "aprovados");
+const FINANCE_TYPES = ["Mensalidade", "Avulso", "Extra", "Outro"];
+const FINANCE_STATUSES = [
+  { value: "pending", label: "Pendente" },
+  { value: "paid", label: "Pago" }
 ];
 const CONTRACT_TARGETS = {
   "Alsol Telecom": { videos: 4, creatives: 8 },
@@ -237,6 +244,7 @@ syncContractTargetsFromCompanySettings();
 let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
+let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -256,9 +264,11 @@ const elements = {
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
   companyViewButton: document.querySelector("#companyViewButton"),
+  financeViewButton: document.querySelector("#financeViewButton"),
   reportView: document.querySelector("#reportView"),
   pendingView: document.querySelector("#pendingView"),
   companyView: document.querySelector("#companyView"),
+  financeView: document.querySelector("#financeView"),
   deleteMonthButton: document.querySelector("#deleteMonthButton"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
@@ -274,6 +284,17 @@ const elements = {
   newCompanyNameInput: document.querySelector("#newCompanyNameInput"),
   newCompanyVideosInput: document.querySelector("#newCompanyVideosInput"),
   newCompanyCreativesInput: document.querySelector("#newCompanyCreativesInput"),
+  financeMonthTitle: document.querySelector("#financeMonthTitle"),
+  financeTitle: document.querySelector("#financeTitle"),
+  financeTotal: document.querySelector("#financeTotal"),
+  financeSummary: document.querySelector("#financeSummary"),
+  financeForm: document.querySelector("#financeForm"),
+  financeDescriptionInput: document.querySelector("#financeDescriptionInput"),
+  financeTypeInput: document.querySelector("#financeTypeInput"),
+  financeAmountInput: document.querySelector("#financeAmountInput"),
+  financeDueDateInput: document.querySelector("#financeDueDateInput"),
+  financeStatusInput: document.querySelector("#financeStatusInput"),
+  financeList: document.querySelector("#financeList"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -360,6 +381,7 @@ function getSharedState() {
     companySettings: window.LUCK_SHARED_BACKUP.companySettings || null,
     profile: window.LUCK_SHARED_BACKUP.profile || null,
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
+    financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -577,6 +599,60 @@ function loadPendingBoards() {
   return clone(sharedPendingBoards || {});
 }
 
+function isValidDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function normalizeFinancialRecord(record) {
+  const amount = Number(record?.amount || 0);
+  return {
+    id: record?.id || `finance-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    description: fixPortuguese(String(record?.description || "").trim()),
+    type: FINANCE_TYPES.includes(record?.type) ? record.type : FINANCE_TYPES[0],
+    amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
+    dueDate: isValidDate(record?.dueDate) ? record.dueDate : "",
+    status: record?.status === "paid" ? "paid" : "pending",
+    createdAt: record?.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeFinancialRecords(records = {}) {
+  if (!records || typeof records !== "object") return {};
+
+  return Object.entries(records).reduce((normalized, [key, items]) => {
+    normalized[key] = Array.isArray(items)
+      ? items.map(normalizeFinancialRecord).filter((item) => item.description)
+      : [];
+    return normalized;
+  }, {});
+}
+
+function loadFinancialRecords() {
+  const sharedState = getSharedState();
+  const sharedRecords = sharedState?.financialRecords;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && sharedRecords && typeof sharedRecords === "object") {
+    return clone(sharedRecords);
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.financialRecords && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return clone(savedState.financialRecords);
+  }
+
+  const saved = localStorage.getItem(FINANCE_STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return clone(sharedRecords || {});
+    }
+  }
+
+  return clone(sharedRecords || {});
+}
+
 function getProfileDisplayName() {
   const fullName = [profileData.firstName, profileData.lastName].filter(Boolean).join(" ");
   return fullName || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.lastName}`;
@@ -638,6 +714,7 @@ function saveLocalState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
+  localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
 }
 
@@ -658,6 +735,12 @@ function saveReports() {
 }
 
 function savePendingBoards() {
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
+}
+
+function saveFinancialRecords() {
   saveLocalState();
   scheduleRemoteSave();
   exposeBackupData();
@@ -813,6 +896,10 @@ function getRequestedView() {
     return "empresas";
   }
 
+  if (params.get("page") === "financeiro" || window.location.hash === "#financeiro") {
+    return "financeiro";
+  }
+
   if (params.get("page") === "pendencias" || window.location.hash === "#pendencias") {
     return "pendencias";
   }
@@ -822,7 +909,7 @@ function getRequestedView() {
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (view === "pendencias" || view === "empresas") {
+  if (view === "pendencias" || view === "empresas" || view === "financeiro") {
     url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
@@ -840,19 +927,23 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const activeView = ["pendencias", "empresas"].includes(view) ? view : "relatorios";
+  const activeView = ["pendencias", "empresas", "financeiro"].includes(view) ? view : "relatorios";
   const isPendingView = activeView === "pendencias";
   const isCompanyView = activeView === "empresas";
+  const isFinanceView = activeView === "financeiro";
 
-  elements.reportView.hidden = isPendingView || isCompanyView;
+  elements.reportView.hidden = isPendingView || isCompanyView || isFinanceView;
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
+  elements.financeView.hidden = !isFinanceView;
   elements.reportViewButton.classList.toggle("is-active", activeView === "relatorios");
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
+  elements.financeViewButton.classList.toggle("is-active", isFinanceView);
   elements.reportViewButton.setAttribute("aria-pressed", String(activeView === "relatorios"));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
   elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
+  elements.financeViewButton.setAttribute("aria-pressed", String(isFinanceView));
 
   if (options.updateUrl) updateViewUrl(activeView, Boolean(options.replaceUrl));
   if (options.scroll !== false) {
@@ -864,7 +955,7 @@ function startAuthenticatedApp() {
   renderAuthState();
   populateControls();
   render();
-  setActiveView(getRequestedView(), { scroll: false, updateUrl: ["#pendencias", "#empresas"].includes(window.location.hash), replaceUrl: true });
+  setActiveView(getRequestedView(), { scroll: false, updateUrl: ["#pendencias", "#empresas", "#financeiro"].includes(window.location.hash), replaceUrl: true });
   exposeBackupData();
   loadRemoteState();
 }
@@ -1052,7 +1143,8 @@ function getCurrentState() {
     contractTargets,
     companySettings,
     profile: profileData,
-    pendingBoards
+    pendingBoards,
+    financialRecords
   };
 }
 
@@ -1137,6 +1229,7 @@ function loadRemoteState() {
         syncContractTargetsFromCompanySettings();
         profileData = normalizeProfile(state.profile || profileData);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
+        financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
         ensureRowIds();
         saveReports();
         saveCompanySettings();
@@ -1180,6 +1273,7 @@ async function loadSupabaseState() {
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(record.state.profile || profileData);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
+      financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -1336,6 +1430,7 @@ function restoreBackupFile(event) {
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(payload.profile || profileData);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
+      financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -1387,6 +1482,8 @@ function normalizePendingCard(card) {
   return {
     id: card.id || `pending-${Math.random().toString(16).slice(2)}-${Date.now()}`,
     title,
+    category: PENDING_TYPES.some((type) => type.id === card.category) ? card.category : "",
+    status: card.status === "done" ? "done" : card.status === "pending" ? "pending" : "",
     createdAt: card.createdAt || new Date().toISOString()
   };
 }
@@ -2159,55 +2256,181 @@ function renderSummary(sections) {
   elements.summaryNote.textContent = `${rows.length} itens no total`;
 }
 
-function renderPendingCard(card, currentColumnId) {
+function getPendingRows(board) {
+  return PENDING_COLUMNS.flatMap((column) =>
+    board[column.id].map((card) => {
+      const status = card.status || (column.id === "aprovados" ? "done" : "pending");
+      const type = PENDING_TYPES.some((item) => item.id === card.category)
+        ? card.category
+        : column.id === "aprovados"
+          ? "avulso"
+          : column.id;
+
+      return {
+        card,
+        columnId: column.id,
+        type,
+        status
+      };
+    })
+  );
+}
+
+function pendingTypeOptions(selectedType) {
+  return PENDING_TYPES
+    .map((type) => `<option value="${type.id}" ${type.id === selectedType ? "selected" : ""}>${type.label}</option>`)
+    .join("");
+}
+
+function pendingStatusOptions(selectedStatus) {
   return `
-    <article class="pending-item">
-      <p>${escapeHTML(card.title)}</p>
-      <div class="pending-item-actions">
-        <select data-pending-move="${card.id}" aria-label="Mover pendência">
-          ${PENDING_COLUMNS
-            .map((column) => `<option value="${column.id}" ${column.id === currentColumnId ? "selected" : ""}>${column.label}</option>`)
-            .join("")}
-        </select>
-        <button class="row-action danger" type="button" data-pending-delete="${card.id}">Excluir</button>
-      </div>
-    </article>
+    <option value="pending" ${selectedStatus === "pending" ? "selected" : ""}>Pendente</option>
+    <option value="done" ${selectedStatus === "done" ? "selected" : ""}>Concluído</option>
   `;
 }
 
-function renderPendingColumn(column, cards) {
+function renderPendingRow(row) {
+  const typeMeta = PENDING_TYPES.find((type) => type.id === row.type) || PENDING_TYPES[0];
+  const isDone = row.status === "done";
+
   return `
-    <section class="pending-column" data-pending-column="${column.id}">
-      <header class="pending-column-header">
-        <strong>${column.label}</strong>
-        <span>${cards.length}</span>
-      </header>
-
-      <div class="pending-list">
-        ${cards.length
-          ? cards.map((card) => renderPendingCard(card, column.id)).join("")
-          : `<div class="pending-empty">Sem cartões.</div>`}
+    <article class="pending-row ${isDone ? "is-done" : ""}">
+      <div>
+        <strong>${escapeHTML(row.card.title)}</strong>
+        <small>${typeMeta.label}</small>
       </div>
-
-      <form class="pending-add-form" data-pending-form="${column.id}">
-        <input type="text" placeholder="Adicionar cartão" aria-label="Adicionar cartão em ${column.label}">
-        <button type="submit" aria-label="Adicionar em ${column.label}">+</button>
-      </form>
-    </section>
+      <select data-pending-type="${row.card.id}" aria-label="Tipo da pendência">
+        ${pendingTypeOptions(row.type)}
+      </select>
+      <select class="pending-status-select" data-pending-status="${row.card.id}" aria-label="Status da pendência">
+        ${pendingStatusOptions(row.status)}
+      </select>
+      <button class="row-action danger" type="button" data-pending-delete="${row.card.id}">Excluir</button>
+    </article>
   `;
 }
 
 function renderPendingBoard() {
   const report = getSelectedReport();
   const board = getPendingBoard(report.company, report.month);
-  const total = PENDING_COLUMNS.reduce((sum, column) => sum + board[column.id].length, 0);
+  const rows = getPendingRows(board);
+  const doneCount = rows.filter((row) => row.status === "done").length;
+  const pendingCount = rows.length - doneCount;
 
   elements.pendingMonthTitle.textContent = formatMonth(report.month);
   elements.pendingTitle.textContent = `Pendências - ${report.company}`;
-  elements.pendingTotal.textContent = `${total} ${total === 1 ? "cartão" : "cartões"}`;
-  elements.pendingBoard.innerHTML = PENDING_COLUMNS
-    .map((column) => renderPendingColumn(column, board[column.id]))
-    .join("");
+  elements.pendingTotal.textContent = `${pendingCount} pendentes`;
+  elements.pendingBoard.innerHTML = `
+    <section class="pending-overview" aria-label="Resumo das pendências">
+      <article>
+        <span>Pendentes</span>
+        <strong>${pendingCount}</strong>
+      </article>
+      <article>
+        <span>Concluídas</span>
+        <strong>${doneCount}</strong>
+      </article>
+      <article>
+        <span>Total</span>
+        <strong>${rows.length}</strong>
+      </article>
+    </section>
+
+    <form class="pending-list-form" data-pending-form>
+      <label>
+        Trabalho ou projeto
+        <input type="text" name="title" placeholder="Ex.: Banner promocional, ajuste de vídeo, campanha avulsa">
+      </label>
+      <label>
+        Tipo
+        <select name="type">${pendingTypeOptions("avulso")}</select>
+      </label>
+      <label>
+        Status
+        <select name="status">${pendingStatusOptions("pending")}</select>
+      </label>
+      <button class="export-main-button" type="submit">Adicionar</button>
+    </form>
+
+    <section class="pending-list-table" aria-label="Lista de pendências">
+      ${rows.length
+        ? rows.map(renderPendingRow).join("")
+        : `<div class="empty-state">Nenhuma pendência cadastrada para este cliente e mês.</div>`}
+    </section>
+  `;
+}
+
+function financeRecordKey(company, month) {
+  return `${company}::${month}`;
+}
+
+function getFinanceRecords(company, month) {
+  const key = financeRecordKey(company, month);
+  if (!Array.isArray(financialRecords[key])) financialRecords[key] = [];
+  return financialRecords[key];
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format(Number(value) || 0);
+}
+
+function financeStatusLabel(status) {
+  return FINANCE_STATUSES.find((item) => item.value === status)?.label || FINANCE_STATUSES[0].label;
+}
+
+function renderFinanceSummary(records) {
+  const paid = records
+    .filter((record) => record.status === "paid")
+    .reduce((sum, record) => sum + record.amount, 0);
+  const pending = records
+    .filter((record) => record.status !== "paid")
+    .reduce((sum, record) => sum + record.amount, 0);
+  const total = paid + pending;
+
+  elements.financeTotal.textContent = formatCurrency(total);
+  elements.financeSummary.innerHTML = [
+    { label: "Recebido", value: paid },
+    { label: "Pendente", value: pending },
+    { label: "Total previsto", value: total }
+  ].map((item) => `
+    <article>
+      <span>${item.label}</span>
+      <strong>${formatCurrency(item.value)}</strong>
+    </article>
+  `).join("");
+}
+
+function renderFinanceRow(record) {
+  return `
+    <article class="finance-row">
+      <div>
+        <strong>${escapeHTML(record.description)}</strong>
+        <small>${record.type} ${record.dueDate ? `- ${formatDate(record.dueDate)}` : ""}</small>
+      </div>
+      <strong>${formatCurrency(record.amount)}</strong>
+      <select data-finance-status="${record.id}" aria-label="Status financeiro">
+        ${FINANCE_STATUSES
+          .map((status) => `<option value="${status.value}" ${status.value === record.status ? "selected" : ""}>${status.label}</option>`)
+          .join("")}
+      </select>
+      <button class="row-action danger" type="button" data-finance-delete="${record.id}">Excluir</button>
+    </article>
+  `;
+}
+
+function renderFinance() {
+  const report = getSelectedReport();
+  const records = getFinanceRecords(report.company, report.month);
+
+  elements.financeMonthTitle.textContent = formatMonth(report.month);
+  elements.financeTitle.textContent = `Financeiro - ${report.company}`;
+  renderFinanceSummary(records);
+  elements.financeList.innerHTML = records.length
+    ? records.map(renderFinanceRow).join("")
+    : `<div class="empty-state">Nenhum lançamento financeiro para este cliente e mês.</div>`;
 }
 
 function renderContractSummary() {
@@ -2257,6 +2480,7 @@ function render() {
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
   renderSummary(sections);
   renderPendingBoard();
+  renderFinance();
 }
 
 function normalizeText(value) {
@@ -2678,14 +2902,20 @@ function findPendingCard(cardId) {
   return null;
 }
 
-function addPendingCard(columnId, title) {
+function addPendingCard(type, title, status = "pending") {
   const cleanTitle = fixPortuguese(String(title || "").trim());
   if (!cleanTitle) return;
 
   const board = getSelectedPendingBoard();
+  const nextType = PENDING_TYPES.some((item) => item.id === type) ? type : "avulso";
+  const nextStatus = status === "done" ? "done" : "pending";
+  const columnId = nextStatus === "done" ? "aprovados" : nextType;
+
   board[columnId].push({
     id: `pending-${Math.random().toString(16).slice(2)}-${Date.now()}`,
     title: cleanTitle,
+    category: nextType,
+    status: nextStatus,
     createdAt: new Date().toISOString()
   });
 
@@ -2693,11 +2923,19 @@ function addPendingCard(columnId, title) {
   renderPendingBoard();
 }
 
-function movePendingCard(cardId, nextColumnId) {
+function updatePendingCard(cardId, updates = {}) {
   const found = findPendingCard(cardId);
-  if (!found || found.columnId === nextColumnId) return;
+  if (!found) return;
+
+  const nextType = PENDING_TYPES.some((item) => item.id === updates.type)
+    ? updates.type
+    : found.card.category || (found.columnId === "aprovados" ? "avulso" : found.columnId);
+  const nextStatus = updates.status || found.card.status || (found.columnId === "aprovados" ? "done" : "pending");
+  const nextColumnId = nextStatus === "done" ? "aprovados" : nextType;
 
   found.board[found.columnId].splice(found.index, 1);
+  found.card.category = nextType;
+  found.card.status = nextStatus;
   found.board[nextColumnId].push(found.card);
 
   savePendingBoards();
@@ -2739,6 +2977,14 @@ function renameCompanyReferences(oldName, nextName) {
 
     delete pendingBoards[key];
     pendingBoards[pendingBoardKey(nextName, month)] = board;
+  });
+
+  Object.entries(financialRecords).forEach(([key, records]) => {
+    const [company, month] = key.split("::");
+    if (company !== oldName) return;
+
+    delete financialRecords[key];
+    financialRecords[financeRecordKey(nextName, month)] = records;
   });
 
   delete companySettings[oldName];
@@ -2843,21 +3089,90 @@ function createNewCompany(event) {
   showSaveDialog("Empresa criada", `${companyName} foi adicionada com um relatório vazio para ${formatMonth(selectedMonth)}.`);
 }
 
+function addFinanceRecord(event) {
+  event.preventDefault();
+
+  const report = getSelectedReport();
+  const description = fixPortuguese(elements.financeDescriptionInput.value.trim());
+  const amount = Number(elements.financeAmountInput.value);
+
+  if (!description || !Number.isFinite(amount) || amount <= 0) {
+    showSaveDialog("Lançamento incompleto", "Informe descrição e valor para adicionar ao financeiro.");
+    return;
+  }
+
+  getFinanceRecords(report.company, report.month).push({
+    id: `finance-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    description,
+    type: FINANCE_TYPES.includes(elements.financeTypeInput.value) ? elements.financeTypeInput.value : FINANCE_TYPES[0],
+    amount,
+    dueDate: elements.financeDueDateInput.value,
+    status: elements.financeStatusInput.value === "paid" ? "paid" : "pending",
+    createdAt: new Date().toISOString()
+  });
+
+  elements.financeForm.reset();
+  elements.financeStatusInput.value = "pending";
+  saveFinancialRecords();
+  renderFinance();
+}
+
+function updateFinanceStatus(recordId, status) {
+  const report = getSelectedReport();
+  const record = getFinanceRecords(report.company, report.month).find((item) => item.id === recordId);
+  if (!record) return;
+
+  record.status = status === "paid" ? "paid" : "pending";
+  saveFinancialRecords();
+  renderFinance();
+}
+
+function removeFinanceRecord(recordId) {
+  const report = getSelectedReport();
+  const records = getFinanceRecords(report.company, report.month);
+  const key = financeRecordKey(report.company, report.month);
+
+  financialRecords[key] = records.filter((record) => record.id !== recordId);
+  saveFinancialRecords();
+  renderFinance();
+}
+
+function handleFinanceListChange(event) {
+  const statusSelect = event.target.closest("[data-finance-status]");
+  if (!statusSelect) return;
+
+  updateFinanceStatus(statusSelect.dataset.financeStatus, statusSelect.value);
+}
+
+function handleFinanceListClick(event) {
+  const deleteButton = event.target.closest("[data-finance-delete]");
+  if (!deleteButton) return;
+
+  removeFinanceRecord(deleteButton.dataset.financeDelete);
+}
+
 function handlePendingBoardSubmit(event) {
   const form = event.target.closest("[data-pending-form]");
   if (!form) return;
 
   event.preventDefault();
-  const input = form.querySelector("input");
-  addPendingCard(form.dataset.pendingForm, input.value);
-  input.value = "";
+  const formData = new FormData(form);
+  addPendingCard(formData.get("type"), formData.get("title"), formData.get("status"));
+  form.reset();
 }
 
 function handlePendingBoardChange(event) {
-  const moveSelect = event.target.closest("[data-pending-move]");
-  if (!moveSelect) return;
+  const typeSelect = event.target.closest("[data-pending-type]");
+  const statusSelect = event.target.closest("[data-pending-status]");
 
-  movePendingCard(moveSelect.dataset.pendingMove, moveSelect.value);
+  if (typeSelect) {
+    updatePendingCard(typeSelect.dataset.pendingType, { type: typeSelect.value });
+    return;
+  }
+
+  if (statusSelect) {
+    updatePendingCard(statusSelect.dataset.pendingStatus, { status: statusSelect.value });
+  }
 }
 
 function handlePendingBoardClick(event) {
@@ -2883,6 +3198,7 @@ function confirmDeleteMonth() {
 
   reportData = reportData.filter((report) => !(report.company === company && report.month === month));
   delete pendingBoards[pendingBoardKey(company, month)];
+  delete financialRecords[financeRecordKey(company, month)];
   const nextMonth = getFallbackMonthAfterDelete(company, month);
   ensureReport(company, nextMonth, { save: false });
   saveReports();
@@ -2911,7 +3227,8 @@ function exposeBackupData() {
     contractTargets,
     companySettings,
     profile: profileData,
-    pendingBoards
+    pendingBoards,
+    financialRecords
   };
   let backupNode = document.querySelector("#backupData");
   if (!backupNode) {
@@ -2944,11 +3261,15 @@ elements.companyViewButton.addEventListener("click", () => {
   syncCompanySettingsInputs();
   setActiveView("empresas", { updateUrl: true });
 });
+elements.financeViewButton.addEventListener("click", () => {
+  setActiveView("financeiro", { updateUrl: true });
+});
 window.addEventListener("popstate", () => {
   setActiveView(getRequestedView(), { scroll: false });
 });
 elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
 elements.newCompanyForm.addEventListener("submit", createNewCompany);
+elements.financeForm.addEventListener("submit", addFinanceRecord);
 elements.deleteMonthButton.addEventListener("click", openDeleteMonthDialog);
 elements.searchInput?.addEventListener("input", render);
 elements.interpretButton.addEventListener("click", parseQuickText);
@@ -2975,6 +3296,8 @@ elements.reportSections.addEventListener("click", (event) => {
 elements.pendingBoard.addEventListener("submit", handlePendingBoardSubmit);
 elements.pendingBoard.addEventListener("change", handlePendingBoardChange);
 elements.pendingBoard.addEventListener("click", handlePendingBoardClick);
+elements.financeList.addEventListener("change", handleFinanceListChange);
+elements.financeList.addEventListener("click", handleFinanceListClick);
 elements.editForm.addEventListener("submit", saveEditedItem);
 elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
