@@ -20,6 +20,13 @@ const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa" };
 const BACKUP_VERSION = 1;
+const PENDING_COLUMNS = [
+  { id: "conteudos", label: "Conteúdos" },
+  { id: "videos", label: "Vídeos" },
+  { id: "avulso", label: "Avulso" },
+  { id: "materiais", label: "Materiais" },
+  { id: "aprovados", label: "Aprovados" }
+];
 const CONTRACT_TARGETS = {
   "Alsol Telecom": { videos: 4, creatives: 8 },
   "Rede de Postos SJ": { videos: 17, creatives: 18 },
@@ -226,6 +233,7 @@ let editingItemId = null;
 let contractTargets = loadContractTargets();
 let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
+let pendingBoards = normalizePendingBoards(loadPendingBoards());
 saveLocalState();
 
 const DIALOG_CLOSE_DELAY = 260;
@@ -295,7 +303,11 @@ const elements = {
   autoCompensateButton: document.querySelector("#autoCompensateButton"),
   undoCompensationButton: document.querySelector("#undoCompensationButton"),
   compensationHint: document.querySelector("#compensationHint"),
-  summaryNote: document.querySelector("#summaryNote")
+  summaryNote: document.querySelector("#summaryNote"),
+  pendingMonthTitle: document.querySelector("#pendingMonthTitle"),
+  pendingTitle: document.querySelector("#pendingTitle"),
+  pendingTotal: document.querySelector("#pendingTotal"),
+  pendingBoard: document.querySelector("#pendingBoard")
 };
 
 function clone(value) {
@@ -325,6 +337,7 @@ function getSharedState() {
     reports: window.LUCK_SHARED_BACKUP.reports,
     contractTargets: window.LUCK_SHARED_BACKUP.contractTargets || null,
     profile: window.LUCK_SHARED_BACKUP.profile || null,
+    pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -425,6 +438,23 @@ function loadProfile() {
   return sharedProfile;
 }
 
+function loadPendingBoards() {
+  const sharedState = getSharedState();
+  const sharedPendingBoards = sharedState?.pendingBoards;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && sharedPendingBoards && typeof sharedPendingBoards === "object") {
+    return clone(sharedPendingBoards);
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.pendingBoards && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return clone(savedState.pendingBoards);
+  }
+
+  return clone(sharedPendingBoards || {});
+}
+
 function getProfileDisplayName() {
   const fullName = [profileData.firstName, profileData.lastName].filter(Boolean).join(" ");
   return fullName || `${DEFAULT_PROFILE.firstName} ${DEFAULT_PROFILE.lastName}`;
@@ -495,6 +525,12 @@ function saveContractTargets() {
 function saveReports() {
   saveLocalState();
   scheduleRemoteSave();
+}
+
+function savePendingBoards() {
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
 }
 
 function hasAppsScriptBackend() {
@@ -830,7 +866,8 @@ function getCurrentState() {
     updatedAt: new Date().toISOString(),
     reports: reportData,
     contractTargets,
-    profile: profileData
+    profile: profileData,
+    pendingBoards
   };
 }
 
@@ -912,6 +949,7 @@ function loadRemoteState() {
           ...(state.contractTargets || contractTargets)
         };
         profileData = normalizeProfile(state.profile || profileData);
+        pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         ensureRowIds();
         saveReports();
         saveContractTargets();
@@ -952,6 +990,7 @@ async function loadSupabaseState() {
         ...(record.state.contractTargets || contractTargets)
       };
       profileData = normalizeProfile(record.state.profile || profileData);
+      pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       ensureRowIds();
       saveReports();
       saveContractTargets();
@@ -1105,6 +1144,7 @@ function restoreBackupFile(event) {
         ...(payload.contractTargets || contractTargets)
       };
       profileData = normalizeProfile(payload.profile || profileData);
+      pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       ensureRowIds();
       saveReports();
       saveContractTargets();
@@ -1146,6 +1186,34 @@ function normalizeReportData(reports) {
       }))
     }))
   }));
+}
+
+function normalizePendingCard(card) {
+  const title = fixPortuguese(String(card?.title || card?.text || "").trim());
+
+  if (!title) return null;
+
+  return {
+    id: card.id || `pending-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    title,
+    createdAt: card.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizePendingBoards(boards) {
+  if (!boards || typeof boards !== "object") return {};
+
+  return Object.entries(boards).reduce((normalized, [key, board]) => {
+    normalized[key] = {};
+
+    PENDING_COLUMNS.forEach((column) => {
+      normalized[key][column.id] = Array.isArray(board?.[column.id])
+        ? board[column.id].map(normalizePendingCard).filter(Boolean)
+        : [];
+    });
+
+    return normalized;
+  }, {});
 }
 
 function normalizeMaterial(material) {
@@ -1310,6 +1378,38 @@ function getSelectedReport() {
   if (!company || !month) return reportData[0];
 
   return ensureReport(company, month);
+}
+
+function escapeHTML(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function pendingBoardKey(company, month) {
+  return `${company}::${month}`;
+}
+
+function getPendingBoard(company, month) {
+  const key = pendingBoardKey(company, month);
+
+  if (!pendingBoards[key]) pendingBoards[key] = {};
+
+  PENDING_COLUMNS.forEach((column) => {
+    if (!Array.isArray(pendingBoards[key][column.id])) {
+      pendingBoards[key][column.id] = [];
+    }
+  });
+
+  return pendingBoards[key];
+}
+
+function getSelectedPendingBoard() {
+  const report = getSelectedReport();
+  return getPendingBoard(report.company, report.month);
 }
 
 function getReportRows(report) {
@@ -1840,6 +1940,57 @@ function renderSummary(sections) {
   elements.summaryNote.textContent = `${rows.length} itens no total`;
 }
 
+function renderPendingCard(card, currentColumnId) {
+  return `
+    <article class="pending-item">
+      <p>${escapeHTML(card.title)}</p>
+      <div class="pending-item-actions">
+        <select data-pending-move="${card.id}" aria-label="Mover pendência">
+          ${PENDING_COLUMNS
+            .map((column) => `<option value="${column.id}" ${column.id === currentColumnId ? "selected" : ""}>${column.label}</option>`)
+            .join("")}
+        </select>
+        <button class="row-action danger" type="button" data-pending-delete="${card.id}">Excluir</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderPendingColumn(column, cards) {
+  return `
+    <section class="pending-column" data-pending-column="${column.id}">
+      <header class="pending-column-header">
+        <strong>${column.label}</strong>
+        <span>${cards.length}</span>
+      </header>
+
+      <div class="pending-list">
+        ${cards.length
+          ? cards.map((card) => renderPendingCard(card, column.id)).join("")
+          : `<div class="pending-empty">Sem cartões.</div>`}
+      </div>
+
+      <form class="pending-add-form" data-pending-form="${column.id}">
+        <input type="text" placeholder="Adicionar cartão" aria-label="Adicionar cartão em ${column.label}">
+        <button type="submit" aria-label="Adicionar em ${column.label}">+</button>
+      </form>
+    </section>
+  `;
+}
+
+function renderPendingBoard() {
+  const report = getSelectedReport();
+  const board = getPendingBoard(report.company, report.month);
+  const total = PENDING_COLUMNS.reduce((sum, column) => sum + board[column.id].length, 0);
+
+  elements.pendingMonthTitle.textContent = formatMonth(report.month);
+  elements.pendingTitle.textContent = `Pendências - ${report.company}`;
+  elements.pendingTotal.textContent = `${total} ${total === 1 ? "cartão" : "cartões"}`;
+  elements.pendingBoard.innerHTML = PENDING_COLUMNS
+    .map((column) => renderPendingColumn(column, board[column.id]))
+    .join("");
+}
+
 function renderContractSummary() {
   const report = getSelectedReport();
   const targets = getContractTarget(report.company);
@@ -1886,6 +2037,7 @@ function render() {
     ? `${reportTables}${compensationTables}`
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
   renderSummary(sections);
+  renderPendingBoard();
 }
 
 function normalizeText(value) {
@@ -2296,6 +2448,76 @@ function deleteEditingItem() {
   closeEditDialog();
 }
 
+function findPendingCard(cardId) {
+  const board = getSelectedPendingBoard();
+
+  for (const column of PENDING_COLUMNS) {
+    const index = board[column.id].findIndex((card) => card.id === cardId);
+    if (index !== -1) return { board, columnId: column.id, index, card: board[column.id][index] };
+  }
+
+  return null;
+}
+
+function addPendingCard(columnId, title) {
+  const cleanTitle = fixPortuguese(String(title || "").trim());
+  if (!cleanTitle) return;
+
+  const board = getSelectedPendingBoard();
+  board[columnId].push({
+    id: `pending-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    title: cleanTitle,
+    createdAt: new Date().toISOString()
+  });
+
+  savePendingBoards();
+  renderPendingBoard();
+}
+
+function movePendingCard(cardId, nextColumnId) {
+  const found = findPendingCard(cardId);
+  if (!found || found.columnId === nextColumnId) return;
+
+  found.board[found.columnId].splice(found.index, 1);
+  found.board[nextColumnId].push(found.card);
+
+  savePendingBoards();
+  renderPendingBoard();
+}
+
+function removePendingCard(cardId) {
+  const found = findPendingCard(cardId);
+  if (!found) return;
+
+  found.board[found.columnId].splice(found.index, 1);
+  savePendingBoards();
+  renderPendingBoard();
+}
+
+function handlePendingBoardSubmit(event) {
+  const form = event.target.closest("[data-pending-form]");
+  if (!form) return;
+
+  event.preventDefault();
+  const input = form.querySelector("input");
+  addPendingCard(form.dataset.pendingForm, input.value);
+  input.value = "";
+}
+
+function handlePendingBoardChange(event) {
+  const moveSelect = event.target.closest("[data-pending-move]");
+  if (!moveSelect) return;
+
+  movePendingCard(moveSelect.dataset.pendingMove, moveSelect.value);
+}
+
+function handlePendingBoardClick(event) {
+  const deleteButton = event.target.closest("[data-pending-delete]");
+  if (!deleteButton) return;
+
+  removePendingCard(deleteButton.dataset.pendingDelete);
+}
+
 function openDeleteMonthDialog() {
   const company = elements.companySelect.value;
   const month = elements.monthSelect.value;
@@ -2311,6 +2533,7 @@ function confirmDeleteMonth() {
   const month = elements.monthSelect.value;
 
   reportData = reportData.filter((report) => !(report.company === company && report.month === month));
+  delete pendingBoards[pendingBoardKey(company, month)];
   const nextMonth = getFallbackMonthAfterDelete(company, month);
   ensureReport(company, nextMonth, { save: false });
   saveReports();
@@ -2337,7 +2560,8 @@ function exposeBackupData() {
     exportedAt: new Date().toISOString(),
     reports: reportData,
     contractTargets,
-    profile: profileData
+    profile: profileData,
+    pendingBoards
   };
   let backupNode = document.querySelector("#backupData");
   if (!backupNode) {
@@ -2398,6 +2622,9 @@ elements.reportSections.addEventListener("click", (event) => {
   if (editButton) openEditItem(editButton.dataset.editId);
   if (removeButton) removeItem(removeButton.dataset.removeId);
 });
+elements.pendingBoard.addEventListener("submit", handlePendingBoardSubmit);
+elements.pendingBoard.addEventListener("change", handlePendingBoardChange);
+elements.pendingBoard.addEventListener("click", handlePendingBoardClick);
 elements.editForm.addEventListener("submit", saveEditedItem);
 elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
