@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=pendencias-lista-financeiro-1">
+    <link rel="stylesheet" href="styles.css?v=filtros-topo-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -53,18 +53,6 @@
           <strong>Relatórios</strong>
         </div>
 
-        <label>
-          Cliente
-          <select id="companySelect"></select>
-        </label>
-
-        <label>
-          Mês
-          <select id="monthSelect"></select>
-        </label>
-
-        <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
-
         <div class="sidebar-actions" aria-label="Exportação e salvamento">
           <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
           <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
@@ -109,6 +97,20 @@
       </aside>
 
       <div class="content-shell">
+      <section class="context-panel" aria-label="Seleção de cliente e mês">
+        <label>
+          Cliente
+          <select id="companySelect"></select>
+        </label>
+
+        <label>
+          Mês
+          <select id="monthSelect"></select>
+        </label>
+
+        <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
+      </section>
+
       <div id="reportView" class="app-view">
       <section class="assistant-panel" id="rapido" aria-label="Preenchimento rápido">
         <div class="assistant-copy">
@@ -386,6 +388,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=pendencias-lista-financeiro-1"></script>
+    <script src="app.js?v=filtros-topo-1"></script>
   </body>
 </html>
