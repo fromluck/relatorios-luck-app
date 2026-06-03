@@ -318,6 +318,7 @@ select {
 .report-card,
 .pending-card,
 .company-settings-card,
+.finance-card,
 .stat-card,
 .sidebar {
   border: 1px solid var(--line);
@@ -986,120 +987,114 @@ h1 {
 
 .pending-board {
   display: grid;
-  grid-template-columns: repeat(5, minmax(190px, 1fr));
-  gap: 12px;
-  overflow-x: auto;
-  padding: 18px;
+  gap: 16px;
+  padding: 20px;
 }
 
-.pending-column {
+.pending-overview,
+.finance-summary {
   display: grid;
-  align-content: start;
-  gap: 10px;
-  min-width: 190px;
-  border: 1px solid #1f2937;
-  border-radius: 8px;
-  background: #111827;
-  padding: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.pending-column-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #e5e7eb;
-  font-size: 13px;
-  font-weight: 900;
+.pending-overview article,
+.finance-summary article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 14px;
+}
+
+.pending-overview span,
+.finance-summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
-.pending-column-header span {
-  color: #94a3b8;
+.pending-overview strong,
+.finance-summary strong {
+  font-size: 24px;
 }
 
-.pending-list {
+.pending-list-form,
+.finance-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 160px 150px auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 14px;
+}
+
+.finance-form {
+  grid-template-columns: minmax(230px, 1fr) 150px 130px 150px 130px auto;
+}
+
+.pending-list-table,
+.finance-list {
   display: grid;
   gap: 8px;
-  min-height: 88px;
 }
 
-.pending-item {
+.pending-row,
+.finance-row {
   display: grid;
-  gap: 10px;
-  border: 1px solid #2d3748;
-  border-radius: 7px;
-  background: #1f2329;
-  color: #f8fafc;
-  padding: 10px;
+  grid-template-columns: minmax(260px, 1fr) 170px 150px auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
 }
 
-.pending-item p {
-  color: #f8fafc;
-  font-size: 13px;
+.finance-row {
+  grid-template-columns: minmax(260px, 1fr) 140px 130px auto;
+}
+
+.pending-row.is-done {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.pending-row strong,
+.finance-row strong {
+  display: block;
+  font-size: 14px;
+}
+
+.pending-row small,
+.finance-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1.35;
 }
 
-.pending-item-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
-  align-items: center;
-}
-
-.pending-item-actions select {
-  min-height: 30px;
-  border-color: #475569;
-  background: #111827;
-  color: #f8fafc;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.pending-add-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
-  gap: 6px;
-  align-items: center;
-}
-
-.pending-add-form input {
-  min-height: 34px;
-  border-color: #2d3748;
-  background: #0b1220;
-  color: #ffffff;
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.pending-add-form input::placeholder {
-  color: #94a3b8;
-}
-
-.pending-add-form button {
-  min-height: 34px;
-  border: 1px solid #475569;
-  background: #111827;
-  color: #ffffff;
-  padding: 0;
-  font-size: 18px;
-}
-
-.pending-empty {
-  display: grid;
-  place-items: center;
-  min-height: 70px;
-  border: 1px dashed #334155;
-  border-radius: 7px;
-  color: #94a3b8;
-  font-size: 12px;
+.pending-status-select[data-pending-status] {
   font-weight: 800;
-  text-align: center;
 }
 
 .company-settings-card {
   overflow: hidden;
+}
+
+.finance-card {
+  overflow: hidden;
+}
+
+.finance-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
 }
 
 .company-settings-body {
@@ -1477,6 +1472,7 @@ td.action-cell {
   .compensation-actions,
   .pending-card,
   .company-settings-card,
+  .finance-card,
   .row-action,
   .action-column,
   .action-cell {
@@ -1718,6 +1714,13 @@ td.action-cell {
     grid-template-columns: 1fr;
   }
 
+  .pending-list-form,
+  .finance-form,
+  .pending-row,
+  .finance-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .company-settings-body {
     grid-template-columns: 1fr;
   }
@@ -1755,6 +1758,12 @@ td.action-cell {
   .assistant-grid,
   .parse-row,
   .stats-grid,
+  .pending-overview,
+  .finance-summary,
+  .pending-list-form,
+  .finance-form,
+  .pending-row,
+  .finance-row,
   .settings-grid,
   .settings-grid.compact {
     grid-template-columns: 1fr;
