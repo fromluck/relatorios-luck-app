@@ -323,18 +323,18 @@ select {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-  width: min(1360px, 100%);
-  margin: 0 auto;
-  padding: 22px;
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 22px 22px 22px 302px;
 }
 
 .content-shell {
   display: grid;
   gap: 18px;
+  width: min(1060px, 100%);
+  margin: 0 auto;
   min-width: 0;
 }
 
@@ -360,15 +360,21 @@ select {
 }
 
 .sidebar {
-  position: sticky;
-  top: 22px;
+  position: fixed;
+  inset: 0 auto 0 0;
   z-index: 20;
   display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 18px;
-  align-self: start;
-  align-content: start;
-  height: max-content;
-  padding: 18px;
+  align-content: stretch;
+  width: 280px;
+  height: 100vh;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+  box-shadow: 10px 0 38px rgba(15, 23, 42, 0.06);
+  padding: 22px 18px 18px;
 }
 
 .control-bar {
@@ -415,6 +421,7 @@ select {
 .sidebar-actions {
   display: grid;
   gap: 8px;
+  align-self: start;
 }
 
 .view-switch {
@@ -480,6 +487,7 @@ select {
 .profile-panel {
   position: relative;
   display: block;
+  align-self: end;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
@@ -2091,12 +2099,30 @@ td.action-cell {
 
 @media (max-width: 920px) {
   .app-shell {
+    display: grid;
     grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .content-shell {
+    width: 100%;
+    margin: 0;
   }
 
   .sidebar {
     position: static;
+    inset: auto;
+    grid-template-rows: auto;
+    width: auto;
     height: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  .profile-panel {
+    align-self: auto;
   }
 
   .control-bar,
