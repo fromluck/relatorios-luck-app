@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=sidebar-estrutural-1">
+    <link rel="stylesheet" href="styles.css?v=luck-hub-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -50,18 +50,24 @@
       <aside class="sidebar" aria-label="Navegação do relatório">
         <div class="brand">
           <img src="luck-logo.svg" alt="Luck">
-          <strong>Relatórios</strong>
+          <strong>Luck Hub</strong>
         </div>
 
         <div class="sidebar-actions" aria-label="Exportação e salvamento">
           <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
           <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
           <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
-          <div class="view-switch" aria-label="Telas do sistema">
-            <button id="reportViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">Relatórios</button>
-            <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Pendências</button>
-            <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Empresas</button>
+          <div class="view-switch hub-navigation" aria-label="Telas do sistema">
+            <button id="dashboardViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">Dashboard</button>
+            <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Clientes</button>
+            <button id="calendarViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Calendário</button>
+            <button id="productionViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Produção</button>
+            <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Aprovações</button>
+            <button id="datesViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Datas comemorativas</button>
+            <button id="reportViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Relatórios</button>
             <button id="financeViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Financeiro</button>
+            <button id="teamViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Equipe</button>
+            <button id="settingsViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Configurações</button>
           </div>
         </div>
 
@@ -85,6 +91,143 @@
       </aside>
 
       <div class="content-shell">
+      <div id="dashboardView" class="app-view">
+        <section class="hub-dashboard" aria-label="Dashboard Luck Hub">
+          <header class="hub-header">
+            <div>
+              <span class="eyebrow">Luck Hub</span>
+              <h1>Dashboard</h1>
+              <p>Visão central da produção, aprovações e campanhas da Luck.</p>
+            </div>
+            <div class="hub-period">
+              <span>Período</span>
+              <strong id="dashboardPeriod">Junho 2026</strong>
+            </div>
+          </header>
+
+          <section id="dashboardKpis" class="hub-kpis" aria-label="Indicadores rápidos"></section>
+
+          <div class="hub-layout">
+            <div class="hub-main-column">
+              <section class="hub-card" id="dashboardClients">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">01</span>
+                    <h2>Visão geral dos clientes</h2>
+                  </div>
+                  <span class="hub-card-meta">4 ativos</span>
+                </header>
+                <div id="dashboardClientsGrid" class="hub-client-grid"></div>
+              </section>
+
+              <section class="hub-card" id="dashboardCalendar">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">02</span>
+                    <h2>Calendário de produção</h2>
+                  </div>
+                  <strong id="dashboardCalendarMonth" class="hub-card-meta">Junho 2026</strong>
+                </header>
+                <div class="hub-calendar-legend" aria-label="Legenda do calendário">
+                  <span><i class="calendar-dot delivery"></i>Entrega de cliente</span>
+                  <span><i class="calendar-dot recording"></i>Gravação</span>
+                  <span><i class="calendar-dot approval"></i>Aprovação</span>
+                  <span><i class="calendar-dot commemorative"></i>Data comemorativa</span>
+                  <span><i class="calendar-dot meeting"></i>Reunião</span>
+                </div>
+                <div id="dashboardCalendarGrid" class="hub-calendar-grid"></div>
+                <div id="dashboardCalendarAgenda" class="hub-calendar-agenda"></div>
+              </section>
+
+              <section class="hub-card" id="dashboardProduction">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">04</span>
+                    <h2>Produção do mês</h2>
+                  </div>
+                  <span class="hub-card-meta">Junho</span>
+                </header>
+                <div id="dashboardProductionBars" class="hub-production-bars"></div>
+              </section>
+
+              <section class="hub-card" id="dashboardPipeline">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">05</span>
+                    <h2>Pipeline de aprovação</h2>
+                  </div>
+                  <span class="hub-card-meta">8 itens</span>
+                </header>
+                <div id="dashboardPipelineGrid" class="hub-pipeline-grid"></div>
+              </section>
+
+              <section class="hub-card hub-alert-card" id="dashboardAlerts">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">06</span>
+                    <h2>Alertas inteligentes</h2>
+                  </div>
+                </header>
+                <div id="dashboardAlertsList" class="hub-alert-list"></div>
+              </section>
+
+              <div class="hub-two-column">
+                <section class="hub-card" id="dashboardRanking">
+                  <header class="hub-card-header">
+                    <div>
+                      <span class="hub-card-number">07</span>
+                      <h2>Ranking de entregas</h2>
+                    </div>
+                  </header>
+                  <div id="dashboardRankingTable" class="hub-ranking"></div>
+                </section>
+
+                <section class="hub-card" id="dashboardRecordings">
+                  <header class="hub-card-header">
+                    <div>
+                      <span class="hub-card-number">08</span>
+                      <h2>Próximas gravações</h2>
+                    </div>
+                  </header>
+                  <div id="dashboardRecordingsList" class="hub-recordings"></div>
+                </section>
+              </div>
+
+              <section class="hub-card" id="dashboardTeam">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">09</span>
+                    <h2>Equipe Luck</h2>
+                  </div>
+                  <span class="hub-card-meta">1 ativo</span>
+                </header>
+                <div class="hub-team-member">
+                  <span id="dashboardTeamAvatar" class="profile-avatar">LC</span>
+                  <div>
+                    <strong id="dashboardTeamName">Lucas Costa</strong>
+                    <small>Administrador · Gestão e produção</small>
+                  </div>
+                  <span class="hub-status-chip success">Ativo</span>
+                </div>
+              </section>
+            </div>
+
+            <aside class="hub-side-column">
+              <section class="hub-card hub-smart-dates" id="dashboardDates">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">03</span>
+                    <h2>Datas comemorativas</h2>
+                  </div>
+                </header>
+                <p id="dashboardSmartCallout" class="hub-smart-callout"></p>
+                <div id="dashboardDatesList" class="hub-dates-list"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </div>
+
       <section class="context-panel" aria-label="Seleção de cliente e mês">
         <label>
           Cliente
@@ -526,6 +669,6 @@
 
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=sidebar-estrutural-1"></script>
+    <script src="app.js?v=luck-hub-1"></script>
   </body>
 </html>
