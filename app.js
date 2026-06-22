@@ -355,7 +355,6 @@ const elements = {
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
   dashboardViewButton: document.querySelector("#dashboardViewButton"),
-  datesViewButton: document.querySelector("#datesViewButton"),
   settingsViewButton: document.querySelector("#settingsViewButton"),
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
@@ -3876,18 +3875,8 @@ elements.monthSelect.addEventListener("change", () => {
   refreshMonthOptions();
   render();
 });
-function openDashboardSection(sectionId) {
-  setActiveView("dashboard", { updateUrl: true, scroll: false });
-  window.requestAnimationFrame(() => {
-    document.querySelector(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-}
-
 elements.dashboardViewButton.addEventListener("click", () => {
   setActiveView("dashboard", { updateUrl: true });
-});
-elements.datesViewButton.addEventListener("click", () => {
-  openDashboardSection("#dashboardDates");
 });
 elements.settingsViewButton.addEventListener("click", openSettingsDialog);
 elements.reportViewButton.addEventListener("click", () => {
