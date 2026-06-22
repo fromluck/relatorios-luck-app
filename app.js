@@ -356,7 +356,6 @@ const elements = {
   monthSelect: document.querySelector("#monthSelect"),
   dashboardViewButton: document.querySelector("#dashboardViewButton"),
   calendarViewButton: document.querySelector("#calendarViewButton"),
-  productionViewButton: document.querySelector("#productionViewButton"),
   datesViewButton: document.querySelector("#datesViewButton"),
   teamViewButton: document.querySelector("#teamViewButton"),
   settingsViewButton: document.querySelector("#settingsViewButton"),
@@ -1277,7 +1276,7 @@ function getRequestedView() {
   }
 
   if (params.get("page") === "producao" || window.location.hash === "#producao") {
-    return "producao";
+    return "relatorios";
   }
 
   if (params.get("page") === "relatorios" || window.location.hash === "#relatorios") {
@@ -1301,7 +1300,7 @@ function getRequestedView() {
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (["producao", "relatorios", "pendencias", "empresas", "financeiro"].includes(view)) {
+  if (["relatorios", "pendencias", "empresas", "financeiro"].includes(view)) {
     url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
@@ -1319,12 +1318,11 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const validViews = ["dashboard", "producao", "relatorios", "pendencias", "empresas", "financeiro"];
+  const validViews = ["dashboard", "relatorios", "pendencias", "empresas", "financeiro"];
   const activeView = validViews.includes(view) ? view : "dashboard";
   const isDashboardView = activeView === "dashboard";
-  const isProductionView = activeView === "producao";
   const isReportView = activeView === "relatorios";
-  const isReportWorkspace = isProductionView || isReportView;
+  const isReportWorkspace = isReportView;
   const isPendingView = activeView === "pendencias";
   const isCompanyView = activeView === "empresas";
   const isFinanceView = activeView === "financeiro";
@@ -1336,13 +1334,11 @@ function setActiveView(view, options = {}) {
   elements.financeView.hidden = !isFinanceView;
   elements.contextPanel.hidden = isDashboardView || isFinanceView || isPendingView;
   elements.dashboardViewButton.classList.toggle("is-active", isDashboardView);
-  elements.productionViewButton.classList.toggle("is-active", isProductionView);
   elements.reportViewButton.classList.toggle("is-active", isReportView);
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
   elements.financeViewButton.classList.toggle("is-active", isFinanceView);
   elements.dashboardViewButton.setAttribute("aria-pressed", String(isDashboardView));
-  elements.productionViewButton.setAttribute("aria-pressed", String(isProductionView));
   elements.reportViewButton.setAttribute("aria-pressed", String(isReportView));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
   elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
@@ -3894,9 +3890,6 @@ elements.dashboardViewButton.addEventListener("click", () => {
 });
 elements.calendarViewButton.addEventListener("click", () => {
   openDashboardSection("#dashboardCalendar");
-});
-elements.productionViewButton.addEventListener("click", () => {
-  setActiveView("producao", { updateUrl: true });
 });
 elements.datesViewButton.addEventListener("click", () => {
   openDashboardSection("#dashboardDates");
