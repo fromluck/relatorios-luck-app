@@ -3559,7 +3559,8 @@ function fileSafeName(value) {
 }
 
 function exportPdf() {
-  window.print();
+  render();
+  window.requestAnimationFrame(() => window.print());
 }
 
 function exposeBackupData() {
@@ -3656,6 +3657,7 @@ elements.editForm.addEventListener("submit", saveEditedItem);
 elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
+window.addEventListener("beforeprint", render);
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.loginButton.addEventListener("click", signInSupabase);
 elements.googleLoginButton.addEventListener("click", signInWithGoogle);
