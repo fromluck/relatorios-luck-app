@@ -2591,11 +2591,18 @@ function renderReceivedCompensations(report) {
 
 function renderSummary(sections) {
   const rows = sections.flatMap((section) => section.rows);
+  const report = getSelectedReport();
+  const contractCounts = getContractCountsForMonth(report.company, report.month);
   renderContractSummary();
 
   elements.statsGrid.innerHTML = MATERIAL_TYPES
     .map((type) => {
-      const count = rows.filter((row) => normalizeMaterial(row.material) === type.label).length;
+      const rawCount = rows.filter((row) => normalizeMaterial(row.material) === type.label).length;
+      const count = type.label === "Vídeo (Reels)"
+        ? contractCounts.videos
+        : type.label === "Criativo (Arte)"
+          ? contractCounts.creatives
+          : rawCount;
       return `
         <article class="stat-card" style="--tag-color: ${type.color}">
           <span>${type.label}</span>
