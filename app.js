@@ -394,19 +394,16 @@ const elements = {
   financeList: document.querySelector("#financeList"),
   dashboardPeriod: document.querySelector("#dashboardPeriod"),
   dashboardKpis: document.querySelector("#dashboardKpis"),
+  dashboardClientsMeta: document.querySelector("#dashboardClientsMeta"),
   dashboardClientsGrid: document.querySelector("#dashboardClientsGrid"),
   dashboardCalendarMonth: document.querySelector("#dashboardCalendarMonth"),
   dashboardCalendarGrid: document.querySelector("#dashboardCalendarGrid"),
   dashboardCalendarAgenda: document.querySelector("#dashboardCalendarAgenda"),
+  dashboardProductionMeta: document.querySelector("#dashboardProductionMeta"),
   dashboardProductionBars: document.querySelector("#dashboardProductionBars"),
-  dashboardPipelineGrid: document.querySelector("#dashboardPipelineGrid"),
   dashboardAlertsList: document.querySelector("#dashboardAlertsList"),
-  dashboardRankingTable: document.querySelector("#dashboardRankingTable"),
-  dashboardRecordingsList: document.querySelector("#dashboardRecordingsList"),
   dashboardSmartCallout: document.querySelector("#dashboardSmartCallout"),
   dashboardDatesList: document.querySelector("#dashboardDatesList"),
-  dashboardTeamAvatar: document.querySelector("#dashboardTeamAvatar"),
-  dashboardTeamName: document.querySelector("#dashboardTeamName"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -861,10 +858,8 @@ function syncProfilePanel() {
   renderAvatarElement(elements.profileAvatar);
   renderAvatarElement(elements.accountDialogAvatar);
   renderAvatarElement(elements.profilePhotoPreview, profilePhotoDraft);
-  renderAvatarElement(elements.dashboardTeamAvatar);
   if (elements.accountDialogName) elements.accountDialogName.textContent = getProfileDisplayName();
   if (elements.accountDialogEmail) elements.accountDialogEmail.textContent = getProfileEmail();
-  if (elements.dashboardTeamName) elements.dashboardTeamName.textContent = getProfileDisplayName();
   if (elements.accountDialogStatus) {
     elements.accountDialogStatus.textContent = isSupabaseSessionValid()
       ? "Conta conectada com acesso ao sistema."
@@ -2908,13 +2903,6 @@ function renderFinanceRow(record) {
   `;
 }
 
-function dashboardDaysRemaining(date) {
-  const today = new Date();
-  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-  const target = new Date(`${date}T00:00:00Z`).getTime();
-  return Math.ceil((target - todayUtc) / 86400000);
-}
-
 function formatDashboardDate(date) {
   const value = new Date(`${date}T00:00:00Z`);
   const day = String(value.getUTCDate()).padStart(2, "0");
@@ -2922,11 +2910,58 @@ function formatDashboardDate(date) {
   return `${day} ${month}`;
 }
 
-function renderDashboardCalendar(data) {
-  const [year, month] = data.month.split("-").map(Number);
+function dashboardPeriodLabel(month) {
+  const { year } = monthYear(month);
+  return `${toTitleCase(formatMonth(month))} ${year}`;
+}
+
+function dashboardMaterialType(material) {
+  const normalized = normalizeMaterial(material);
+  if (normalized === "Vídeo (Reels)") return "video";
+  if (normalized === "Publicação (Fotos)") return "photo";
+  if (normalized === "Flyer") return "flyer";
+  if (normalized === "Impresso") return "print";
+  return "creative";
+}
+
+function getDashboardCompanyNames() {
+  return unique([
+    ...Object.keys(companySettings || {}),
+    ...reportData.map((report) => report.company)
+  ])
+    .map(normalizeCompanyName)
+    .filter((company) => company && normalizeText(company) !== "luck")
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+function getDashboardDeliveries(month) {
+  return reportData
+    .filter((report) => report.month === month && normalizeText(report.company) !== "luck")
+    .flatMap((report) => report.sections.flatMap((section) =>
+      section.rows.map((row) => ({
+        ...row,
+        company: report.company,
+        section: section.label,
+        material: normalizeMaterial(row.material)
+      }))
+    ));
+}
+
+function countDashboardMaterial(deliveries, material) {
+  return deliveries.filter((delivery) => delivery.material === material).length;
+}
+
+function renderDashboardCalendar(monthKey, deliveries) {
+  const [year, month] = monthKey.split("-").map(Number);
   const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const eventsByDay = data.calendarEvents.reduce((groups, event) => {
+  const eventsByDay = deliveries.reduce((groups, delivery) => {
+    if (!delivery.date?.startsWith(monthKey)) return groups;
+    const event = {
+      date: delivery.date,
+      title: `${delivery.company}: ${delivery.topic}`,
+      type: dashboardMaterialType(delivery.material)
+    };
     const day = Number(event.date.slice(-2));
     groups[day] ||= [];
     groups[day].push(event);
@@ -2954,114 +2989,161 @@ function renderDashboardCalendar(data) {
   }
 
   elements.dashboardCalendarGrid.innerHTML = cells.join("");
-  elements.dashboardCalendarAgenda.innerHTML = data.calendarEvents
-    .filter((event) => Number(event.date.slice(-2)) >= 23)
-    .map((event) => `
+  const latestDeliveries = [...deliveries]
+    .filter((delivery) => delivery.date?.startsWith(monthKey))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6);
+
+  elements.dashboardCalendarAgenda.innerHTML = latestDeliveries.length
+    ? latestDeliveries.map((delivery) => `
       <article class="hub-agenda-item">
-        <time>${formatDashboardDate(event.date)}</time>
-        <span class="calendar-dot ${event.type}"></span>
-        <strong>${escapeHTML(event.title)}</strong>
+        <time>${formatDashboardDate(delivery.date)}</time>
+        <span class="calendar-dot ${dashboardMaterialType(delivery.material)}"></span>
+        <strong>${escapeHTML(delivery.company)}: ${escapeHTML(delivery.topic)}</strong>
       </article>
-    `)
-    .join("");
+    `).join("")
+    : '<div class="hub-empty-message">Nenhuma entrega registrada neste mês.</div>';
 }
 
 function renderDashboard() {
-  const data = HUB_DASHBOARD_DATA;
   if (!elements.dashboardView) return;
 
-  elements.dashboardPeriod.textContent = data.period;
-  elements.dashboardCalendarMonth.textContent = data.period;
-  elements.dashboardKpis.innerHTML = data.indicators.map((indicator) => `
+  const month = currentMonthKey();
+  const period = dashboardPeriodLabel(month);
+  const deliveries = getDashboardDeliveries(month);
+  const companies = getDashboardCompanyNames();
+  const companiesWithDelivery = companies.filter((company) => deliveries.some((delivery) => delivery.company === company));
+  const videos = countDashboardMaterial(deliveries, "Vídeo (Reels)");
+  const creatives = countDashboardMaterial(deliveries, "Criativo (Arte)");
+  const photos = countDashboardMaterial(deliveries, "Publicação (Fotos)");
+  const avulsos = deliveries.filter((delivery) => normalizeSection(delivery.section) === "Solicitação avulsa").length;
+  const indicators = [
+    { label: "Clientes com entrega", value: companiesWithDelivery.length, tone: "orange" },
+    { label: "Itens entregues no mês", value: deliveries.length, tone: "green" },
+    { label: "Vídeos entregues", value: videos, tone: "red" },
+    { label: "Criativos entregues", value: creatives, tone: "slate" },
+    { label: "Publicações com fotos", value: photos, tone: "purple" },
+    { label: "Solicitações avulsas", value: avulsos, tone: "blue" }
+  ];
+
+  elements.dashboardPeriod.textContent = period;
+  elements.dashboardCalendarMonth.textContent = period;
+  elements.dashboardClientsMeta.textContent = `${companiesWithDelivery.length} com entrega`;
+  elements.dashboardProductionMeta.textContent = `${deliveries.length} entregas`;
+  elements.dashboardKpis.innerHTML = indicators.map((indicator) => `
     <article class="hub-kpi ${indicator.tone}">
       <span>${escapeHTML(indicator.label)}</span>
       <strong>${indicator.value}</strong>
     </article>
   `).join("");
 
-  elements.dashboardClientsGrid.innerHTML = data.clients.map((client) => `
-    <article class="hub-client-summary" style="--client-accent: ${client.accent}">
-      <header>
-        <span class="hub-client-mark">${escapeHTML(client.name.slice(0, 2).toUpperCase())}</span>
-        <h3>${escapeHTML(client.name)}</h3>
-      </header>
-      <div class="hub-client-metrics">
-        ${client.metrics.map((metric) => `<span>${escapeHTML(metric)}</span>`).join("")}
-      </div>
-      <p><span>Próximo</span><strong>${escapeHTML(client.next)}</strong></p>
-    </article>
-  `).join("");
+  const clientColors = ["#ea5a00", "#e11d48", "#64748b", "#7c3aed", "#16a34a", "#2563eb"];
+  elements.dashboardClientsGrid.innerHTML = companies.length
+    ? companies.map((company, index) => {
+      const clientDeliveries = deliveries.filter((delivery) => delivery.company === company);
+      const target = getContractTarget(company);
+      const contractTarget = target.videos + target.creatives;
+      const clientVideos = countDashboardMaterial(clientDeliveries, "Vídeo (Reels)");
+      const clientCreatives = countDashboardMaterial(clientDeliveries, "Criativo (Arte)");
+      const contractDelivered = clientVideos + clientCreatives;
+      const percent = contractTarget
+        ? Math.min(100, Math.round((contractDelivered / contractTarget) * 100))
+        : clientDeliveries.length ? 100 : 0;
+      const accent = clientColors[index % clientColors.length];
+      const progressText = contractTarget
+        ? `${contractDelivered} de ${contractTarget} entregas contratuais`
+        : `${clientDeliveries.length} itens entregues`;
 
-  renderDashboardCalendar(data);
+      return `
+        <article class="hub-client-summary" style="--client-accent: ${accent}">
+          <header>
+            <span class="hub-client-mark">${escapeHTML(company.slice(0, 2).toUpperCase())}</span>
+            <h3>${escapeHTML(company)}</h3>
+            <strong class="hub-client-total">${clientDeliveries.length}</strong>
+          </header>
+          <div class="hub-client-delivery-copy">
+            <span>${escapeHTML(progressText)}</span>
+            <b>${percent}%</b>
+          </div>
+          <div class="hub-bar-track"><span style="width: ${percent}%; background: ${accent}"></span></div>
+          <small>${clientVideos} vídeos · ${clientCreatives} criativos · ${Math.max(0, clientDeliveries.length - contractDelivered)} outros materiais</small>
+        </article>
+      `;
+    }).join("")
+    : '<div class="hub-empty-message">Nenhum cliente cadastrado.</div>';
 
-  elements.dashboardProductionBars.innerHTML = data.production.map((item) => {
-    const percent = Math.min(100, Math.round((item.delivered / item.planned) * 100));
+  renderDashboardCalendar(month, deliveries);
+
+  const production = MATERIAL_TYPES.map((item) => ({
+    label: item.label,
+    delivered: countDashboardMaterial(deliveries, item.label),
+    color: item.color
+  }));
+  const largestProduction = Math.max(1, ...production.map((item) => item.delivered));
+  elements.dashboardProductionBars.innerHTML = production.map((item) => {
+    const percent = Math.round((item.delivered / largestProduction) * 100);
     return `
       <article class="hub-production-row" style="--bar-color: ${item.color}">
         <header>
           <strong>${escapeHTML(item.label)}</strong>
-          <span>${item.delivered} de ${item.planned}</span>
+          <span>${item.delivered} entregues</span>
         </header>
         <div class="hub-bar-track"><span style="width: ${percent}%"></span></div>
-        <small>Planejados: ${item.planned} · Entregues: ${item.delivered}</small>
+        <small>Quantidade registrada nos relatórios de ${formatMonth(month).toLowerCase()}.</small>
       </article>
     `;
   }).join("");
 
-  elements.dashboardPipelineGrid.innerHTML = data.pipeline.map((column, index) => `
-    <section class="hub-pipeline-column tone-${index + 1}">
-      <header><strong>${escapeHTML(column.label)}</strong><span>${column.items.length}</span></header>
-      ${column.items.map((item) => `<article>${escapeHTML(item)}</article>`).join("")}
-    </section>
-  `).join("");
+  const alerts = [];
+  const pendingRows = getPendingRows(getPendingBoard(month)).filter((row) => row.status !== "done");
+  if (pendingRows.length) {
+    alerts.push({ level: "danger", text: `${pendingRows.length} ${pendingRows.length === 1 ? "pendência aberta" : "pendências abertas"} na Luck em ${formatMonth(month).toLowerCase()}.` });
+  }
 
-  elements.dashboardAlertsList.innerHTML = data.alerts.map((alert) => `
+  companies.forEach((company) => {
+    const clientDeliveries = deliveries.filter((delivery) => delivery.company === company && delivery.date);
+    if (!clientDeliveries.length) {
+      alerts.push({ level: "warning", text: `${company} ainda não possui entregas registradas em ${formatMonth(month).toLowerCase()}.` });
+      return;
+    }
+
+    const lastDate = [...clientDeliveries].sort((a, b) => b.date.localeCompare(a.date))[0].date;
+    const elapsedDays = Math.floor((Date.now() - new Date(`${lastDate}T12:00:00`).getTime()) / 86400000);
+    if (month === currentMonthKey() && elapsedDays > 5) {
+      alerts.push({ level: "warning", text: `${company}: última entrega registrada há ${elapsedDays} dias.` });
+    }
+  });
+
+  if (!alerts.length) {
+    alerts.push({ level: "success", text: `Nenhuma pendência operacional encontrada nos dados de ${formatMonth(month).toLowerCase()}.` });
+  }
+
+  elements.dashboardAlertsList.innerHTML = alerts.slice(0, 6).map((alert) => `
     <article class="hub-alert ${alert.level}">
       <span class="hub-alert-indicator"></span>
       <strong>${escapeHTML(alert.text)}</strong>
     </article>
   `).join("");
 
-  elements.dashboardRankingTable.innerHTML = `
-    <div class="hub-ranking-row is-header"><span>Cliente</span><span>Vídeos</span><span>Artes</span></div>
-    ${data.ranking.map((item, index) => `
-      <div class="hub-ranking-row">
-        <span><b>${index + 1}</b>${escapeHTML(item.client)}</span>
-        <strong>${item.videos}</strong>
-        <strong>${item.arts}</strong>
-      </div>
-    `).join("")}
-  `;
-
-  elements.dashboardRecordingsList.innerHTML = data.recordings.map((item) => `
-    <article class="hub-recording-item">
-      <time>${escapeHTML(item.when)}</time>
-      <div><strong>${escapeHTML(item.title)}</strong><small>Gravação agendada</small></div>
-    </article>
-  `).join("");
-
-  const upcomingDates = [...data.dates].sort((a, b) => a.date.localeCompare(b.date));
-  const nextDate = upcomingDates.find((item) => dashboardDaysRemaining(item.date) >= 0) || upcomingDates[0];
-  const nextDays = Math.max(0, dashboardDaysRemaining(nextDate.date));
-  elements.dashboardSmartCallout.textContent = `Faltam ${nextDays} ${nextDays === 1 ? "dia" : "dias"} para ${nextDate.name} — ${nextDate.clients.join(", ")} precisam de conteúdo.`;
-  elements.dashboardDatesList.innerHTML = upcomingDates.map((item) => {
-    const remaining = dashboardDaysRemaining(item.date);
-    const statusClass = normalizeText(item.status).includes("nao") ? "not-started" : normalizeText(item.status).includes("aprovacao") ? "approval" : "production";
-    return `
+  const commemorativeDeliveries = deliveries
+    .filter((delivery) => normalizeSection(delivery.section) === "Datas Comemorativas")
+    .sort((a, b) => b.date.localeCompare(a.date));
+  elements.dashboardSmartCallout.textContent = commemorativeDeliveries.length
+    ? `${commemorativeDeliveries.length} ${commemorativeDeliveries.length === 1 ? "material de data comemorativa entregue" : "materiais de datas comemorativas entregues"} neste mês.`
+    : "Nenhum material de data comemorativa foi registrado neste mês.";
+  elements.dashboardDatesList.innerHTML = commemorativeDeliveries.length
+    ? commemorativeDeliveries.map((item) => `
       <article class="hub-date-item">
         <time>${formatDashboardDate(item.date)}</time>
         <div>
-          <h3>${escapeHTML(item.name)}</h3>
-          <p>${remaining >= 0 ? `${remaining} ${remaining === 1 ? "dia restante" : "dias restantes"}` : "Data concluída"}</p>
-          <small>Clientes: ${escapeHTML(item.clients.join(", "))}</small>
-          <span class="hub-date-status ${statusClass}">${escapeHTML(item.status)}</span>
+          <h3>${escapeHTML(item.topic)}</h3>
+          <p>${escapeHTML(item.company)}</p>
+          <small>${escapeHTML(item.material)}</small>
+          <span class="hub-date-status delivered">Entregue</span>
         </div>
       </article>
-    `;
-  }).join("");
-
-  renderAvatarElement(elements.dashboardTeamAvatar);
-  elements.dashboardTeamName.textContent = getProfileDisplayName();
+    `).join("")
+    : '<div class="hub-empty-message">Sem entregas desta categoria no período.</div>';
 }
 
 function renderFinance() {
