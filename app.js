@@ -45,6 +45,89 @@ const CONTRACT_TARGETS = {
   "RC Construtora": { videos: 0, creatives: 0 },
   Luck: { videos: 0, creatives: 0 }
 };
+const HUB_DASHBOARD_DATA = {
+  period: "Junho 2026",
+  month: "2026-06",
+  indicators: [
+    { label: "Clientes ativos", value: 4, tone: "orange" },
+    { label: "Projetos em andamento", value: 17, tone: "blue" },
+    { label: "Vídeos pendentes", value: 12, tone: "red" },
+    { label: "Artes pendentes", value: 8, tone: "purple" },
+    { label: "Conteúdos entregues no mês", value: 36, tone: "green" },
+    { label: "Datas comemorativas restantes", value: 5, tone: "yellow" }
+  ],
+  clients: [
+    {
+      name: "Alsol Telecom",
+      accent: "#ea5a00",
+      metrics: ["12 vídeos planejados", "8 artes planejadas", "7 vídeos concluídos", "4 artes concluídas"],
+      next: "Indique e Ganhe"
+    },
+    {
+      name: "Rede São João",
+      accent: "#e11d48",
+      metrics: ["10 vídeos Posto", "5 vídeos Drogaria", "4 vídeos Prime", "15 artes produzidas"],
+      next: "Café Junino"
+    },
+    {
+      name: "RC Construtora",
+      accent: "#64748b",
+      metrics: ["8 criativos", "3 aprovados", "5 pendentes"],
+      next: "Campanha institucional"
+    },
+    {
+      name: "Premium Perfumaria",
+      accent: "#7c3aed",
+      metrics: ["7 vídeos planejados", "3 concluídos", "4 pendentes"],
+      next: "Dia dos Pais"
+    }
+  ],
+  calendarEvents: [
+    { date: "2026-06-05", title: "Reunião de pauta Luck", type: "meeting" },
+    { date: "2026-06-09", title: "Aprovação Alsol", type: "approval" },
+    { date: "2026-06-13", title: "Gravação Drogaria São João", type: "recording" },
+    { date: "2026-06-18", title: "Entrega RC Construtora", type: "delivery" },
+    { date: "2026-06-23", title: "Café Junino São João", type: "recording" },
+    { date: "2026-06-24", title: "Brasil x Escócia", type: "commemorative" },
+    { date: "2026-06-27", title: "Padroeira de Pilões", type: "commemorative" },
+    { date: "2026-06-30", title: "Encerramento Campanha Conexão Campeã", type: "delivery" }
+  ],
+  dates: [
+    { date: "2026-06-24", name: "São João", clients: ["Rede São João", "Alsol"], status: "Em aprovação" },
+    { date: "2026-06-27", name: "Padroeira de Pilões", clients: ["RC Construtora"], status: "Em produção" },
+    { date: "2026-07-16", name: "Dia do Comerciante", clients: ["Drogaria", "Prime", "Premium"], status: "Não iniciado" },
+    { date: "2026-07-26", name: "Emancipação de Catolé do Rocha", clients: ["Alsol", "Rede São João"], status: "Não iniciado" },
+    { date: "2026-08-09", name: "Dia dos Pais", clients: ["Alsol", "Drogaria", "Prime", "Premium"], status: "Não iniciado" }
+  ],
+  production: [
+    { label: "Vídeos", planned: 28, delivered: 18, color: "#e11d48" },
+    { label: "Artes", planned: 18, delivered: 12, color: "#64748b" },
+    { label: "Stories", planned: 90, delivered: 64, color: "#16a34a" }
+  ],
+  pipeline: [
+    { label: "A produzir", items: ["Arte Dia dos Pais", "Reels Alsol"] },
+    { label: "Em produção", items: ["Vídeo Café Junino", "RC Construtora 04"] },
+    { label: "Aguardando aprovação", items: ["Reels Drogaria", "Arte Prime Brasil"] },
+    { label: "Finalizados", items: ["Vídeo Voucher", "Arte Conexão Campeã"] }
+  ],
+  alerts: [
+    { level: "danger", text: "Cliente sem postagem há 5 dias" },
+    { level: "danger", text: "Campanha sem arte aprovada" },
+    { level: "warning", text: "Vídeo atrasado" },
+    { level: "success", text: "Todas as entregas da semana concluídas" }
+  ],
+  ranking: [
+    { client: "São João", videos: 12, arts: 9 },
+    { client: "Alsol", videos: 7, arts: 4 },
+    { client: "RC", videos: 0, arts: 3 },
+    { client: "Premium", videos: 2, arts: 1 }
+  ],
+  recordings: [
+    { when: "Hoje", title: "Gravação Posto São João" },
+    { when: "Amanhã", title: "Drogaria São João" },
+    { when: "Sexta", title: "Alsol Telecom" }
+  ]
+};
 const MONTH_WORDS = {
   janeiro: "01",
   fevereiro: "02",
@@ -271,10 +354,17 @@ const elements = {
   loginStatus: document.querySelector("#loginStatus"),
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
+  dashboardViewButton: document.querySelector("#dashboardViewButton"),
+  calendarViewButton: document.querySelector("#calendarViewButton"),
+  productionViewButton: document.querySelector("#productionViewButton"),
+  datesViewButton: document.querySelector("#datesViewButton"),
+  teamViewButton: document.querySelector("#teamViewButton"),
+  settingsViewButton: document.querySelector("#settingsViewButton"),
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
   companyViewButton: document.querySelector("#companyViewButton"),
   financeViewButton: document.querySelector("#financeViewButton"),
+  dashboardView: document.querySelector("#dashboardView"),
   reportView: document.querySelector("#reportView"),
   pendingView: document.querySelector("#pendingView"),
   companyView: document.querySelector("#companyView"),
@@ -306,6 +396,21 @@ const elements = {
   financeDueDateInput: document.querySelector("#financeDueDateInput"),
   financeStatusInput: document.querySelector("#financeStatusInput"),
   financeList: document.querySelector("#financeList"),
+  dashboardPeriod: document.querySelector("#dashboardPeriod"),
+  dashboardKpis: document.querySelector("#dashboardKpis"),
+  dashboardClientsGrid: document.querySelector("#dashboardClientsGrid"),
+  dashboardCalendarMonth: document.querySelector("#dashboardCalendarMonth"),
+  dashboardCalendarGrid: document.querySelector("#dashboardCalendarGrid"),
+  dashboardCalendarAgenda: document.querySelector("#dashboardCalendarAgenda"),
+  dashboardProductionBars: document.querySelector("#dashboardProductionBars"),
+  dashboardPipelineGrid: document.querySelector("#dashboardPipelineGrid"),
+  dashboardAlertsList: document.querySelector("#dashboardAlertsList"),
+  dashboardRankingTable: document.querySelector("#dashboardRankingTable"),
+  dashboardRecordingsList: document.querySelector("#dashboardRecordingsList"),
+  dashboardSmartCallout: document.querySelector("#dashboardSmartCallout"),
+  dashboardDatesList: document.querySelector("#dashboardDatesList"),
+  dashboardTeamAvatar: document.querySelector("#dashboardTeamAvatar"),
+  dashboardTeamName: document.querySelector("#dashboardTeamName"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -760,8 +865,10 @@ function syncProfilePanel() {
   renderAvatarElement(elements.profileAvatar);
   renderAvatarElement(elements.accountDialogAvatar);
   renderAvatarElement(elements.profilePhotoPreview, profilePhotoDraft);
+  renderAvatarElement(elements.dashboardTeamAvatar);
   if (elements.accountDialogName) elements.accountDialogName.textContent = getProfileDisplayName();
   if (elements.accountDialogEmail) elements.accountDialogEmail.textContent = getProfileEmail();
+  if (elements.dashboardTeamName) elements.dashboardTeamName.textContent = getProfileDisplayName();
   if (elements.accountDialogStatus) {
     elements.accountDialogStatus.textContent = isSupabaseSessionValid()
       ? "Conta conectada com acesso ao sistema."
@@ -1165,6 +1272,18 @@ function setAuthBusy(isBusy, message) {
 
 function getRequestedView() {
   const params = new URLSearchParams(window.location.search);
+  if (params.get("page") === "dashboard" || window.location.hash === "#dashboard") {
+    return "dashboard";
+  }
+
+  if (params.get("page") === "producao" || window.location.hash === "#producao") {
+    return "producao";
+  }
+
+  if (params.get("page") === "relatorios" || window.location.hash === "#relatorios") {
+    return "relatorios";
+  }
+
   if (params.get("page") === "empresas" || window.location.hash === "#empresas") {
     return "empresas";
   }
@@ -1177,12 +1296,12 @@ function getRequestedView() {
     return "pendencias";
   }
 
-  return "relatorios";
+  return "dashboard";
 }
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (view === "pendencias" || view === "empresas" || view === "financeiro") {
+  if (["producao", "relatorios", "pendencias", "empresas", "financeiro"].includes(view)) {
     url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
@@ -1200,21 +1319,31 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const activeView = ["pendencias", "empresas", "financeiro"].includes(view) ? view : "relatorios";
+  const validViews = ["dashboard", "producao", "relatorios", "pendencias", "empresas", "financeiro"];
+  const activeView = validViews.includes(view) ? view : "dashboard";
+  const isDashboardView = activeView === "dashboard";
+  const isProductionView = activeView === "producao";
+  const isReportView = activeView === "relatorios";
+  const isReportWorkspace = isProductionView || isReportView;
   const isPendingView = activeView === "pendencias";
   const isCompanyView = activeView === "empresas";
   const isFinanceView = activeView === "financeiro";
 
-  elements.reportView.hidden = isPendingView || isCompanyView || isFinanceView;
+  elements.dashboardView.hidden = !isDashboardView;
+  elements.reportView.hidden = !isReportWorkspace;
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
-  elements.contextPanel.hidden = isFinanceView || isPendingView;
-  elements.reportViewButton.classList.toggle("is-active", activeView === "relatorios");
+  elements.contextPanel.hidden = isDashboardView || isFinanceView || isPendingView;
+  elements.dashboardViewButton.classList.toggle("is-active", isDashboardView);
+  elements.productionViewButton.classList.toggle("is-active", isProductionView);
+  elements.reportViewButton.classList.toggle("is-active", isReportView);
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
   elements.financeViewButton.classList.toggle("is-active", isFinanceView);
-  elements.reportViewButton.setAttribute("aria-pressed", String(activeView === "relatorios"));
+  elements.dashboardViewButton.setAttribute("aria-pressed", String(isDashboardView));
+  elements.productionViewButton.setAttribute("aria-pressed", String(isProductionView));
+  elements.reportViewButton.setAttribute("aria-pressed", String(isReportView));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
   elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
   elements.financeViewButton.setAttribute("aria-pressed", String(isFinanceView));
@@ -1229,7 +1358,7 @@ function startAuthenticatedApp() {
   renderAuthState();
   populateControls();
   render();
-  setActiveView(getRequestedView(), { scroll: false, updateUrl: ["#pendencias", "#empresas", "#financeiro"].includes(window.location.hash), replaceUrl: true });
+  setActiveView(getRequestedView(), { scroll: false, updateUrl: window.location.hash.startsWith("#"), replaceUrl: true });
   exposeBackupData();
   loadRemoteState();
 }
@@ -2786,6 +2915,162 @@ function renderFinanceRow(record) {
   `;
 }
 
+function dashboardDaysRemaining(date) {
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const target = new Date(`${date}T00:00:00Z`).getTime();
+  return Math.ceil((target - todayUtc) / 86400000);
+}
+
+function formatDashboardDate(date) {
+  const value = new Date(`${date}T00:00:00Z`);
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  const month = value.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", "").toUpperCase();
+  return `${day} ${month}`;
+}
+
+function renderDashboardCalendar(data) {
+  const [year, month] = data.month.split("-").map(Number);
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const eventsByDay = data.calendarEvents.reduce((groups, event) => {
+    const day = Number(event.date.slice(-2));
+    groups[day] ||= [];
+    groups[day].push(event);
+    return groups;
+  }, {});
+  const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const cells = [];
+
+  weekDays.forEach((day) => cells.push(`<div class="hub-calendar-weekday">${day}</div>`));
+  for (let index = 0; index < firstDay; index += 1) {
+    cells.push('<div class="hub-calendar-day is-empty" aria-hidden="true"></div>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const events = eventsByDay[day] || [];
+    const eventTitle = events.map((event) => event.title).join(", ");
+    cells.push(`
+      <div class="hub-calendar-day ${events.length ? "has-event" : ""}" title="${escapeHTML(eventTitle)}">
+        <strong>${day}</strong>
+        <div class="hub-calendar-dots">
+          ${events.map((event) => `<i class="calendar-dot ${event.type}"></i>`).join("")}
+        </div>
+      </div>
+    `);
+  }
+
+  elements.dashboardCalendarGrid.innerHTML = cells.join("");
+  elements.dashboardCalendarAgenda.innerHTML = data.calendarEvents
+    .filter((event) => Number(event.date.slice(-2)) >= 23)
+    .map((event) => `
+      <article class="hub-agenda-item">
+        <time>${formatDashboardDate(event.date)}</time>
+        <span class="calendar-dot ${event.type}"></span>
+        <strong>${escapeHTML(event.title)}</strong>
+      </article>
+    `)
+    .join("");
+}
+
+function renderDashboard() {
+  const data = HUB_DASHBOARD_DATA;
+  if (!elements.dashboardView) return;
+
+  elements.dashboardPeriod.textContent = data.period;
+  elements.dashboardCalendarMonth.textContent = data.period;
+  elements.dashboardKpis.innerHTML = data.indicators.map((indicator) => `
+    <article class="hub-kpi ${indicator.tone}">
+      <span>${escapeHTML(indicator.label)}</span>
+      <strong>${indicator.value}</strong>
+    </article>
+  `).join("");
+
+  elements.dashboardClientsGrid.innerHTML = data.clients.map((client) => `
+    <article class="hub-client-summary" style="--client-accent: ${client.accent}">
+      <header>
+        <span class="hub-client-mark">${escapeHTML(client.name.slice(0, 2).toUpperCase())}</span>
+        <h3>${escapeHTML(client.name)}</h3>
+      </header>
+      <div class="hub-client-metrics">
+        ${client.metrics.map((metric) => `<span>${escapeHTML(metric)}</span>`).join("")}
+      </div>
+      <p><span>Próximo</span><strong>${escapeHTML(client.next)}</strong></p>
+    </article>
+  `).join("");
+
+  renderDashboardCalendar(data);
+
+  elements.dashboardProductionBars.innerHTML = data.production.map((item) => {
+    const percent = Math.min(100, Math.round((item.delivered / item.planned) * 100));
+    return `
+      <article class="hub-production-row" style="--bar-color: ${item.color}">
+        <header>
+          <strong>${escapeHTML(item.label)}</strong>
+          <span>${item.delivered} de ${item.planned}</span>
+        </header>
+        <div class="hub-bar-track"><span style="width: ${percent}%"></span></div>
+        <small>Planejados: ${item.planned} · Entregues: ${item.delivered}</small>
+      </article>
+    `;
+  }).join("");
+
+  elements.dashboardPipelineGrid.innerHTML = data.pipeline.map((column, index) => `
+    <section class="hub-pipeline-column tone-${index + 1}">
+      <header><strong>${escapeHTML(column.label)}</strong><span>${column.items.length}</span></header>
+      ${column.items.map((item) => `<article>${escapeHTML(item)}</article>`).join("")}
+    </section>
+  `).join("");
+
+  elements.dashboardAlertsList.innerHTML = data.alerts.map((alert) => `
+    <article class="hub-alert ${alert.level}">
+      <span class="hub-alert-indicator"></span>
+      <strong>${escapeHTML(alert.text)}</strong>
+    </article>
+  `).join("");
+
+  elements.dashboardRankingTable.innerHTML = `
+    <div class="hub-ranking-row is-header"><span>Cliente</span><span>Vídeos</span><span>Artes</span></div>
+    ${data.ranking.map((item, index) => `
+      <div class="hub-ranking-row">
+        <span><b>${index + 1}</b>${escapeHTML(item.client)}</span>
+        <strong>${item.videos}</strong>
+        <strong>${item.arts}</strong>
+      </div>
+    `).join("")}
+  `;
+
+  elements.dashboardRecordingsList.innerHTML = data.recordings.map((item) => `
+    <article class="hub-recording-item">
+      <time>${escapeHTML(item.when)}</time>
+      <div><strong>${escapeHTML(item.title)}</strong><small>Gravação agendada</small></div>
+    </article>
+  `).join("");
+
+  const upcomingDates = [...data.dates].sort((a, b) => a.date.localeCompare(b.date));
+  const nextDate = upcomingDates.find((item) => dashboardDaysRemaining(item.date) >= 0) || upcomingDates[0];
+  const nextDays = Math.max(0, dashboardDaysRemaining(nextDate.date));
+  elements.dashboardSmartCallout.textContent = `Faltam ${nextDays} ${nextDays === 1 ? "dia" : "dias"} para ${nextDate.name} — ${nextDate.clients.join(", ")} precisam de conteúdo.`;
+  elements.dashboardDatesList.innerHTML = upcomingDates.map((item) => {
+    const remaining = dashboardDaysRemaining(item.date);
+    const statusClass = normalizeText(item.status).includes("nao") ? "not-started" : normalizeText(item.status).includes("aprovacao") ? "approval" : "production";
+    return `
+      <article class="hub-date-item">
+        <time>${formatDashboardDate(item.date)}</time>
+        <div>
+          <h3>${escapeHTML(item.name)}</h3>
+          <p>${remaining >= 0 ? `${remaining} ${remaining === 1 ? "dia restante" : "dias restantes"}` : "Data concluída"}</p>
+          <small>Clientes: ${escapeHTML(item.clients.join(", "))}</small>
+          <span class="hub-date-status ${statusClass}">${escapeHTML(item.status)}</span>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  renderAvatarElement(elements.dashboardTeamAvatar);
+  elements.dashboardTeamName.textContent = getProfileDisplayName();
+}
+
 function renderFinance() {
   const records = getFinanceRecords(selectedFinanceMonth);
 
@@ -2842,6 +3127,7 @@ function render() {
   elements.reportSections.innerHTML = reportTables || compensationTables
     ? `${reportTables}${compensationTables}`
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
+  renderDashboard();
   renderSummary(sections);
   renderPendingBoard();
   renderFinance();
@@ -3596,6 +3882,29 @@ elements.monthSelect.addEventListener("change", () => {
   refreshMonthOptions();
   render();
 });
+function openDashboardSection(sectionId) {
+  setActiveView("dashboard", { updateUrl: true, scroll: false });
+  window.requestAnimationFrame(() => {
+    document.querySelector(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+elements.dashboardViewButton.addEventListener("click", () => {
+  setActiveView("dashboard", { updateUrl: true });
+});
+elements.calendarViewButton.addEventListener("click", () => {
+  openDashboardSection("#dashboardCalendar");
+});
+elements.productionViewButton.addEventListener("click", () => {
+  setActiveView("producao", { updateUrl: true });
+});
+elements.datesViewButton.addEventListener("click", () => {
+  openDashboardSection("#dashboardDates");
+});
+elements.teamViewButton.addEventListener("click", () => {
+  openDashboardSection("#dashboardTeam");
+});
+elements.settingsViewButton.addEventListener("click", openSettingsDialog);
 elements.reportViewButton.addEventListener("click", () => {
   setActiveView("relatorios", { updateUrl: true });
 });
