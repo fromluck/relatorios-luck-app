@@ -355,9 +355,7 @@ const elements = {
   companySelect: document.querySelector("#companySelect"),
   monthSelect: document.querySelector("#monthSelect"),
   dashboardViewButton: document.querySelector("#dashboardViewButton"),
-  calendarViewButton: document.querySelector("#calendarViewButton"),
   datesViewButton: document.querySelector("#datesViewButton"),
-  teamViewButton: document.querySelector("#teamViewButton"),
   settingsViewButton: document.querySelector("#settingsViewButton"),
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
@@ -3888,14 +3886,8 @@ function openDashboardSection(sectionId) {
 elements.dashboardViewButton.addEventListener("click", () => {
   setActiveView("dashboard", { updateUrl: true });
 });
-elements.calendarViewButton.addEventListener("click", () => {
-  openDashboardSection("#dashboardCalendar");
-});
 elements.datesViewButton.addEventListener("click", () => {
   openDashboardSection("#dashboardDates");
-});
-elements.teamViewButton.addEventListener("click", () => {
-  openDashboardSection("#dashboardTeam");
 });
 elements.settingsViewButton.addEventListener("click", openSettingsDialog);
 elements.reportViewButton.addEventListener("click", () => {
