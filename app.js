@@ -1346,6 +1346,7 @@ function setActiveView(view, options = {}) {
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
   elements.contextPanel.hidden = isDashboardView || isFinanceView || isPendingView;
+  elements.pdfButton.hidden = !isReportView;
   elements.dashboardViewButton.classList.toggle("is-active", isDashboardView);
   elements.reportViewButton.classList.toggle("is-active", isReportView);
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
