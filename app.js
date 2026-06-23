@@ -4202,6 +4202,10 @@ elements.settingsDialog.addEventListener("cancel", (event) => {
   closeDialogSmooth(elements.settingsDialog);
 });
 
+if (window.lucide?.createIcons) {
+  window.lucide.createIcons();
+}
+
 renderAuthState();
 captureSupabaseOAuthSession();
 if (!requiresLogin()) {
