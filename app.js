@@ -21,6 +21,7 @@ const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
+const DASHBOARD_MONTH_STORAGE_KEY = "luck-dashboard-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
@@ -336,6 +337,7 @@ let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
+let selectedDashboardMonth = loadDashboardMonth();
 applyTheme(selectedTheme);
 saveLocalState();
 
@@ -392,7 +394,7 @@ const elements = {
   financeDueDateInput: document.querySelector("#financeDueDateInput"),
   financeStatusInput: document.querySelector("#financeStatusInput"),
   financeList: document.querySelector("#financeList"),
-  dashboardPeriod: document.querySelector("#dashboardPeriod"),
+  dashboardMonthSelect: document.querySelector("#dashboardMonthSelect"),
   dashboardKpis: document.querySelector("#dashboardKpis"),
   dashboardClientsMeta: document.querySelector("#dashboardClientsMeta"),
   dashboardClientsGrid: document.querySelector("#dashboardClientsGrid"),
@@ -816,6 +818,11 @@ function loadFinanceMonth() {
 
 function loadPendingMonth() {
   const saved = localStorage.getItem(PENDING_MONTH_STORAGE_KEY);
+  return isValidMonth(saved) ? saved : currentMonthKey();
+}
+
+function loadDashboardMonth() {
+  const saved = localStorage.getItem(DASHBOARD_MONTH_STORAGE_KEY);
   return isValidMonth(saved) ? saved : currentMonthKey();
 }
 
@@ -2511,6 +2518,7 @@ function populateControls() {
   elements.editMaterialInput.innerHTML = materialOptions;
 
   refreshMonthOptions();
+  refreshDashboardMonthOptions();
   refreshPendingMonthOptions();
   refreshFinanceMonthOptions();
 }
@@ -2540,6 +2548,27 @@ function getFinanceRecordMonths() {
   return Object.keys(financialRecords)
     .map((key) => key.split("::").pop())
     .filter(isValidMonth);
+}
+
+function getSelectableDashboardMonths() {
+  return unique([
+    ...monthsUntilCurrent(),
+    ...reportData.map((report) => report.month).filter(isValidMonth)
+  ])
+    .sort()
+    .reverse();
+}
+
+function refreshDashboardMonthOptions() {
+  const months = getSelectableDashboardMonths();
+  const preferredMonth = months.includes(selectedDashboardMonth) ? selectedDashboardMonth : currentMonthKey();
+
+  elements.dashboardMonthSelect.innerHTML = months
+    .map((month) => `<option value="${month}">${dashboardPeriodLabel(month)}</option>`)
+    .join("");
+
+  selectedDashboardMonth = preferredMonth;
+  elements.dashboardMonthSelect.value = selectedDashboardMonth;
 }
 
 function getPendingBoardMonths() {
@@ -3008,7 +3037,7 @@ function renderDashboardCalendar(monthKey, deliveries) {
 function renderDashboard() {
   if (!elements.dashboardView) return;
 
-  const month = currentMonthKey();
+  const month = selectedDashboardMonth;
   const period = dashboardPeriodLabel(month);
   const deliveries = getDashboardDeliveries(month);
   const companies = getDashboardCompanyNames();
@@ -3026,7 +3055,6 @@ function renderDashboard() {
     { label: "Solicitações avulsas", value: avulsos, tone: "blue" }
   ];
 
-  elements.dashboardPeriod.textContent = period;
   elements.dashboardCalendarMonth.textContent = period;
   elements.dashboardClientsMeta.textContent = `${companiesWithDelivery.length} com entrega`;
   elements.dashboardProductionMeta.textContent = `${deliveries.length} entregas`;
@@ -3984,6 +4012,11 @@ elements.financeMonthSelect.addEventListener("change", () => {
   selectedFinanceMonth = elements.financeMonthSelect.value;
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   renderFinance();
+});
+elements.dashboardMonthSelect.addEventListener("change", () => {
+  selectedDashboardMonth = elements.dashboardMonthSelect.value;
+  localStorage.setItem(DASHBOARD_MONTH_STORAGE_KEY, selectedDashboardMonth);
+  renderDashboard();
 });
 elements.pendingMonthSelect.addEventListener("change", () => {
   selectedPendingMonth = elements.pendingMonthSelect.value;
