@@ -3086,13 +3086,14 @@ function renderDashboard() {
       const progressText = contractTarget
         ? `${contractDelivered} de ${contractTarget} entregas contratuais`
         : `${clientDeliveries.length} itens entregues`;
+      const displayTotal = contractTarget ? contractDelivered : clientDeliveries.length;
 
       return `
         <article class="hub-client-summary" style="--client-accent: ${accent}">
           <header>
             <span class="hub-client-mark">${escapeHTML(company.slice(0, 2).toUpperCase())}</span>
             <h3>${escapeHTML(company)}</h3>
-            <strong class="hub-client-total">${clientDeliveries.length}</strong>
+            <strong class="hub-client-total">${displayTotal}</strong>
           </header>
           <div class="hub-client-delivery-copy">
             <span>${escapeHTML(progressText)}</span>
