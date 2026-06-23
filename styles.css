@@ -1922,6 +1922,25 @@ td.action-cell {
   font-size: 20px;
 }
 
+.hub-period select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0 34px 0 10px;
+  font-size: 14px;
+  font-weight: 900;
+  outline: none;
+  cursor: pointer;
+}
+
+.hub-period select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(234, 90, 0, 0.14);
+}
+
 .hub-kpis {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
