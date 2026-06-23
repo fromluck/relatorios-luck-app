@@ -46,6 +46,20 @@ const CONTRACT_TARGETS = {
   "RC Construtora": { videos: 0, creatives: 0 },
   Luck: { videos: 0, creatives: 0 }
 };
+const COMMEMORATIVE_DATE_LIBRARY = [
+  { date: "2026-05-01", topic: "Dia do Trabalho" },
+  { date: "2026-05-10", topic: "Dia das Mães" },
+  { date: "2026-05-17", topic: "Dia Mundial da Internet" },
+  { date: "2026-05-26", topic: "Emancipação Política de Catolé do Rocha" },
+  { date: "2026-05-28", topic: "Morte de Francisco Ferreira de Lima (Chico Maroca)" },
+  { date: "2026-05-28", topic: "Falecimento do Cel. Manoel Emídio de Sousa" },
+  { date: "2026-06-24", topic: "São João" },
+  { date: "2026-06-27", topic: "Padroeira de Pilões" },
+  { date: "2026-06-29", topic: "São Pedro" },
+  { date: "2026-07-16", topic: "Dia do Comerciante" },
+  { date: "2026-07-26", topic: "Emancipação de Catolé do Rocha" },
+  { date: "2026-08-09", topic: "Dia dos Pais" }
+];
 const HUB_DASHBOARD_DATA = {
   period: "Junho 2026",
   month: "2026-06",
@@ -2939,6 +2953,24 @@ function formatDashboardDate(date) {
   return `${day} ${month}`;
 }
 
+function todayDateKey() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+function daysUntilDate(date) {
+  const today = new Date(`${todayDateKey()}T00:00:00`);
+  const target = new Date(`${date}T00:00:00`);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function daysUntilLabel(date) {
+  const days = daysUntilDate(date);
+  if (days === 0) return "Hoje";
+  if (days === 1) return "Amanhã";
+  return `Faltam ${days} dias`;
+}
+
 function dashboardPeriodLabel(month) {
   const { year } = monthYear(month);
   return `${toTitleCase(formatMonth(month))} ${year}`;
@@ -2978,6 +3010,40 @@ function getDashboardDeliveries(month) {
 
 function countDashboardMaterial(deliveries, material) {
   return deliveries.filter((delivery) => delivery.material === material).length;
+}
+
+function getDashboardCommemorativeOpportunities(month, deliveries) {
+  const todayKey = todayDateKey();
+  const opportunities = new Map();
+  const addOpportunity = (item) => {
+    if (!item.date?.startsWith(month) || item.date < todayKey) return;
+    const key = `${item.date}|${normalizeText(item.topic)}`;
+    const existing = opportunities.get(key) || {
+      date: item.date,
+      topic: item.topic,
+      companies: new Set(),
+      materials: new Set(),
+      registered: false
+    };
+
+    if (item.company) existing.companies.add(item.company);
+    if (item.material) existing.materials.add(item.material);
+    existing.registered = existing.registered || Boolean(item.registered);
+    opportunities.set(key, existing);
+  };
+
+  COMMEMORATIVE_DATE_LIBRARY.forEach((item) => addOpportunity({ ...item, registered: false }));
+  deliveries
+    .filter((delivery) => normalizeSection(delivery.section) === "Datas Comemorativas")
+    .forEach((delivery) => addOpportunity({
+      date: delivery.date,
+      topic: delivery.topic,
+      company: delivery.company,
+      material: delivery.material,
+      registered: true
+    }));
+
+  return [...opportunities.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function renderDashboardCalendar(monthKey, deliveries) {
@@ -3159,25 +3225,30 @@ function renderDashboard() {
     </article>
   `).join("");
 
-  const commemorativeDeliveries = deliveries
-    .filter((delivery) => normalizeSection(delivery.section) === "Datas Comemorativas")
-    .sort((a, b) => b.date.localeCompare(a.date));
-  elements.dashboardSmartCallout.textContent = commemorativeDeliveries.length
-    ? `${commemorativeDeliveries.length} ${commemorativeDeliveries.length === 1 ? "material de data comemorativa entregue" : "materiais de datas comemorativas entregues"} neste mês.`
-    : "Nenhum material de data comemorativa foi registrado neste mês.";
-  elements.dashboardDatesList.innerHTML = commemorativeDeliveries.length
-    ? commemorativeDeliveries.map((item) => `
+  const commemorativeOpportunities = getDashboardCommemorativeOpportunities(month, deliveries);
+  const registeredFuture = commemorativeOpportunities.filter((item) => item.registered).length;
+  elements.dashboardSmartCallout.textContent = commemorativeOpportunities.length
+    ? `${commemorativeOpportunities.length} ${commemorativeOpportunities.length === 1 ? "data futura" : "datas futuras"} neste mês${registeredFuture ? `, ${registeredFuture} já ${registeredFuture === 1 ? "tem" : "têm"} material registrado` : " para planejar"}.`
+    : "Nenhuma data comemorativa futura cadastrada para este mês.";
+  elements.dashboardDatesList.innerHTML = commemorativeOpportunities.length
+    ? commemorativeOpportunities.map((item) => {
+      const companies = [...item.companies];
+      const materials = [...item.materials];
+      const statusClass = item.registered ? "registered" : "planned";
+      const statusLabel = item.registered ? "Registrado" : "A planejar";
+      return `
       <article class="hub-date-item">
         <time>${formatDashboardDate(item.date)}</time>
         <div>
           <h3>${escapeHTML(item.topic)}</h3>
-          <p>${escapeHTML(item.company)}</p>
-          <small>${escapeHTML(item.material)}</small>
-          <span class="hub-date-status delivered">Entregue</span>
+          <p>${companies.length ? `Clientes com material: ${escapeHTML(companies.join(", "))}` : "Clientes: definir"}</p>
+          <small>${escapeHTML(daysUntilLabel(item.date))}${materials.length ? ` · ${escapeHTML(materials.join(", "))}` : ""}</small>
+          <span class="hub-date-status ${statusClass}">${statusLabel}</span>
         </div>
       </article>
-    `).join("")
-    : '<div class="hub-empty-message">Sem entregas desta categoria no período.</div>';
+    `;
+    }).join("")
+    : '<div class="hub-empty-message">Sem datas comemorativas futuras neste período.</div>';
 }
 
 function renderFinance() {
