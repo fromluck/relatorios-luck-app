@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=pdf-context-1">
+    <link rel="stylesheet" href="styles.css?v=settings-save-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -53,12 +53,7 @@
           <strong>Luck Hub</strong>
         </div>
 
-        <div class="sidebar-actions" aria-label="Salvamento e navegação">
-          <button id="cloudSaveButton" class="export-main-button" type="button">
-            <i data-lucide="cloud-upload" class="sidebar-icon" aria-hidden="true"></i>
-            <span>Salvar dados</span>
-          </button>
-          <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
+        <div class="sidebar-actions" aria-label="Navegação">
           <div class="view-switch hub-navigation" aria-label="Telas do sistema">
             <button id="dashboardViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">
               <i data-lucide="layout-dashboard" class="sidebar-icon" aria-hidden="true"></i>
@@ -631,7 +626,14 @@
                 <strong>Banco de dados</strong>
                 <small id="settingsSyncText">Sincronização ativa quando a conta estiver conectada.</small>
               </div>
-              <span id="settingsSyncBadge" class="settings-badge">Luck</span>
+              <div class="settings-database-actions">
+                <span id="settingsSyncBadge" class="settings-badge">Luck</span>
+                <button id="cloudSaveButton" class="export-main-button settings-save-button" type="button">
+                  <i data-lucide="cloud-upload" class="sidebar-icon" aria-hidden="true"></i>
+                  <span>Salvar dados</span>
+                </button>
+                <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
+              </div>
             </article>
           </section>
         </div>
@@ -642,6 +644,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=pdf-context-1"></script>
+    <script src="app.js?v=settings-save-1"></script>
   </body>
 </html>
