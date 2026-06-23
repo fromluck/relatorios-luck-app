@@ -2600,6 +2600,16 @@ td.action-cell {
   color: #1e40af;
 }
 
+.hub-date-status.planned {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.hub-date-status.registered {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 .hub-date-status.delivered {
   background: #dcfce7;
   color: #166534;
