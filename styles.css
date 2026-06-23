@@ -1581,6 +1581,31 @@ td.action-cell {
   font-weight: 900;
 }
 
+.settings-database-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.settings-database-actions .sync-status {
+  width: 100%;
+  max-width: 240px;
+  text-align: left;
+}
+
+.settings-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  width: 100%;
+  max-width: 240px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
 .theme-toggle {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(72px, auto));
@@ -3111,6 +3136,20 @@ td.action-cell {
   .settings-grid,
   .settings-grid.compact {
     grid-template-columns: 1fr;
+  }
+
+  .settings-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-database-actions {
+    justify-items: stretch;
+    min-width: 0;
+  }
+
+  .settings-database-actions .sync-status,
+  .settings-save-button {
+    max-width: none;
   }
 
   .report-header,
