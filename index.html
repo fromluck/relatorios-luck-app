@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=sidebar-icons-1">
+    <link rel="stylesheet" href="styles.css?v=pdf-context-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -53,11 +53,7 @@
           <strong>Luck Hub</strong>
         </div>
 
-        <div class="sidebar-actions" aria-label="Exportação e salvamento">
-          <button id="pdfButton" class="export-main-button" type="button">
-            <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
-            <span>Exportar PDF</span>
-          </button>
+        <div class="sidebar-actions" aria-label="Salvamento e navegação">
           <button id="cloudSaveButton" class="export-main-button" type="button">
             <i data-lucide="cloud-upload" class="sidebar-icon" aria-hidden="true"></i>
             <span>Salvar dados</span>
@@ -209,7 +205,13 @@
           <select id="monthSelect"></select>
         </label>
 
-        <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
+        <div class="context-actions">
+          <button id="pdfButton" class="export-main-button context-export-button" type="button">
+            <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
+            <span>Exportar PDF</span>
+          </button>
+          <button id="deleteMonthButton" class="sidebar-danger-button" type="button">Excluir mês</button>
+        </div>
       </section>
 
       <div id="reportView" class="app-view">
@@ -640,6 +642,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=sidebar-icons-1"></script>
+    <script src="app.js?v=pdf-context-1"></script>
   </body>
 </html>
