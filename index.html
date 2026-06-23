@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=dashboard-real-6">
+    <link rel="stylesheet" href="styles.css?v=sidebar-icons-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -54,16 +54,40 @@
         </div>
 
         <div class="sidebar-actions" aria-label="Exportação e salvamento">
-          <button id="pdfButton" class="export-main-button" type="button">Exportar PDF</button>
-          <button id="cloudSaveButton" class="export-main-button" type="button">Salvar dados</button>
+          <button id="pdfButton" class="export-main-button" type="button">
+            <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
+            <span>Exportar PDF</span>
+          </button>
+          <button id="cloudSaveButton" class="export-main-button" type="button">
+            <i data-lucide="cloud-upload" class="sidebar-icon" aria-hidden="true"></i>
+            <span>Salvar dados</span>
+          </button>
           <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
           <div class="view-switch hub-navigation" aria-label="Telas do sistema">
-            <button id="dashboardViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">Dashboard</button>
-            <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Clientes</button>
-            <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Pendências</button>
-            <button id="reportViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Relatórios</button>
-            <button id="financeViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Financeiro</button>
-            <button id="settingsViewButton" class="sidebar-link-button" type="button" aria-pressed="false">Configurações</button>
+            <button id="dashboardViewButton" class="sidebar-link-button is-active" type="button" aria-pressed="true">
+              <i data-lucide="layout-dashboard" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Dashboard</span>
+            </button>
+            <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="users" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Clientes</span>
+            </button>
+            <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="list-checks" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Pendências</span>
+            </button>
+            <button id="reportViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="file-text" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Relatórios</span>
+            </button>
+            <button id="financeViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="wallet" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Financeiro</span>
+            </button>
+            <button id="settingsViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="settings" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Configurações</span>
+            </button>
           </div>
         </div>
 
@@ -613,8 +637,9 @@
       </div>
     </main>
 
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=dashboard-real-6"></script>
+    <script src="app.js?v=sidebar-icons-1"></script>
   </body>
 </html>
