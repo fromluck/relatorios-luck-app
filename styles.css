@@ -393,9 +393,27 @@ select {
   padding: 14px 18px;
 }
 
+.context-actions {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.context-panel .context-export-button,
 .context-panel .sidebar-danger-button {
   min-width: 150px;
   padding: 0 16px;
+}
+
+.context-panel .context-export-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
 .brand {
@@ -2997,6 +3015,11 @@ td.action-cell {
   .context-panel,
   .assistant-grid,
   .parse-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .context-actions {
+    grid-column: 1 / -1;
     grid-template-columns: 1fr 1fr;
   }
 
