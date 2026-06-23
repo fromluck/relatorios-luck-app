@@ -3070,10 +3070,15 @@ function renderDashboard() {
     ? companies.map((company, index) => {
       const clientDeliveries = deliveries.filter((delivery) => delivery.company === company);
       const target = getContractTarget(company);
-      const contractTarget = target.videos + target.creatives;
-      const clientVideos = countDashboardMaterial(clientDeliveries, "Vídeo (Reels)");
-      const clientCreatives = countDashboardMaterial(clientDeliveries, "Criativo (Arte)");
-      const contractDelivered = clientVideos + clientCreatives;
+      const contractCounts = getContractCountsForMonth(company, month);
+      const previousBacklog = getPreviousContractBacklog(company, month);
+      const videoTarget = target.videos ? target.videos + previousBacklog.videos : 0;
+      const creativeTarget = target.creatives ? target.creatives + previousBacklog.creatives : 0;
+      const contractTarget = videoTarget + creativeTarget;
+      const contractDelivered = contractCounts.videos + contractCounts.creatives;
+      const actualVideos = countDashboardMaterial(clientDeliveries, "Vídeo (Reels)");
+      const actualCreatives = countDashboardMaterial(clientDeliveries, "Criativo (Arte)");
+      const otherMaterials = Math.max(0, clientDeliveries.length - actualVideos - actualCreatives);
       const percent = contractTarget
         ? Math.min(100, Math.round((contractDelivered / contractTarget) * 100))
         : clientDeliveries.length ? 100 : 0;
@@ -3094,7 +3099,7 @@ function renderDashboard() {
             <b>${percent}%</b>
           </div>
           <div class="hub-bar-track"><span style="width: ${percent}%; background: ${accent}"></span></div>
-          <small>${clientVideos} vídeos · ${clientCreatives} criativos · ${Math.max(0, clientDeliveries.length - contractDelivered)} outros materiais</small>
+          <small>${contractCounts.videos} vídeos · ${contractCounts.creatives} criativos · ${otherMaterials} outros materiais</small>
         </article>
       `;
     }).join("")
