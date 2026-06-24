@@ -2455,6 +2455,78 @@ td.action-cell {
   font-weight: 900;
 }
 
+.schedule-client-logo img {
+  display: block;
+  width: 100%;
+  max-width: 230px;
+  max-height: 96px;
+  margin-left: auto;
+  object-fit: contain;
+}
+
+.schedule-logo-card {
+  border-top: 4px solid #ea5a00;
+}
+
+.schedule-logo-manager {
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-logo-preview {
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #ea5a00;
+  padding: 12px;
+  text-align: center;
+}
+
+.schedule-logo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 92px;
+  object-fit: contain;
+}
+
+.schedule-logo-preview strong {
+  display: block;
+  color: #111111;
+  font-size: 34px;
+  line-height: 0.95;
+  font-weight: 950;
+}
+
+.schedule-logo-preview small {
+  display: block;
+  margin-top: 5px;
+  color: #ea5a00;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.schedule-logo-upload {
+  display: inline-grid;
+  place-items: center;
+  min-height: 38px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.schedule-logo-upload input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .schedule-legend {
   display: flex;
   flex-wrap: wrap;
@@ -3463,6 +3535,11 @@ td.action-cell {
 
   body.printing-schedule .schedule-client-logo small {
     font-size: 9pt;
+  }
+
+  body.printing-schedule .schedule-client-logo img {
+    max-width: 54mm;
+    max-height: 24mm;
   }
 
   body.printing-schedule .schedule-calendar-grid {
