@@ -1,4 +1,4 @@
-﻿const MATERIAL_TYPES = [
+const MATERIAL_TYPES = [
   { label: "Vídeo (Reels)", color: "#e11d48" },
   { label: "Criativo (Arte)", color: "#64748b" },
   { label: "Publicação (Fotos)", color: "#7c3aed" },
@@ -379,6 +379,7 @@ let selectedDashboardMonth = loadDashboardMonth();
 let selectedScheduleMonth = loadScheduleMonth();
 let selectedScheduleCompany = loadScheduleCompany();
 let editingScheduleTaskId = null;
+let parsedScheduleItems = [];
 applyTheme(selectedTheme);
 saveLocalState();
 
@@ -453,6 +454,10 @@ const elements = {
   scheduleCompanySelect: document.querySelector("#scheduleCompanySelect"),
   scheduleYearSelect: document.querySelector("#scheduleYearSelect"),
   schedulePdfButton: document.querySelector("#schedulePdfButton"),
+  scheduleQuickTextInput: document.querySelector("#scheduleQuickTextInput"),
+  scheduleInterpretButton: document.querySelector("#scheduleInterpretButton"),
+  scheduleAddParsedButton: document.querySelector("#scheduleAddParsedButton"),
+  scheduleParsePreview: document.querySelector("#scheduleParsePreview"),
   scheduleSummary: document.querySelector("#scheduleSummary"),
   schedulePrintMonth: document.querySelector("#schedulePrintMonth"),
   scheduleClientLogo: document.querySelector("#scheduleClientLogo"),
@@ -3722,6 +3727,156 @@ function renderSchedule() {
   renderScheduleCalendar(selectedScheduleMonth, record);
   renderScheduleAgenda(record);
   renderScheduleLists(record);
+  renderScheduleParsePreview();
+}
+
+function schedulePreviewColor(type) {
+  const taskClass = scheduleTaskClass(type);
+  if (taskClass === "is-video") return "#e11d48";
+  if (taskClass === "is-creative") return "#ea5a00";
+  if (taskClass === "is-story") return "#16a34a";
+  return "#334155";
+}
+
+function inferScheduleType(line) {
+  const normalized = normalizeText(line);
+
+  if (normalized.includes("data comemorativa") || normalized.includes("feriado") || normalized.includes("dia dos") || normalized.includes("dia das")) return "Data comemorativa";
+  if (normalized.includes("reels")) return "Reels";
+  if (normalized.includes("video")) return "Vídeo";
+  if (normalized.includes("carrossel")) return "Carrossel";
+  if (normalized.includes("story") || normalized.includes("stories")) return "Story";
+  if (normalized.includes("post") || normalized.includes("estatico") || normalized.includes("feed")) return "Post estático";
+  if (normalized.includes("arte") || normalized.includes("criativo") || normalized.includes("grid")) return "Criativo";
+
+  return "Criativo";
+}
+
+function inferScheduleQuantity(line, type) {
+  const normalized = normalizeText(line)
+    .replace(/\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b/g, "")
+    .replace(/\bdia\s+\d{1,2}\b/g, "");
+  const gridMatch = normalized.match(/\bgrid\b.*?\b(\d+)\s+(?:artes|criativos|posts|pecas|pecas graficas)\b/);
+  const quantityMatch = normalized.match(/\b(\d+)\s+(?:artes|criativos|posts|reels|videos|conteudos|stories|carrosseis)\b/);
+  const rawQuantity = gridMatch?.[1] || quantityMatch?.[1];
+  const quantity = Number(rawQuantity || 1);
+
+  if (type === "Data comemorativa") return 1;
+  return Number.isFinite(quantity) ? Math.max(1, Math.min(quantity, 20)) : 1;
+}
+
+function cleanScheduleTitle(line) {
+  return line
+    .replace(/\b\d{1,2}(?:[./-]|\s+)\d{1,2}(?:[./-]\d{2,4})?\b/g, "")
+    .replace(/\bdia\s+\d{1,2}\b/gi, "")
+    .replace(/\b\d{1,2}\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/gi, "")
+    .replace(/\b(\d+)\s+(artes|criativos|posts|reels|videos|vídeos|conteudos|conteúdos|stories|carrosseis|carrosséis)\b/gi, "")
+    .replace(/\b(video|vídeo|reels|arte|artes|criativo|criativos|post\s+est[aá]tico|post|story|stories|carrossel|grid|data comemorativa|conte[uú]do|conte[uú]dos|planejado|planejada|produzir|ser[aá]|fazer)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s:;,.–—-]+|[\s:;,.–—-]+$/g, "")
+    .trim();
+}
+
+function splitScheduleQuickText(text) {
+  return String(text || "")
+    .split(/\n|;/)
+    .flatMap((line) => {
+      const compactLine = line.replace(/\s+/g, " ").trim();
+      if (!compactLine) return [];
+      return compactLine
+        .split(/(?=\s+(?:\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?|\bdia\s+\d{1,2}\b))/gi)
+        .map((chunk) => chunk.trim())
+        .filter(Boolean);
+    });
+}
+
+function parseScheduleText(text, monthKey) {
+  const chunks = splitScheduleQuickText(text);
+  const parsed = [];
+  const seen = new Set();
+
+  chunks.forEach((chunk) => {
+    const type = inferScheduleType(chunk);
+    const quantity = inferScheduleQuantity(chunk, type);
+    const date = isValidDate(inferDate(chunk, monthKey)) ? inferDate(chunk, monthKey) : `${monthKey}-01`;
+    const title = fixPortuguese(cleanScheduleTitle(chunk)) || type;
+
+    for (let index = 1; index <= quantity; index += 1) {
+      const numberedTitle = quantity > 1 ? `${title} ${index}/${quantity}` : title;
+      const key = `${date}|${type}|${numberedTitle}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      parsed.push({
+        date,
+        type,
+        title: numberedTitle,
+        description: "",
+        status: "Planejado",
+        notes: ""
+      });
+    }
+  });
+
+  return parsed.sort((a, b) => `${a.date}-${a.title}`.localeCompare(`${b.date}-${b.title}`, "pt-BR"));
+}
+
+function renderScheduleParsePreview() {
+  if (!elements.scheduleParsePreview || !elements.scheduleAddParsedButton) return;
+
+  elements.scheduleAddParsedButton.disabled = parsedScheduleItems.length === 0;
+
+  if (!parsedScheduleItems.length) {
+    elements.scheduleParsePreview.innerHTML = '<div class="empty-state">Escreva uma ou mais linhas para planejar conteúdos no cronograma.</div>';
+    return;
+  }
+
+  elements.scheduleParsePreview.innerHTML = parsedScheduleItems
+    .map((item, index) => `
+      <div class="parse-row schedule-parse-row">
+        <span class="section-chip">${formatDate(item.date)}</span>
+        <strong title="${escapeHTML(item.title)}">${escapeHTML(item.title)}</strong>
+        <select class="parse-material schedule-parse-select" data-schedule-preview-type="${index}" style="--tag-color: ${schedulePreviewColor(item.type)}">
+          ${SCHEDULE_TYPES
+            .map((type) => `<option value="${type}" ${type === item.type ? "selected" : ""}>${type}</option>`)
+            .join("")}
+        </select>
+        <select class="schedule-parse-status" data-schedule-preview-status="${index}">
+          ${SCHEDULE_STATUSES
+            .map((status) => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`)
+            .join("")}
+        </select>
+      </div>
+    `)
+    .join("");
+}
+
+function parseScheduleQuickText() {
+  parsedScheduleItems = parseScheduleText(elements.scheduleQuickTextInput.value, selectedScheduleMonth);
+  renderScheduleParsePreview();
+}
+
+function addParsedScheduleItems() {
+  if (!parsedScheduleItems.length) return;
+
+  parsedScheduleItems.forEach((item) => {
+    const targetMonth = isValidMonth(item.date.slice(0, 7)) ? item.date.slice(0, 7) : selectedScheduleMonth;
+    const record = getScheduleRecord(selectedScheduleCompany, targetMonth);
+    record.tasks.push(normalizeScheduleTask({
+      date: item.date,
+      type: item.type,
+      title: item.title,
+      description: item.description,
+      client: selectedScheduleCompany,
+      status: item.status,
+      notes: item.notes
+    }));
+    record.tasks.sort((a, b) => `${a.date}-${a.title}`.localeCompare(`${b.date}-${b.title}`, "pt-BR"));
+  });
+
+  saveScheduleData();
+  parsedScheduleItems = [];
+  elements.scheduleQuickTextInput.value = "";
+  renderSchedule();
 }
 
 function renderDashboard() {
@@ -4748,6 +4903,26 @@ elements.scheduleYearSelect.addEventListener("change", () => {
   syncScheduleSelectedMonth();
   resetScheduleTaskForm();
   renderSchedule();
+});
+elements.scheduleInterpretButton.addEventListener("click", parseScheduleQuickText);
+elements.scheduleAddParsedButton.addEventListener("click", addParsedScheduleItems);
+elements.scheduleParsePreview.addEventListener("change", (event) => {
+  const typeSelect = event.target.closest("[data-schedule-preview-type]");
+  const statusSelect = event.target.closest("[data-schedule-preview-status]");
+
+  if (typeSelect) {
+    const item = parsedScheduleItems[Number(typeSelect.dataset.schedulePreviewType)];
+    if (!item) return;
+    item.type = typeSelect.value;
+    renderScheduleParsePreview();
+    return;
+  }
+
+  if (statusSelect) {
+    const item = parsedScheduleItems[Number(statusSelect.dataset.schedulePreviewStatus)];
+    if (!item) return;
+    item.status = statusSelect.value;
+  }
 });
 elements.scheduleTaskForm.addEventListener("submit", saveScheduleTask);
 elements.scheduleCancelEditButton.addEventListener("click", () => {

@@ -788,6 +788,10 @@ button {
   align-items: stretch;
 }
 
+.schedule-quick-panel {
+  border-top: 4px solid #ea5a00;
+}
+
 textarea {
   min-height: 116px;
   width: 100%;
@@ -857,6 +861,21 @@ button:disabled {
   font-size: 12px;
   font-weight: 800;
   text-align: center;
+}
+
+.schedule-parse-row {
+  grid-template-columns: 110px minmax(0, 1fr) 170px 160px;
+}
+
+.schedule-parse-status {
+  min-height: 32px;
+  border: 1px solid #dbe1e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #263241;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 h1,

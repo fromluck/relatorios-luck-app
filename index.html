@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-linhas-pdf-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-rapido-planejamento-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -212,6 +212,27 @@
               <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
               <span>Exportar PDF</span>
             </button>
+          </section>
+
+          <section class="assistant-panel schedule-quick-panel" aria-label="Preenchimento rápido do cronograma">
+            <div class="assistant-copy">
+              <span class="eyebrow">Preenchimento rápido</span>
+              <h2>Descreva o que será produzido</h2>
+            </div>
+
+            <div class="assistant-grid">
+              <textarea
+                id="scheduleQuickTextInput"
+                placeholder="Ex.: 01/07 Reels - Campanha de abertura&#10;03/07 Post estático - Oferta da semana&#10;12/07 Criativo - Dia dos Namorados"
+              ></textarea>
+
+              <div class="assistant-actions">
+                <button id="scheduleInterpretButton" class="secondary-button" type="button">Interpretar</button>
+                <button id="scheduleAddParsedButton" class="primary-button" type="button" disabled>Adicionar planejados</button>
+              </div>
+            </div>
+
+            <div id="scheduleParsePreview" class="parse-preview"></div>
           </section>
 
           <section id="scheduleSummary" class="hub-kpis schedule-summary" aria-label="Resumo do cronograma"></section>
@@ -801,6 +822,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-linhas-pdf-1"></script>
+    <script src="app.js?v=cronograma-rapido-planejamento-1"></script>
   </body>
 </html>
