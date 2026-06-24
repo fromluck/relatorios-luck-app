@@ -2230,6 +2230,7 @@ td.action-cell {
 .calendar-dot.photo { background: var(--photo); }
 .calendar-dot.flyer { background: var(--flyer); }
 .calendar-dot.print { background: var(--print); }
+.calendar-dot.pending { background: #ea5a00; }
 
 .hub-client-total {
   margin-left: auto;
@@ -2339,6 +2340,66 @@ td.action-cell {
 .hub-agenda-item time {
   color: #c2410c;
   font-weight: 950;
+}
+
+.schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+  align-items: start;
+}
+
+.schedule-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.schedule-calendar-grid .hub-calendar-day {
+  min-height: 78px;
+}
+
+.schedule-agenda-card {
+  position: sticky;
+  top: 22px;
+}
+
+.schedule-agenda-list {
+  display: grid;
+  gap: 9px;
+}
+
+.schedule-agenda-item {
+  display: grid;
+  grid-template-columns: 58px 8px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 92%, #ea5a00);
+  padding: 10px;
+  font-size: 11px;
+}
+
+.schedule-agenda-item time {
+  color: #c2410c;
+  font-weight: 950;
+}
+
+.schedule-agenda-item > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.schedule-agenda-item strong,
+.schedule-agenda-item small {
+  overflow-wrap: anywhere;
+}
+
+.schedule-agenda-item small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
 }
 
 .hub-production-bars {
@@ -3003,6 +3064,14 @@ td.action-cell {
     grid-template-columns: 1fr;
   }
 
+  .schedule-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-agenda-card {
+    position: static;
+  }
+
   .hub-smart-dates {
     position: static;
   }
@@ -3087,6 +3156,10 @@ td.action-cell {
 
   .hub-kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .schedule-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hub-pipeline-grid {
@@ -3182,6 +3255,7 @@ td.action-cell {
   .hub-calendar-agenda,
   .hub-pipeline-grid,
   .hub-alert-list,
+  .schedule-summary,
   .hub-two-column {
     grid-template-columns: 1fr;
   }
