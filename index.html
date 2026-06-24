@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=settings-save-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -62,6 +62,10 @@
             <button id="companyViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
               <i data-lucide="users" class="sidebar-icon" aria-hidden="true"></i>
               <span>Clientes</span>
+            </button>
+            <button id="scheduleViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="calendar-days" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Cronograma</span>
             </button>
             <button id="pendingViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
               <i data-lucide="list-checks" class="sidebar-icon" aria-hidden="true"></i>
@@ -184,6 +188,57 @@
                 </header>
                 <div id="dashboardAlertsList" class="hub-alert-list"></div>
               </section>
+            </aside>
+          </div>
+        </section>
+      </div>
+
+      <div id="scheduleView" class="app-view" hidden>
+        <section class="hub-dashboard schedule-page" aria-label="Cronograma Luck">
+          <header class="hub-header">
+            <div>
+              <span class="eyebrow">Cronograma</span>
+              <h1>Cronograma</h1>
+              <p>Organização mensal das entregas, pendências e datas comemorativas da Luck.</p>
+            </div>
+            <div class="hub-period">
+              <span>Período</span>
+              <select id="scheduleMonthSelect" aria-label="Período do Cronograma"></select>
+            </div>
+          </header>
+
+          <section id="scheduleSummary" class="hub-kpis schedule-summary" aria-label="Resumo do cronograma"></section>
+
+          <div class="schedule-layout">
+            <section class="hub-card">
+              <header class="hub-card-header">
+                <div>
+                  <span class="hub-card-number">01</span>
+                  <h2>Calendário do mês</h2>
+                </div>
+                <strong id="scheduleCalendarMonth" class="hub-card-meta">Junho 2026</strong>
+              </header>
+              <div class="hub-calendar-legend" aria-label="Legenda do cronograma">
+                <span><i class="calendar-dot video"></i>Vídeos</span>
+                <span><i class="calendar-dot creative"></i>Criativos</span>
+                <span><i class="calendar-dot photo"></i>Fotos</span>
+                <span><i class="calendar-dot flyer"></i>Flyers</span>
+                <span><i class="calendar-dot print"></i>Impressos</span>
+                <span><i class="calendar-dot pending"></i>Pendências</span>
+                <span><i class="calendar-dot commemorative"></i>Datas</span>
+              </div>
+              <div id="scheduleCalendarGrid" class="hub-calendar-grid schedule-calendar-grid"></div>
+            </section>
+
+            <aside class="hub-card schedule-agenda-card">
+              <header class="hub-card-header">
+                <div>
+                  <span class="hub-card-number">02</span>
+                  <h2>Agenda do mês</h2>
+                </div>
+                <span id="scheduleAgendaMeta" class="hub-card-meta">0 itens</span>
+              </header>
+              <div id="scheduleAgendaList" class="schedule-agenda-list"></div>
             </aside>
           </div>
         </section>
@@ -644,6 +699,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=settings-save-1"></script>
+    <script src="app.js?v=cronograma-1"></script>
   </body>
 </html>
