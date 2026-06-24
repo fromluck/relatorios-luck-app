@@ -29,6 +29,7 @@ const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
 const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
+const COMPANY_LOGO_MAX_SIZE = 2.5 * 1024 * 1024;
 const BACKUP_VERSION = 1;
 const PENDING_COLUMNS = [
   { id: "conteudos", label: "Conteúdos" },
@@ -455,6 +456,9 @@ const elements = {
   scheduleSummary: document.querySelector("#scheduleSummary"),
   schedulePrintMonth: document.querySelector("#schedulePrintMonth"),
   scheduleClientLogo: document.querySelector("#scheduleClientLogo"),
+  scheduleLogoPreview: document.querySelector("#scheduleLogoPreview"),
+  scheduleLogoInput: document.querySelector("#scheduleLogoInput"),
+  scheduleLogoRemoveButton: document.querySelector("#scheduleLogoRemoveButton"),
   scheduleCalendarGrid: document.querySelector("#scheduleCalendarGrid"),
   scheduleAgendaMeta: document.querySelector("#scheduleAgendaMeta"),
   scheduleAgendaList: document.querySelector("#scheduleAgendaList"),
@@ -680,6 +684,9 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
   const target = targets?.[company] || CONTRACT_TARGETS[company] || {};
   const videos = Number(setting.videos ?? target.videos ?? 0);
   const creatives = Number(setting.creatives ?? target.creatives ?? 0);
+  const logoDataUrl = String(setting.logoDataUrl || "").startsWith("data:image/")
+    ? String(setting.logoDataUrl)
+    : "";
 
   return {
     name: normalizedCompany,
@@ -687,6 +694,7 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
     contact: String(setting.contact || "").trim(),
     contactInfo: String(setting.contactInfo || "").trim(),
     notes: String(setting.notes || "").trim(),
+    logoDataUrl,
     videos: Number.isFinite(videos) ? Math.max(0, videos) : 0,
     creatives: Number.isFinite(creatives) ? Math.max(0, creatives) : 0
   };
@@ -3357,12 +3365,65 @@ function scheduleTaskClass(type) {
 }
 
 function scheduleClientLogoMarkup(company) {
+  const logoDataUrl = getCompanySetting(company).logoDataUrl;
+  if (logoDataUrl) {
+    return `<img src="${escapeHTML(logoDataUrl)}" alt="Logo ${escapeHTML(company)}">`;
+  }
   const normalized = normalizeText(company);
   if (normalized.includes("alsol")) return "<strong>alsol</strong><small>TELECOM</small>";
   if (normalized.includes("posto")) return "<strong>SJ</strong><small>São João</small>";
   if (normalized.includes("construtora")) return "<strong>RC</strong><small>Construtora</small>";
   if (normalized.includes("luck")) return "<strong>LUCK</strong><small>Produtora</small>";
   return `<strong>${escapeHTML(company)}</strong>`;
+}
+
+function renderScheduleLogoManager() {
+  const setting = getCompanySetting(selectedScheduleCompany);
+  if (!elements.scheduleLogoPreview) return;
+
+  elements.scheduleLogoPreview.innerHTML = setting.logoDataUrl
+    ? `<img src="${escapeHTML(setting.logoDataUrl)}" alt="Logo ${escapeHTML(selectedScheduleCompany)}">`
+    : scheduleClientLogoMarkup(selectedScheduleCompany);
+  elements.scheduleLogoPreview.classList.toggle("has-image", Boolean(setting.logoDataUrl));
+}
+
+function saveScheduleClientLogo(dataUrl) {
+  const setting = getCompanySetting(selectedScheduleCompany);
+  setting.logoDataUrl = dataUrl;
+  companySettings[selectedScheduleCompany] = normalizeCompanySetting(selectedScheduleCompany, setting);
+  saveCompanySettings();
+  renderSchedule();
+}
+
+function handleScheduleLogoChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (file.type !== "image/png") {
+    showSaveDialog("Formato inválido", "Envie a logo em PNG para manter qualidade e transparência no PDF.");
+    elements.scheduleLogoInput.value = "";
+    return;
+  }
+
+  if (file.size > COMPANY_LOGO_MAX_SIZE) {
+    showSaveDialog("Arquivo muito grande", "Use uma logo PNG com até 2,5 MB.");
+    elements.scheduleLogoInput.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    saveScheduleClientLogo(String(reader.result || ""));
+    elements.scheduleLogoInput.value = "";
+    showSaveDialog("Logo adicionada", `A logo de ${selectedScheduleCompany} foi aplicada ao cronograma.`);
+  });
+  reader.readAsDataURL(file);
+}
+
+function removeScheduleClientLogo() {
+  saveScheduleClientLogo("");
+  if (elements.scheduleLogoInput) elements.scheduleLogoInput.value = "";
+  showSaveDialog("Logo removida", `O cronograma voltou a usar o nome de ${selectedScheduleCompany}.`);
 }
 
 function renderScheduleCalendar(monthKey, record) {
@@ -3640,6 +3701,7 @@ function renderSchedule() {
 
   elements.schedulePrintMonth.textContent = dashboardPeriodLabel(selectedScheduleMonth).toUpperCase();
   elements.scheduleClientLogo.innerHTML = scheduleClientLogoMarkup(selectedScheduleCompany);
+  renderScheduleLogoManager();
   elements.scheduleCompanySelect.value = selectedScheduleCompany;
   elements.scheduleMonthSelect.value = monthYear(selectedScheduleMonth).monthNumber;
   elements.scheduleYearSelect.value = monthYear(selectedScheduleMonth).year;
@@ -4365,6 +4427,7 @@ function renameCompanyReferences(oldName, nextName) {
 function readCompanySettingsForm(companyName) {
   const videos = Number(elements.targetVideosInput.value);
   const creatives = Number(elements.targetCreativesInput.value);
+  const existingLogo = getCompanySetting(elements.companySelect.value).logoDataUrl || "";
 
   return normalizeCompanySetting(companyName, {
     name: companyName,
@@ -4372,6 +4435,7 @@ function readCompanySettingsForm(companyName) {
     contact: elements.companyContactInput.value,
     contactInfo: elements.companyContactInfoInput.value,
     notes: elements.companyNotesInput.value,
+    logoDataUrl: existingLogo,
     videos: Number.isFinite(videos) ? videos : 0,
     creatives: Number.isFinite(creatives) ? creatives : 0
   });
@@ -4688,6 +4752,8 @@ elements.scheduleDateForm.addEventListener("submit", addScheduleDate);
 elements.scheduleHolidayForm.addEventListener("submit", addScheduleHoliday);
 elements.scheduleGeneralNotesInput.addEventListener("change", saveScheduleNotes);
 elements.schedulePdfButton.addEventListener("click", exportSchedulePdf);
+elements.scheduleLogoInput.addEventListener("change", handleScheduleLogoChange);
+elements.scheduleLogoRemoveButton.addEventListener("click", removeScheduleClientLogo);
 elements.scheduleView.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-schedule-edit], [data-schedule-task]");
   const duplicateButton = event.target.closest("[data-schedule-duplicate]");
