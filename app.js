@@ -3464,9 +3464,15 @@ function renderScheduleCalendar(monthKey, record) {
     const tasks = isCurrentMonth ? tasksByDate[date] || [] : [];
     const commemoratives = isCurrentMonth ? datesByDate[date] || [] : [];
     const dayHolidays = isCurrentMonth ? holidaysByDate[date] || [] : [];
+    const dayClasses = [
+      "schedule-day",
+      isCurrentMonth ? "" : "is-outside",
+      tasks.length ? "has-task" : "",
+      tasks.length ? scheduleTaskClass(tasks[0].type) : ""
+    ].filter(Boolean).join(" ");
 
     cells.push(`
-      <div class="schedule-day ${isCurrentMonth ? "" : "is-outside"}" ${isCurrentMonth ? `data-schedule-date="${date}"` : ""}>
+      <div class="${dayClasses}" ${isCurrentMonth ? `data-schedule-date="${date}"` : ""}>
         <span class="schedule-day-number">${displayDay}</span>
         <div class="schedule-day-content">
           ${tasks.map((task) => `

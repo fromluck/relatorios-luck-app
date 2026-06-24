@@ -2558,7 +2558,8 @@ td.action-cell {
 }
 
 .schedule-legend-outside {
-  background: #3f3f3f;
+  background: #e5e7eb;
+  border: 1px solid #cbd5e1;
 }
 
 .schedule-calendar-grid {
@@ -2603,12 +2604,37 @@ td.action-cell {
 }
 
 .schedule-day.is-outside {
-  background: #3f3f3f;
+  background: #e5e7eb;
 }
 
 .schedule-day.is-outside .schedule-day-number {
+  color: #64748b;
+  opacity: 1;
+}
+
+.schedule-day.has-task {
+  padding: 25px 10px 10px;
   color: #ffffff;
-  opacity: 0.78;
+}
+
+.schedule-day.has-task.is-video {
+  background: linear-gradient(110deg, #e11d48 0%, #ea5a00 58%, #f59e0b 100%);
+}
+
+.schedule-day.has-task.is-creative {
+  background: #ea5a00;
+}
+
+.schedule-day.has-task.is-story {
+  background: #16a34a;
+}
+
+.schedule-day.has-task.is-date {
+  background: #334155;
+}
+
+.schedule-day.has-task .schedule-day-number {
+  color: #ffffff;
 }
 
 .schedule-day-number {
@@ -2623,6 +2649,12 @@ td.action-cell {
 .schedule-day-content {
   display: grid;
   gap: 5px;
+}
+
+.schedule-day.has-task .schedule-day-content {
+  height: 100%;
+  align-content: center;
+  gap: 6px;
 }
 
 .schedule-task-chip,
@@ -2648,6 +2680,18 @@ td.action-cell {
 
 .schedule-task-chip:active {
   cursor: grabbing;
+}
+
+.schedule-day.has-task .schedule-task-chip {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: #ffffff;
+}
+
+.schedule-day.has-task .schedule-task-chip + .schedule-task-chip {
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  padding-top: 6px;
 }
 
 .schedule-task-chip strong {
@@ -2677,6 +2721,18 @@ td.action-cell {
 
 .schedule-task-chip.is-date {
   background: #334155;
+}
+
+.schedule-day.has-task .schedule-task-chip.is-video,
+.schedule-day.has-task .schedule-task-chip.is-creative,
+.schedule-day.has-task .schedule-task-chip.is-story,
+.schedule-day.has-task .schedule-task-chip.is-date {
+  background: transparent;
+}
+
+.schedule-day.has-task .schedule-date-chip,
+.schedule-day.has-task .schedule-holiday-chip {
+  display: none;
 }
 
 .schedule-date-chip {
@@ -3556,6 +3612,10 @@ td.action-cell {
     padding: 5.5mm 1.7mm 1.7mm;
   }
 
+  body.printing-schedule .schedule-day.has-task {
+    padding: 5.5mm 2mm 2mm;
+  }
+
   body.printing-schedule .schedule-day-number {
     top: 1.8mm;
     left: 2mm;
@@ -3573,6 +3633,11 @@ td.action-cell {
     padding: 1.2mm 1.5mm;
     font-size: 5.8pt;
     line-height: 1.05;
+  }
+
+  body.printing-schedule .schedule-day.has-task .schedule-task-chip {
+    padding: 0;
+    color: #ffffff;
   }
 
   body.printing-schedule .schedule-task-chip strong {
