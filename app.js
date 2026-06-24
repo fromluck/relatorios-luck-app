@@ -22,6 +22,7 @@ const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const DASHBOARD_MONTH_STORAGE_KEY = "luck-dashboard-month-v1";
+const SCHEDULE_MONTH_STORAGE_KEY = "luck-schedule-month-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
@@ -352,6 +353,7 @@ let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
 let selectedDashboardMonth = loadDashboardMonth();
+let selectedScheduleMonth = loadScheduleMonth();
 applyTheme(selectedTheme);
 saveLocalState();
 
@@ -375,8 +377,10 @@ const elements = {
   reportViewButton: document.querySelector("#reportViewButton"),
   pendingViewButton: document.querySelector("#pendingViewButton"),
   companyViewButton: document.querySelector("#companyViewButton"),
+  scheduleViewButton: document.querySelector("#scheduleViewButton"),
   financeViewButton: document.querySelector("#financeViewButton"),
   dashboardView: document.querySelector("#dashboardView"),
+  scheduleView: document.querySelector("#scheduleView"),
   reportView: document.querySelector("#reportView"),
   pendingView: document.querySelector("#pendingView"),
   companyView: document.querySelector("#companyView"),
@@ -420,6 +424,12 @@ const elements = {
   dashboardAlertsList: document.querySelector("#dashboardAlertsList"),
   dashboardSmartCallout: document.querySelector("#dashboardSmartCallout"),
   dashboardDatesList: document.querySelector("#dashboardDatesList"),
+  scheduleMonthSelect: document.querySelector("#scheduleMonthSelect"),
+  scheduleSummary: document.querySelector("#scheduleSummary"),
+  scheduleCalendarMonth: document.querySelector("#scheduleCalendarMonth"),
+  scheduleCalendarGrid: document.querySelector("#scheduleCalendarGrid"),
+  scheduleAgendaMeta: document.querySelector("#scheduleAgendaMeta"),
+  scheduleAgendaList: document.querySelector("#scheduleAgendaList"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -837,6 +847,11 @@ function loadPendingMonth() {
 
 function loadDashboardMonth() {
   const saved = localStorage.getItem(DASHBOARD_MONTH_STORAGE_KEY);
+  return isValidMonth(saved) ? saved : currentMonthKey();
+}
+
+function loadScheduleMonth() {
+  const saved = localStorage.getItem(SCHEDULE_MONTH_STORAGE_KEY);
   return isValidMonth(saved) ? saved : currentMonthKey();
 }
 
@@ -1296,6 +1311,10 @@ function getRequestedView() {
     return "relatorios";
   }
 
+  if (params.get("page") === "cronograma" || window.location.hash === "#cronograma") {
+    return "cronograma";
+  }
+
   if (params.get("page") === "empresas" || window.location.hash === "#empresas") {
     return "empresas";
   }
@@ -1313,7 +1332,7 @@ function getRequestedView() {
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (["relatorios", "pendencias", "empresas", "financeiro"].includes(view)) {
+  if (["relatorios", "cronograma", "pendencias", "empresas", "financeiro"].includes(view)) {
     url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
@@ -1331,28 +1350,32 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const validViews = ["dashboard", "relatorios", "pendencias", "empresas", "financeiro"];
+  const validViews = ["dashboard", "relatorios", "cronograma", "pendencias", "empresas", "financeiro"];
   const activeView = validViews.includes(view) ? view : "dashboard";
   const isDashboardView = activeView === "dashboard";
   const isReportView = activeView === "relatorios";
   const isReportWorkspace = isReportView;
+  const isScheduleView = activeView === "cronograma";
   const isPendingView = activeView === "pendencias";
   const isCompanyView = activeView === "empresas";
   const isFinanceView = activeView === "financeiro";
 
   elements.dashboardView.hidden = !isDashboardView;
+  elements.scheduleView.hidden = !isScheduleView;
   elements.reportView.hidden = !isReportWorkspace;
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
-  elements.contextPanel.hidden = isDashboardView || isFinanceView || isPendingView;
+  elements.contextPanel.hidden = isDashboardView || isScheduleView || isFinanceView || isPendingView;
   elements.pdfButton.hidden = !isReportView;
   elements.dashboardViewButton.classList.toggle("is-active", isDashboardView);
+  elements.scheduleViewButton.classList.toggle("is-active", isScheduleView);
   elements.reportViewButton.classList.toggle("is-active", isReportView);
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
   elements.financeViewButton.classList.toggle("is-active", isFinanceView);
   elements.dashboardViewButton.setAttribute("aria-pressed", String(isDashboardView));
+  elements.scheduleViewButton.setAttribute("aria-pressed", String(isScheduleView));
   elements.reportViewButton.setAttribute("aria-pressed", String(isReportView));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
   elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
@@ -2534,6 +2557,7 @@ function populateControls() {
 
   refreshMonthOptions();
   refreshDashboardMonthOptions();
+  refreshScheduleMonthOptions();
   refreshPendingMonthOptions();
   refreshFinanceMonthOptions();
 }
@@ -2584,6 +2608,27 @@ function refreshDashboardMonthOptions() {
 
   selectedDashboardMonth = preferredMonth;
   elements.dashboardMonthSelect.value = selectedDashboardMonth;
+}
+
+function getSelectableScheduleMonths() {
+  return unique([
+    ...getSelectableDashboardMonths(),
+    ...getPendingBoardMonths()
+  ])
+    .sort()
+    .reverse();
+}
+
+function refreshScheduleMonthOptions() {
+  const months = getSelectableScheduleMonths();
+  const preferredMonth = months.includes(selectedScheduleMonth) ? selectedScheduleMonth : currentMonthKey();
+
+  elements.scheduleMonthSelect.innerHTML = months
+    .map((month) => `<option value="${month}">${dashboardPeriodLabel(month)}</option>`)
+    .join("");
+
+  selectedScheduleMonth = preferredMonth;
+  elements.scheduleMonthSelect.value = selectedScheduleMonth;
 }
 
 function getPendingBoardMonths() {
@@ -3101,6 +3146,118 @@ function renderDashboardCalendar(monthKey, deliveries) {
     : '<div class="hub-empty-message">Nenhuma entrega registrada neste mês.</div>';
 }
 
+function getScheduleItems(month) {
+  const deliveries = getDashboardDeliveries(month)
+    .filter((delivery) => delivery.date?.startsWith(month))
+    .map((delivery) => ({
+      date: delivery.date,
+      title: delivery.topic,
+      detail: `${delivery.company} · ${delivery.section}`,
+      type: dashboardMaterialType(delivery.material),
+      category: delivery.material
+    }));
+  const pendingRows = getPendingRows(getPendingBoard(month))
+    .filter((row) => row.status !== "done")
+    .map((row) => {
+      const typeMeta = PENDING_TYPES.find((item) => item.id === row.type);
+      return {
+        date: `${month}-01`,
+        title: row.card.title,
+        detail: typeMeta?.label || "Pendência",
+        type: "pending",
+        category: "Pendência"
+      };
+    });
+  const commemorativeItems = getDashboardCommemorativeOpportunities(month, deliveries)
+    .map((item) => {
+      const companies = [...item.companies];
+      return {
+        date: item.date,
+        title: item.topic,
+        detail: companies.length ? `Clientes com material: ${companies.join(", ")}` : "Data comemorativa para planejar",
+        type: "commemorative",
+        category: item.registered ? "Data registrada" : "Data futura"
+      };
+    });
+
+  return [...deliveries, ...pendingRows, ...commemorativeItems]
+    .sort((a, b) => `${a.date}-${a.title}`.localeCompare(`${b.date}-${b.title}`, "pt-BR"));
+}
+
+function renderScheduleCalendar(monthKey, items) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const eventsByDay = items.reduce((groups, item) => {
+    if (!item.date?.startsWith(monthKey)) return groups;
+    const day = Number(item.date.slice(-2));
+    groups[day] ||= [];
+    groups[day].push(item);
+    return groups;
+  }, {});
+  const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const cells = [];
+
+  weekDays.forEach((day) => cells.push(`<div class="hub-calendar-weekday">${day}</div>`));
+  for (let index = 0; index < firstDay; index += 1) {
+    cells.push('<div class="hub-calendar-day is-empty" aria-hidden="true"></div>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const events = eventsByDay[day] || [];
+    const eventTitle = events.map((event) => event.title).join(", ");
+    cells.push(`
+      <div class="hub-calendar-day ${events.length ? "has-event" : ""}" title="${escapeHTML(eventTitle)}">
+        <strong>${day}</strong>
+        <div class="hub-calendar-dots">
+          ${events.slice(0, 8).map((event) => `<i class="calendar-dot ${event.type}"></i>`).join("")}
+        </div>
+      </div>
+    `);
+  }
+
+  elements.scheduleCalendarGrid.innerHTML = cells.join("");
+}
+
+function renderSchedule() {
+  if (!elements.scheduleView) return;
+
+  const month = selectedScheduleMonth;
+  const deliveries = getDashboardDeliveries(month);
+  const pendingRows = getPendingRows(getPendingBoard(month)).filter((row) => row.status !== "done");
+  const commemorativeOpportunities = getDashboardCommemorativeOpportunities(month, deliveries);
+  const items = getScheduleItems(month);
+  const clientCount = unique(deliveries.map((delivery) => delivery.company)).length;
+  const summary = [
+    { label: "Entregas no mês", value: deliveries.length, tone: "green" },
+    { label: "Pendências abertas", value: pendingRows.length, tone: "red" },
+    { label: "Datas futuras", value: commemorativeOpportunities.length, tone: "orange" },
+    { label: "Clientes no cronograma", value: clientCount, tone: "blue" }
+  ];
+
+  elements.scheduleCalendarMonth.textContent = dashboardPeriodLabel(month);
+  elements.scheduleAgendaMeta.textContent = `${items.length} ${items.length === 1 ? "item" : "itens"}`;
+  elements.scheduleSummary.innerHTML = summary.map((item) => `
+    <article class="hub-kpi ${item.tone}">
+      <span>${escapeHTML(item.label)}</span>
+      <strong>${item.value}</strong>
+    </article>
+  `).join("");
+  renderScheduleCalendar(month, items);
+  elements.scheduleAgendaList.innerHTML = items.length
+    ? items.map((item) => `
+      <article class="schedule-agenda-item">
+        <time>${formatDashboardDate(item.date)}</time>
+        <span class="calendar-dot ${item.type}"></span>
+        <div>
+          <strong>${escapeHTML(item.title)}</strong>
+          <small>${escapeHTML(item.category)} · ${escapeHTML(item.detail)}</small>
+        </div>
+      </article>
+    `).join("")
+    : '<div class="hub-empty-message">Nenhum item no cronograma deste mês.</div>';
+}
+
 function renderDashboard() {
   if (!elements.dashboardView) return;
 
@@ -3309,6 +3466,7 @@ function render() {
     ? `${reportTables}${compensationTables}`
     : `<div class="empty-state">Nenhum item encontrado para os filtros atuais.</div>`;
   renderDashboard();
+  renderSchedule();
   renderSummary(sections);
   renderPendingBoard();
   renderFinance();
@@ -4067,6 +4225,9 @@ elements.dashboardViewButton.addEventListener("click", () => {
   setActiveView("dashboard", { updateUrl: true });
 });
 elements.settingsViewButton.addEventListener("click", openSettingsDialog);
+elements.scheduleViewButton.addEventListener("click", () => {
+  setActiveView("cronograma", { updateUrl: true });
+});
 elements.reportViewButton.addEventListener("click", () => {
   setActiveView("relatorios", { updateUrl: true });
 });
@@ -4095,6 +4256,11 @@ elements.dashboardMonthSelect.addEventListener("change", () => {
   selectedDashboardMonth = elements.dashboardMonthSelect.value;
   localStorage.setItem(DASHBOARD_MONTH_STORAGE_KEY, selectedDashboardMonth);
   renderDashboard();
+});
+elements.scheduleMonthSelect.addEventListener("change", () => {
+  selectedScheduleMonth = elements.scheduleMonthSelect.value;
+  localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
+  renderSchedule();
 });
 elements.pendingMonthSelect.addEventListener("change", () => {
   selectedPendingMonth = elements.pendingMonthSelect.value;
