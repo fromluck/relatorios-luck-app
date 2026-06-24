@@ -3662,24 +3662,37 @@ td.action-cell {
 
   body.printing-schedule .schedule-calendar-grid {
     width: 100%;
-    gap: 0.24mm;
-    background: #b9bec4;
-    border: 0.24mm solid #b9bec4;
+    gap: 0;
+    background: #ffffff;
+    border: 0.16mm solid #cfd4da;
     border-radius: 4mm;
   }
 
   body.printing-schedule .schedule-weekday {
-    border: 0;
-    box-shadow: inset 0 0 0 0.18mm #242424;
+    border-right: 0.16mm solid #2f2f2f;
+    box-shadow: none;
     min-height: 12mm;
     font-size: 18pt;
   }
 
+  body.printing-schedule .schedule-weekday:nth-child(7n) {
+    border-right: 0;
+  }
+
   body.printing-schedule .schedule-day {
-    border: 0;
-    box-shadow: inset 0 0 0 0.18mm #b9bec4;
+    border-right: 0.12mm solid #cfd4da;
+    border-bottom: 0.12mm solid #cfd4da;
+    box-shadow: none;
     min-height: 23mm;
     padding: 5.4mm 2.2mm 2mm;
+  }
+
+  body.printing-schedule .schedule-day:nth-child(7n) {
+    border-right: 0;
+  }
+
+  body.printing-schedule .schedule-day:nth-last-child(-n + 7) {
+    border-bottom: 0;
   }
 
   body.printing-schedule .schedule-day.has-task {
