@@ -3518,7 +3518,7 @@ td.action-cell {
 @media print {
   @page schedule {
     size: A4 landscape;
-    margin: 7mm;
+    margin: 0;
   }
 
   body.printing-schedule {
@@ -3558,68 +3558,78 @@ td.action-cell {
   body.printing-schedule .schedule-document {
     page: schedule;
     width: 100%;
+    min-height: 210mm;
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    padding: 4mm 5mm 3mm;
+    padding: 14mm 18mm 8mm;
   }
 
   body.printing-schedule .schedule-document-header {
-    grid-template-columns: minmax(0, 1fr) 54mm;
-    gap: 10mm;
-    margin-bottom: 5mm;
+    grid-template-columns: minmax(0, 1fr) 70mm;
+    gap: 12mm;
+    align-items: center;
+    margin-bottom: 7mm;
   }
 
   body.printing-schedule .schedule-document-header span {
-    padding: 1.5mm 18mm;
-    font-size: 15pt;
+    min-width: 132mm;
+    margin-left: 14mm;
+    padding: 1.6mm 8mm;
+    text-align: center;
+    font-size: 17pt;
+    font-weight: 500;
   }
 
   body.printing-schedule .schedule-document-header h1 {
-    margin-top: 3mm;
-    font-size: 36pt;
+    margin-top: 4mm;
+    font-size: 52pt;
+    font-weight: 500;
+    line-height: 0.92;
   }
 
   body.printing-schedule .schedule-client-logo {
     min-width: 0;
-    max-width: 54mm;
+    max-width: 70mm;
   }
 
   body.printing-schedule .schedule-client-logo strong {
-    font-size: 26pt;
+    font-size: 38pt;
   }
 
   body.printing-schedule .schedule-client-logo small {
-    font-size: 9pt;
+    margin-top: 2mm;
+    font-size: 12pt;
   }
 
   body.printing-schedule .schedule-client-logo img {
-    max-width: 54mm;
-    max-height: 24mm;
+    max-width: 68mm;
+    max-height: 32mm;
   }
 
   body.printing-schedule .schedule-calendar-grid {
-    border-radius: 5mm;
+    width: 100%;
+    border-radius: 4mm;
   }
 
   body.printing-schedule .schedule-weekday {
-    min-height: 9mm;
-    font-size: 15pt;
+    min-height: 12mm;
+    font-size: 18pt;
   }
 
   body.printing-schedule .schedule-day {
-    min-height: 21mm;
-    padding: 5.5mm 1.7mm 1.7mm;
+    min-height: 23mm;
+    padding: 5.4mm 2.2mm 2mm;
   }
 
   body.printing-schedule .schedule-day.has-task {
-    padding: 5.5mm 2mm 2mm;
+    padding: 5.4mm 3mm 2.4mm;
   }
 
   body.printing-schedule .schedule-day-number {
-    top: 1.8mm;
-    left: 2mm;
-    font-size: 6.5pt;
+    top: 1.7mm;
+    left: 2.2mm;
+    font-size: 7pt;
   }
 
   body.printing-schedule .schedule-day-content {
@@ -3631,7 +3641,7 @@ td.action-cell {
   body.printing-schedule .schedule-holiday-chip {
     border-radius: 1mm;
     padding: 1.2mm 1.5mm;
-    font-size: 5.8pt;
+    font-size: 6.2pt;
     line-height: 1.05;
   }
 
@@ -3641,23 +3651,23 @@ td.action-cell {
   }
 
   body.printing-schedule .schedule-task-chip strong {
-    font-size: 5.4pt;
+    font-size: 6.1pt;
   }
 
   body.printing-schedule .schedule-bottom {
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 10mm;
-    margin-top: 4mm;
+    gap: 16mm;
+    margin-top: 5mm;
     break-inside: avoid;
   }
 
   body.printing-schedule .schedule-bottom h2 {
-    font-size: 6.7pt;
+    font-size: 6.9pt;
   }
 
   body.printing-schedule .schedule-note-list p,
   body.printing-schedule .schedule-general-notes {
-    font-size: 6.2pt;
+    font-size: 6.3pt;
   }
 
   body.printing-schedule .schedule-note-list button {
