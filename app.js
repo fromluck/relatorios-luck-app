@@ -23,6 +23,8 @@ const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const DASHBOARD_MONTH_STORAGE_KEY = "luck-dashboard-month-v1";
 const SCHEDULE_MONTH_STORAGE_KEY = "luck-schedule-month-v1";
+const SCHEDULE_COMPANY_STORAGE_KEY = "luck-schedule-company-v1";
+const SCHEDULE_STORAGE_KEY = "luck-schedule-data-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
@@ -41,6 +43,22 @@ const FINANCE_STATUSES = [
   { value: "pending", label: "Pendente" },
   { value: "paid", label: "Pago" }
 ];
+const SCHEDULE_TYPES = ["Vídeo", "Criativo", "Reels", "Post estático", "Story", "Carrossel", "Data comemorativa"];
+const SCHEDULE_STATUSES = ["Planejado", "Em produção", "Aguardando aprovação", "Aprovado", "Publicado"];
+const SCHEDULE_MONTHS = [
+  { value: "01", label: "Janeiro" },
+  { value: "02", label: "Fevereiro" },
+  { value: "03", label: "Março" },
+  { value: "04", label: "Abril" },
+  { value: "05", label: "Maio" },
+  { value: "06", label: "Junho" },
+  { value: "07", label: "Julho" },
+  { value: "08", label: "Agosto" },
+  { value: "09", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" }
+];
 const CONTRACT_TARGETS = {
   "Alsol Telecom": { videos: 4, creatives: 8 },
   "Rede de Postos SJ": { videos: 17, creatives: 18 },
@@ -54,6 +72,9 @@ const COMMEMORATIVE_DATE_LIBRARY = [
   { date: "2026-05-26", topic: "Emancipação Política de Catolé do Rocha" },
   { date: "2026-05-28", topic: "Morte de Francisco Ferreira de Lima (Chico Maroca)" },
   { date: "2026-05-28", topic: "Falecimento do Cel. Manoel Emídio de Sousa" },
+  { date: "2026-06-12", topic: "Dia dos Namorados" },
+  { date: "2026-06-19", topic: "Jogo do Brasil" },
+  { date: "2026-06-23", topic: "Véspera de São João" },
   { date: "2026-06-24", topic: "São João" },
   { date: "2026-06-27", topic: "Padroeira de Pilões" },
   { date: "2026-06-29", topic: "São Pedro" },
@@ -350,10 +371,13 @@ let profilePhotoDraft = profileData.avatarDataUrl || "";
 let selectedTheme = loadTheme();
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
+let scheduleData = normalizeScheduleData(loadScheduleData());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
 let selectedDashboardMonth = loadDashboardMonth();
 let selectedScheduleMonth = loadScheduleMonth();
+let selectedScheduleCompany = loadScheduleCompany();
+let editingScheduleTaskId = null;
 applyTheme(selectedTheme);
 saveLocalState();
 
@@ -425,11 +449,35 @@ const elements = {
   dashboardSmartCallout: document.querySelector("#dashboardSmartCallout"),
   dashboardDatesList: document.querySelector("#dashboardDatesList"),
   scheduleMonthSelect: document.querySelector("#scheduleMonthSelect"),
+  scheduleCompanySelect: document.querySelector("#scheduleCompanySelect"),
+  scheduleYearSelect: document.querySelector("#scheduleYearSelect"),
+  schedulePdfButton: document.querySelector("#schedulePdfButton"),
   scheduleSummary: document.querySelector("#scheduleSummary"),
-  scheduleCalendarMonth: document.querySelector("#scheduleCalendarMonth"),
+  schedulePrintMonth: document.querySelector("#schedulePrintMonth"),
+  scheduleClientLogo: document.querySelector("#scheduleClientLogo"),
   scheduleCalendarGrid: document.querySelector("#scheduleCalendarGrid"),
   scheduleAgendaMeta: document.querySelector("#scheduleAgendaMeta"),
   scheduleAgendaList: document.querySelector("#scheduleAgendaList"),
+  scheduleDatesList: document.querySelector("#scheduleDatesList"),
+  scheduleHolidaysList: document.querySelector("#scheduleHolidaysList"),
+  scheduleGeneralNotesText: document.querySelector("#scheduleGeneralNotesText"),
+  scheduleTaskForm: document.querySelector("#scheduleTaskForm"),
+  scheduleFormTitle: document.querySelector("#scheduleFormTitle"),
+  scheduleTaskDateInput: document.querySelector("#scheduleTaskDateInput"),
+  scheduleTaskTypeInput: document.querySelector("#scheduleTaskTypeInput"),
+  scheduleTaskTitleInput: document.querySelector("#scheduleTaskTitleInput"),
+  scheduleTaskDescriptionInput: document.querySelector("#scheduleTaskDescriptionInput"),
+  scheduleTaskStatusInput: document.querySelector("#scheduleTaskStatusInput"),
+  scheduleTaskNotesInput: document.querySelector("#scheduleTaskNotesInput"),
+  scheduleCancelEditButton: document.querySelector("#scheduleCancelEditButton"),
+  scheduleDateForm: document.querySelector("#scheduleDateForm"),
+  scheduleDateInput: document.querySelector("#scheduleDateInput"),
+  scheduleDateTitleInput: document.querySelector("#scheduleDateTitleInput"),
+  scheduleHolidayForm: document.querySelector("#scheduleHolidayForm"),
+  scheduleHolidayDateInput: document.querySelector("#scheduleHolidayDateInput"),
+  scheduleHolidayCityInput: document.querySelector("#scheduleHolidayCityInput"),
+  scheduleHolidayDescriptionInput: document.querySelector("#scheduleHolidayDescriptionInput"),
+  scheduleGeneralNotesInput: document.querySelector("#scheduleGeneralNotesInput"),
   searchInput: document.querySelector("#searchInput"),
   quickTextInput: document.querySelector("#quickTextInput"),
   interpretButton: document.querySelector("#interpretButton"),
@@ -542,6 +590,7 @@ function getSharedState() {
     profile: window.LUCK_SHARED_BACKUP.profile || null,
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
+    scheduleData: window.LUCK_SHARED_BACKUP.scheduleData || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -781,6 +830,88 @@ function loadPendingBoards() {
   return clone(sharedPendingBoards || {});
 }
 
+function normalizeScheduleTask(task = {}) {
+  return {
+    id: task.id || `schedule-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    date: isValidDate(task.date) ? task.date : `${currentMonthKey()}-01`,
+    type: SCHEDULE_TYPES.includes(task.type) ? task.type : "Criativo",
+    title: String(task.title || task.titulo || "").trim(),
+    description: String(task.description || task.descricao || "").trim(),
+    client: normalizeCompanyName(task.client || task.cliente || ""),
+    status: SCHEDULE_STATUSES.includes(task.status) ? task.status : "Planejado",
+    notes: String(task.notes || task.observacoes || "").trim()
+  };
+}
+
+function normalizeScheduleDateItem(item = {}) {
+  return {
+    id: item.id || `date-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    date: isValidDate(item.date || item.data) ? item.date || item.data : `${currentMonthKey()}-01`,
+    title: String(item.title || item.titulo || item.topic || item.name || "").trim()
+  };
+}
+
+function normalizeScheduleHoliday(item = {}) {
+  return {
+    id: item.id || `holiday-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    date: isValidDate(item.date || item.data) ? item.date || item.data : `${currentMonthKey()}-01`,
+    city: String(item.city || item.cidade || "").trim(),
+    description: String(item.description || item.descricao || "").trim()
+  };
+}
+
+function normalizeScheduleRecord(record = {}, fallbackCompany = "", fallbackMonth = currentMonthKey()) {
+  return {
+    client: normalizeCompanyName(record.client || record.cliente || fallbackCompany),
+    month: isValidMonth(record.month || record.mes) ? record.month || record.mes : fallbackMonth,
+    tasks: Array.isArray(record.tasks || record.conteudos)
+      ? (record.tasks || record.conteudos).map(normalizeScheduleTask)
+      : [],
+    commemorativeDates: Array.isArray(record.commemorativeDates || record.datasComemorativas)
+      ? (record.commemorativeDates || record.datasComemorativas).map(normalizeScheduleDateItem)
+      : [],
+    holidays: Array.isArray(record.holidays || record.feriados)
+      ? (record.holidays || record.feriados).map(normalizeScheduleHoliday)
+      : [],
+    notes: String(record.notes || record.observacoes || "").trim()
+  };
+}
+
+function normalizeScheduleData(data = {}) {
+  return Object.entries(data || {}).reduce((records, [key, record]) => {
+    const [company = "", month = currentMonthKey()] = key.split("::");
+    if (!isValidMonth(month)) return records;
+    records[key] = normalizeScheduleRecord(record, company, month);
+    return records;
+  }, {});
+}
+
+function loadScheduleData() {
+  const sharedState = getSharedState();
+  const sharedSchedules = sharedState?.scheduleData;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && sharedSchedules && typeof sharedSchedules === "object") {
+    return clone(sharedSchedules);
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.scheduleData && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return clone(savedState.scheduleData);
+  }
+
+  const saved = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return clone(sharedSchedules || {});
+    }
+  }
+
+  return clone(sharedSchedules || {});
+}
+
 function isValidDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 }
@@ -853,6 +984,10 @@ function loadDashboardMonth() {
 function loadScheduleMonth() {
   const saved = localStorage.getItem(SCHEDULE_MONTH_STORAGE_KEY);
   return isValidMonth(saved) ? saved : currentMonthKey();
+}
+
+function loadScheduleCompany() {
+  return normalizeCompanyName(localStorage.getItem(SCHEDULE_COMPANY_STORAGE_KEY) || "") || "Alsol Telecom";
 }
 
 function isValidMonth(value) {
@@ -1119,8 +1254,11 @@ function saveLocalState() {
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
+  localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleData));
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
+  localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
+  localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
   localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
 }
@@ -1581,7 +1719,8 @@ function getCurrentState() {
     profile: profileData,
     theme: selectedTheme,
     pendingBoards,
-    financialRecords
+    financialRecords,
+    scheduleData
   };
 }
 
@@ -1669,6 +1808,7 @@ function loadRemoteState() {
         applyTheme(selectedTheme);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
+        scheduleData = normalizeScheduleData(state.scheduleData || scheduleData);
         ensureRowIds();
         saveReports();
         saveCompanySettings();
@@ -1715,6 +1855,7 @@ async function loadSupabaseState() {
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
+      scheduleData = normalizeScheduleData(record.state.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -1874,6 +2015,7 @@ function restoreBackupFile(event) {
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
+      scheduleData = normalizeScheduleData(payload.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -2613,22 +2755,50 @@ function refreshDashboardMonthOptions() {
 function getSelectableScheduleMonths() {
   return unique([
     ...getSelectableDashboardMonths(),
-    ...getPendingBoardMonths()
+    ...getPendingBoardMonths(),
+    ...Object.keys(scheduleData).map((key) => key.split("::").pop()).filter(isValidMonth)
   ])
     .sort()
     .reverse();
 }
 
+function getScheduleCompanyNames() {
+  const companies = getKnownCompanyNames()
+    .filter((company) => company && normalizeText(company) !== "luck")
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  return unique([...companies, "Luck Produtora"]);
+}
+
 function refreshScheduleMonthOptions() {
-  const months = getSelectableScheduleMonths();
-  const preferredMonth = months.includes(selectedScheduleMonth) ? selectedScheduleMonth : currentMonthKey();
-
-  elements.scheduleMonthSelect.innerHTML = months
-    .map((month) => `<option value="${month}">${dashboardPeriodLabel(month)}</option>`)
+  const companies = getScheduleCompanyNames();
+  if (!companies.includes(selectedScheduleCompany)) selectedScheduleCompany = companies[0] || "Alsol Telecom";
+  elements.scheduleCompanySelect.innerHTML = companies
+    .map((company) => `<option value="${escapeHTML(company)}">${escapeHTML(company)}</option>`)
     .join("");
+  elements.scheduleCompanySelect.value = selectedScheduleCompany;
 
-  selectedScheduleMonth = preferredMonth;
-  elements.scheduleMonthSelect.value = selectedScheduleMonth;
+  const { year, monthNumber } = monthYear(selectedScheduleMonth);
+  const years = unique([
+    String(new Date().getFullYear() - 1),
+    String(new Date().getFullYear()),
+    String(new Date().getFullYear() + 1),
+    ...getSelectableScheduleMonths().map((month) => monthYear(month).year)
+  ]).sort();
+
+  elements.scheduleMonthSelect.innerHTML = SCHEDULE_MONTHS
+    .map((month) => `<option value="${month.value}">${month.label}</option>`)
+    .join("");
+  elements.scheduleYearSelect.innerHTML = years
+    .map((item) => `<option value="${item}">${item}</option>`)
+    .join("");
+  elements.scheduleMonthSelect.value = monthNumber;
+  elements.scheduleYearSelect.value = year;
+  elements.scheduleTaskTypeInput.innerHTML = SCHEDULE_TYPES
+    .map((type) => `<option>${type}</option>`)
+    .join("");
+  elements.scheduleTaskStatusInput.innerHTML = SCHEDULE_STATUSES
+    .map((status) => `<option>${status}</option>`)
+    .join("");
 }
 
 function getPendingBoardMonths() {
@@ -3146,71 +3316,106 @@ function renderDashboardCalendar(monthKey, deliveries) {
     : '<div class="hub-empty-message">Nenhuma entrega registrada neste mês.</div>';
 }
 
-function getScheduleItems(month) {
-  const deliveries = getDashboardDeliveries(month)
-    .filter((delivery) => delivery.date?.startsWith(month))
-    .map((delivery) => ({
-      date: delivery.date,
-      title: delivery.topic,
-      detail: `${delivery.company} · ${delivery.section}`,
-      type: dashboardMaterialType(delivery.material),
-      category: delivery.material
-    }));
-  const pendingRows = getPendingRows(getPendingBoard(month))
-    .filter((row) => row.status !== "done")
-    .map((row) => {
-      const typeMeta = PENDING_TYPES.find((item) => item.id === row.type);
-      return {
-        date: `${month}-01`,
-        title: row.card.title,
-        detail: typeMeta?.label || "Pendência",
-        type: "pending",
-        category: "Pendência"
-      };
-    });
-  const commemorativeItems = getDashboardCommemorativeOpportunities(month, deliveries)
-    .map((item) => {
-      const companies = [...item.companies];
-      return {
-        date: item.date,
-        title: item.topic,
-        detail: companies.length ? `Clientes com material: ${companies.join(", ")}` : "Data comemorativa para planejar",
-        type: "commemorative",
-        category: item.registered ? "Data registrada" : "Data futura"
-      };
-    });
-
-  return [...deliveries, ...pendingRows, ...commemorativeItems]
-    .sort((a, b) => `${a.date}-${a.title}`.localeCompare(`${b.date}-${b.title}`, "pt-BR"));
+function scheduleKey(company = selectedScheduleCompany, month = selectedScheduleMonth) {
+  return `${normalizeCompanyName(company)}::${month}`;
 }
 
-function renderScheduleCalendar(monthKey, items) {
+function getScheduleRecord(company = selectedScheduleCompany, month = selectedScheduleMonth) {
+  const key = scheduleKey(company, month);
+  if (!scheduleData[key]) {
+    scheduleData[key] = normalizeScheduleRecord({ client: company, month }, company, month);
+  }
+  scheduleData[key].client = normalizeCompanyName(scheduleData[key].client || company);
+  scheduleData[key].month = month;
+  return scheduleData[key];
+}
+
+function saveScheduleData() {
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
+}
+
+function getScheduleDefaultDates(month) {
+  return COMMEMORATIVE_DATE_LIBRARY
+    .filter((item) => item.date?.startsWith(month))
+    .map((item) => normalizeScheduleDateItem({ ...item, id: `default-date-${item.date}-${normalizeText(item.topic || item.title)}` }));
+}
+
+function getScheduleCommemorativeDates(record) {
+  const customKeys = new Set(record.commemorativeDates.map((item) => `${item.date}|${normalizeText(item.title)}`));
+  const defaults = getScheduleDefaultDates(record.month).filter((item) => !customKeys.has(`${item.date}|${normalizeText(item.title)}`));
+  return [...defaults, ...record.commemorativeDates].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function scheduleTaskClass(type) {
+  const normalized = normalizeText(type);
+  if (normalized.includes("video") || normalized.includes("reels")) return "is-video";
+  if (normalized.includes("criativo") || normalized.includes("post") || normalized.includes("carrossel")) return "is-creative";
+  if (normalized.includes("story")) return "is-story";
+  return "is-date";
+}
+
+function scheduleClientLogoMarkup(company) {
+  const normalized = normalizeText(company);
+  if (normalized.includes("alsol")) return "<strong>alsol</strong><small>TELECOM</small>";
+  if (normalized.includes("posto")) return "<strong>SJ</strong><small>São João</small>";
+  if (normalized.includes("construtora")) return "<strong>RC</strong><small>Construtora</small>";
+  if (normalized.includes("luck")) return "<strong>LUCK</strong><small>Produtora</small>";
+  return `<strong>${escapeHTML(company)}</strong>`;
+}
+
+function renderScheduleCalendar(monthKey, record) {
   const [year, month] = monthKey.split("-").map(Number);
   const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const eventsByDay = items.reduce((groups, item) => {
-    if (!item.date?.startsWith(monthKey)) return groups;
-    const day = Number(item.date.slice(-2));
-    groups[day] ||= [];
-    groups[day].push(item);
+  const previousMonthDays = new Date(Date.UTC(year, month - 1, 0)).getUTCDate();
+  const dateItems = getScheduleCommemorativeDates(record);
+  const holidays = record.holidays || [];
+  const tasksByDate = record.tasks.reduce((groups, task) => {
+    groups[task.date] ||= [];
+    groups[task.date].push(task);
     return groups;
   }, {});
-  const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const cells = [];
+  const datesByDate = dateItems.reduce((groups, item) => {
+    groups[item.date] ||= [];
+    groups[item.date].push(item);
+    return groups;
+  }, {});
+  const holidaysByDate = holidays.reduce((groups, item) => {
+    groups[item.date] ||= [];
+    groups[item.date].push(item);
+    return groups;
+  }, {});
+  const weekDays = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+  const cells = weekDays.map((day) => `<div class="schedule-weekday">${day}</div>`);
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
-  weekDays.forEach((day) => cells.push(`<div class="hub-calendar-weekday">${day}</div>`));
-  for (let index = 0; index < firstDay; index += 1) {
-    cells.push('<div class="hub-calendar-day is-empty" aria-hidden="true"></div>');
-  }
+  for (let index = 0; index < totalCells; index += 1) {
+    const dayOffset = index - firstDay + 1;
+    const isCurrentMonth = dayOffset >= 1 && dayOffset <= daysInMonth;
+    const displayDay = isCurrentMonth
+      ? dayOffset
+      : dayOffset < 1
+        ? previousMonthDays + dayOffset
+        : dayOffset - daysInMonth;
+    const date = `${monthKey}-${String(dayOffset).padStart(2, "0")}`;
+    const tasks = isCurrentMonth ? tasksByDate[date] || [] : [];
+    const commemoratives = isCurrentMonth ? datesByDate[date] || [] : [];
+    const dayHolidays = isCurrentMonth ? holidaysByDate[date] || [] : [];
 
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const events = eventsByDay[day] || [];
-    const eventTitle = events.map((event) => event.title).join(", ");
     cells.push(`
-      <div class="hub-calendar-day ${events.length ? "has-event" : ""}" title="${escapeHTML(eventTitle)}">
-        <strong>${day}</strong>
-        <div class="hub-calendar-dots">
-          ${events.slice(0, 8).map((event) => `<i class="calendar-dot ${event.type}"></i>`).join("")}
+      <div class="schedule-day ${isCurrentMonth ? "" : "is-outside"}" ${isCurrentMonth ? `data-schedule-date="${date}"` : ""}>
+        <span class="schedule-day-number">${displayDay}</span>
+        <div class="schedule-day-content">
+          ${tasks.map((task) => `
+            <button class="schedule-task-chip ${scheduleTaskClass(task.type)}" type="button" draggable="true" data-schedule-task="${task.id}" title="${escapeHTML(task.description || task.title)}">
+              <strong>${escapeHTML(task.type)}</strong>
+              <span>${escapeHTML(task.title)}</span>
+            </button>
+          `).join("")}
+          ${commemoratives.map((item) => `<span class="schedule-date-chip">${escapeHTML(item.title)}</span>`).join("")}
+          ${dayHolidays.map((item) => `<span class="schedule-holiday-chip">${escapeHTML(item.city ? `${item.city}: ${item.description}` : item.description)}</span>`).join("")}
         </div>
       </div>
     `);
@@ -3219,43 +3424,236 @@ function renderScheduleCalendar(monthKey, items) {
   elements.scheduleCalendarGrid.innerHTML = cells.join("");
 }
 
+function getScheduleMonthBounds(monthKey = selectedScheduleMonth) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    first: `${monthKey}-01`,
+    last: `${monthKey}-${String(lastDay).padStart(2, "0")}`
+  };
+}
+
+function syncScheduleDateBounds() {
+  const bounds = getScheduleMonthBounds();
+  [
+    elements.scheduleTaskDateInput,
+    elements.scheduleDateInput,
+    elements.scheduleHolidayDateInput
+  ].forEach((input) => {
+    if (!input) return;
+    input.min = bounds.first;
+    input.max = bounds.last;
+    if (!input.value || input.value < bounds.first || input.value > bounds.last) {
+      input.value = bounds.first;
+    }
+  });
+}
+
+function resetScheduleTaskForm() {
+  editingScheduleTaskId = null;
+  elements.scheduleFormTitle.textContent = "Novo conteúdo";
+  elements.scheduleTaskForm.reset();
+  elements.scheduleTaskDateInput.value = `${selectedScheduleMonth}-01`;
+  elements.scheduleTaskTypeInput.value = "Reels";
+  elements.scheduleTaskStatusInput.value = "Planejado";
+  elements.scheduleCancelEditButton.hidden = true;
+}
+
+function getScheduleTaskById(taskId) {
+  const record = getScheduleRecord();
+  return record.tasks.find((task) => task.id === taskId) || null;
+}
+
+function fillScheduleTaskForm(task) {
+  if (!task) return;
+  editingScheduleTaskId = task.id;
+  elements.scheduleFormTitle.textContent = "Editar conteúdo";
+  elements.scheduleTaskDateInput.value = task.date;
+  elements.scheduleTaskTypeInput.value = task.type;
+  elements.scheduleTaskTitleInput.value = task.title;
+  elements.scheduleTaskDescriptionInput.value = task.description;
+  elements.scheduleTaskStatusInput.value = task.status;
+  elements.scheduleTaskNotesInput.value = task.notes;
+  elements.scheduleCancelEditButton.hidden = false;
+  elements.scheduleTaskTitleInput.focus();
+}
+
+function syncScheduleSelectedMonth() {
+  const year = elements.scheduleYearSelect.value || monthYear(selectedScheduleMonth).year;
+  const monthNumber = elements.scheduleMonthSelect.value || monthYear(selectedScheduleMonth).monthNumber;
+  selectedScheduleMonth = `${year}-${monthNumber}`;
+  localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
+}
+
+function saveScheduleTask(event) {
+  event.preventDefault();
+  const task = normalizeScheduleTask({
+    id: editingScheduleTaskId || undefined,
+    date: elements.scheduleTaskDateInput.value,
+    type: elements.scheduleTaskTypeInput.value,
+    title: elements.scheduleTaskTitleInput.value,
+    description: elements.scheduleTaskDescriptionInput.value,
+    client: selectedScheduleCompany,
+    status: elements.scheduleTaskStatusInput.value,
+    notes: elements.scheduleTaskNotesInput.value
+  });
+
+  if (task.date.slice(0, 7) !== selectedScheduleMonth) {
+    selectedScheduleMonth = task.date.slice(0, 7);
+    refreshScheduleMonthOptions();
+  }
+
+  const record = getScheduleRecord();
+  const index = record.tasks.findIndex((item) => item.id === task.id);
+  if (index >= 0) {
+    record.tasks[index] = task;
+  } else {
+    record.tasks.push(task);
+  }
+
+  saveScheduleData();
+  resetScheduleTaskForm();
+  syncScheduleDateBounds();
+  renderSchedule();
+}
+
+function duplicateScheduleTask(taskId) {
+  const record = getScheduleRecord();
+  const task = record.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  record.tasks.push(normalizeScheduleTask({
+    ...task,
+    id: `schedule-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    title: `${task.title} (cópia)`
+  }));
+  saveScheduleData();
+  renderSchedule();
+}
+
+function deleteScheduleTask(taskId) {
+  const record = getScheduleRecord();
+  record.tasks = record.tasks.filter((task) => task.id !== taskId);
+  if (editingScheduleTaskId === taskId) resetScheduleTaskForm();
+  saveScheduleData();
+  renderSchedule();
+}
+
+function moveScheduleTask(taskId, date) {
+  const record = getScheduleRecord();
+  const task = record.tasks.find((item) => item.id === taskId);
+  if (!task || !isValidDate(date) || date.slice(0, 7) !== selectedScheduleMonth) return;
+  task.date = date;
+  saveScheduleData();
+  renderSchedule();
+}
+
+function addScheduleDate(event) {
+  event.preventDefault();
+  const record = getScheduleRecord();
+  record.commemorativeDates.push(normalizeScheduleDateItem({
+    date: elements.scheduleDateInput.value,
+    title: elements.scheduleDateTitleInput.value
+  }));
+  elements.scheduleDateTitleInput.value = "";
+  saveScheduleData();
+  renderSchedule();
+}
+
+function addScheduleHoliday(event) {
+  event.preventDefault();
+  const record = getScheduleRecord();
+  record.holidays.push(normalizeScheduleHoliday({
+    date: elements.scheduleHolidayDateInput.value,
+    city: elements.scheduleHolidayCityInput.value,
+    description: elements.scheduleHolidayDescriptionInput.value
+  }));
+  elements.scheduleHolidayCityInput.value = "";
+  elements.scheduleHolidayDescriptionInput.value = "";
+  saveScheduleData();
+  renderSchedule();
+}
+
+function saveScheduleNotes() {
+  const record = getScheduleRecord();
+  record.notes = elements.scheduleGeneralNotesInput.value.trim();
+  saveScheduleData();
+  renderScheduleLists(record);
+}
+
+function renderScheduleLists(record) {
+  const dates = getScheduleCommemorativeDates(record);
+  elements.scheduleDatesList.innerHTML = dates.length
+    ? dates.map((item) => `
+      <p>
+        <span>${item.date.slice(-2)} - ${escapeHTML(item.title)}</span>
+        ${record.commemorativeDates.some((custom) => custom.id === item.id) ? `<button type="button" data-schedule-date-delete="${item.id}">Excluir</button>` : ""}
+      </p>
+    `).join("")
+    : "<p>Sem datas comemorativas cadastradas.</p>";
+  elements.scheduleHolidaysList.innerHTML = record.holidays.length
+    ? record.holidays.map((item) => `
+      <p>
+        <span>${escapeHTML(item.city ? `${item.city} — ${formatDate(item.date)}: ${item.description}` : `${formatDate(item.date)}: ${item.description}`)}</span>
+        <button type="button" data-schedule-holiday-delete="${item.id}">Excluir</button>
+      </p>
+    `).join("")
+    : "<p>Sem feriados cadastrados.</p>";
+  elements.scheduleGeneralNotesText.textContent = record.notes || "Sem observações cadastradas.";
+  elements.scheduleGeneralNotesInput.value = record.notes || "";
+}
+
+function renderScheduleAgenda(record) {
+  const sortedTasks = [...record.tasks].sort((a, b) => `${a.date}-${a.title}`.localeCompare(`${b.date}-${b.title}`, "pt-BR"));
+  elements.scheduleAgendaMeta.textContent = `${sortedTasks.length} ${sortedTasks.length === 1 ? "item" : "itens"}`;
+  elements.scheduleAgendaList.innerHTML = sortedTasks.length
+    ? sortedTasks.map((task) => `
+      <article class="schedule-agenda-item">
+        <time>${formatDashboardDate(task.date)}</time>
+        <span class="calendar-dot ${scheduleTaskClass(task.type).replace("is-", "")}"></span>
+        <div>
+          <strong>${escapeHTML(task.title)}</strong>
+          <small>${escapeHTML(task.type)} · ${escapeHTML(task.status)}${task.description ? ` · ${escapeHTML(task.description)}` : ""}</small>
+          <div class="schedule-row-actions">
+            <button type="button" data-schedule-edit="${task.id}">Editar</button>
+            <button type="button" data-schedule-duplicate="${task.id}">Duplicar</button>
+            <button type="button" data-schedule-delete="${task.id}">Excluir</button>
+          </div>
+        </div>
+      </article>
+    `).join("")
+    : '<div class="hub-empty-message">Nenhum conteúdo planejado para este cliente e mês.</div>';
+}
+
 function renderSchedule() {
   if (!elements.scheduleView) return;
 
-  const month = selectedScheduleMonth;
-  const deliveries = getDashboardDeliveries(month);
-  const pendingRows = getPendingRows(getPendingBoard(month)).filter((row) => row.status !== "done");
-  const commemorativeOpportunities = getDashboardCommemorativeOpportunities(month, deliveries);
-  const items = getScheduleItems(month);
-  const clientCount = unique(deliveries.map((delivery) => delivery.company)).length;
+  const record = getScheduleRecord();
+  const dates = getScheduleCommemorativeDates(record);
+  const videoCount = record.tasks.filter((task) => scheduleTaskClass(task.type) === "is-video").length;
+  const creativeCount = record.tasks.filter((task) => scheduleTaskClass(task.type) === "is-creative").length;
   const summary = [
-    { label: "Entregas no mês", value: deliveries.length, tone: "green" },
-    { label: "Pendências abertas", value: pendingRows.length, tone: "red" },
-    { label: "Datas futuras", value: commemorativeOpportunities.length, tone: "orange" },
-    { label: "Clientes no cronograma", value: clientCount, tone: "blue" }
+    { label: "Conteúdos planejados", value: record.tasks.length, tone: "green" },
+    { label: "Vídeos/Reels", value: videoCount, tone: "red" },
+    { label: "Criativos", value: creativeCount, tone: "orange" },
+    { label: "Datas importantes", value: dates.length + record.holidays.length, tone: "blue" }
   ];
 
-  elements.scheduleCalendarMonth.textContent = dashboardPeriodLabel(month);
-  elements.scheduleAgendaMeta.textContent = `${items.length} ${items.length === 1 ? "item" : "itens"}`;
+  elements.schedulePrintMonth.textContent = dashboardPeriodLabel(selectedScheduleMonth).toUpperCase();
+  elements.scheduleClientLogo.innerHTML = scheduleClientLogoMarkup(selectedScheduleCompany);
+  elements.scheduleCompanySelect.value = selectedScheduleCompany;
+  elements.scheduleMonthSelect.value = monthYear(selectedScheduleMonth).monthNumber;
+  elements.scheduleYearSelect.value = monthYear(selectedScheduleMonth).year;
+  syncScheduleDateBounds();
   elements.scheduleSummary.innerHTML = summary.map((item) => `
     <article class="hub-kpi ${item.tone}">
       <span>${escapeHTML(item.label)}</span>
       <strong>${item.value}</strong>
     </article>
   `).join("");
-  renderScheduleCalendar(month, items);
-  elements.scheduleAgendaList.innerHTML = items.length
-    ? items.map((item) => `
-      <article class="schedule-agenda-item">
-        <time>${formatDashboardDate(item.date)}</time>
-        <span class="calendar-dot ${item.type}"></span>
-        <div>
-          <strong>${escapeHTML(item.title)}</strong>
-          <small>${escapeHTML(item.category)} · ${escapeHTML(item.detail)}</small>
-        </div>
-      </article>
-    `).join("")
-    : '<div class="hub-empty-message">Nenhum item no cronograma deste mês.</div>';
+
+  renderScheduleCalendar(selectedScheduleMonth, record);
+  renderScheduleAgenda(record);
+  renderScheduleLists(record);
 }
 
 function renderDashboard() {
@@ -4188,6 +4586,13 @@ function exportPdf() {
   window.requestAnimationFrame(() => window.print());
 }
 
+function exportSchedulePdf() {
+  setActiveView("cronograma", { updateUrl: false, scroll: false });
+  renderSchedule();
+  document.body.classList.add("printing-schedule");
+  window.requestAnimationFrame(() => window.print());
+}
+
 function exposeBackupData() {
   const backup = {
     version: BACKUP_VERSION,
@@ -4198,7 +4603,8 @@ function exposeBackupData() {
     profile: profileData,
     theme: selectedTheme,
     pendingBoards,
-    financialRecords
+    financialRecords,
+    scheduleData
   };
   let backupNode = document.querySelector("#backupData");
   if (!backupNode) {
@@ -4257,10 +4663,85 @@ elements.dashboardMonthSelect.addEventListener("change", () => {
   localStorage.setItem(DASHBOARD_MONTH_STORAGE_KEY, selectedDashboardMonth);
   renderDashboard();
 });
-elements.scheduleMonthSelect.addEventListener("change", () => {
-  selectedScheduleMonth = elements.scheduleMonthSelect.value;
-  localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
+elements.scheduleCompanySelect.addEventListener("change", () => {
+  selectedScheduleCompany = normalizeCompanyName(elements.scheduleCompanySelect.value);
+  localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
+  resetScheduleTaskForm();
   renderSchedule();
+});
+elements.scheduleMonthSelect.addEventListener("change", () => {
+  syncScheduleSelectedMonth();
+  resetScheduleTaskForm();
+  renderSchedule();
+});
+elements.scheduleYearSelect.addEventListener("change", () => {
+  syncScheduleSelectedMonth();
+  resetScheduleTaskForm();
+  renderSchedule();
+});
+elements.scheduleTaskForm.addEventListener("submit", saveScheduleTask);
+elements.scheduleCancelEditButton.addEventListener("click", () => {
+  resetScheduleTaskForm();
+  syncScheduleDateBounds();
+});
+elements.scheduleDateForm.addEventListener("submit", addScheduleDate);
+elements.scheduleHolidayForm.addEventListener("submit", addScheduleHoliday);
+elements.scheduleGeneralNotesInput.addEventListener("change", saveScheduleNotes);
+elements.schedulePdfButton.addEventListener("click", exportSchedulePdf);
+elements.scheduleView.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-schedule-edit], [data-schedule-task]");
+  const duplicateButton = event.target.closest("[data-schedule-duplicate]");
+  const deleteButton = event.target.closest("[data-schedule-delete]");
+  const dateDeleteButton = event.target.closest("[data-schedule-date-delete]");
+  const holidayDeleteButton = event.target.closest("[data-schedule-holiday-delete]");
+  const day = event.target.closest("[data-schedule-date]");
+
+  if (editButton) {
+    fillScheduleTaskForm(getScheduleTaskById(editButton.dataset.scheduleEdit || editButton.dataset.scheduleTask));
+    return;
+  }
+  if (duplicateButton) {
+    duplicateScheduleTask(duplicateButton.dataset.scheduleDuplicate);
+    return;
+  }
+  if (deleteButton) {
+    deleteScheduleTask(deleteButton.dataset.scheduleDelete);
+    return;
+  }
+  if (dateDeleteButton) {
+    const record = getScheduleRecord();
+    record.commemorativeDates = record.commemorativeDates.filter((item) => item.id !== dateDeleteButton.dataset.scheduleDateDelete);
+    saveScheduleData();
+    renderSchedule();
+    return;
+  }
+  if (holidayDeleteButton) {
+    const record = getScheduleRecord();
+    record.holidays = record.holidays.filter((item) => item.id !== holidayDeleteButton.dataset.scheduleHolidayDelete);
+    saveScheduleData();
+    renderSchedule();
+    return;
+  }
+  if (day) {
+    elements.scheduleTaskDateInput.value = day.dataset.scheduleDate;
+  }
+});
+elements.scheduleCalendarGrid.addEventListener("dragstart", (event) => {
+  const taskButton = event.target.closest("[data-schedule-task]");
+  if (!taskButton) return;
+  event.dataTransfer.setData("text/plain", taskButton.dataset.scheduleTask);
+  event.dataTransfer.effectAllowed = "move";
+});
+elements.scheduleCalendarGrid.addEventListener("dragover", (event) => {
+  if (!event.target.closest("[data-schedule-date]")) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+});
+elements.scheduleCalendarGrid.addEventListener("drop", (event) => {
+  const day = event.target.closest("[data-schedule-date]");
+  if (!day) return;
+  event.preventDefault();
+  moveScheduleTask(event.dataTransfer.getData("text/plain"), day.dataset.scheduleDate);
 });
 elements.pendingMonthSelect.addEventListener("change", () => {
   selectedPendingMonth = elements.pendingMonthSelect.value;
@@ -4300,6 +4781,9 @@ elements.closeEditButton.addEventListener("click", closeEditDialog);
 elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 window.addEventListener("beforeprint", render);
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("printing-schedule");
+});
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.loginButton.addEventListener("click", signInSupabase);
 elements.googleLoginButton.addEventListener("click", signInWithGoogle);
