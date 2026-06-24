@@ -3358,16 +3358,8 @@ function saveScheduleData() {
   exposeBackupData();
 }
 
-function getScheduleDefaultDates(month) {
-  return COMMEMORATIVE_DATE_LIBRARY
-    .filter((item) => item.date?.startsWith(month))
-    .map((item) => normalizeScheduleDateItem({ ...item, id: `default-date-${item.date}-${normalizeText(item.topic || item.title)}` }));
-}
-
 function getScheduleCommemorativeDates(record) {
-  const customKeys = new Set(record.commemorativeDates.map((item) => `${item.date}|${normalizeText(item.title)}`));
-  const defaults = getScheduleDefaultDates(record.month).filter((item) => !customKeys.has(`${item.date}|${normalizeText(item.title)}`));
-  return [...defaults, ...record.commemorativeDates].sort((a, b) => a.date.localeCompare(b.date));
+  return [...record.commemorativeDates].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function scheduleTaskClass(type) {
@@ -3693,7 +3685,7 @@ function renderScheduleLists(record) {
     ? dates.map((item) => `
       <p>
         <span>${item.date.slice(-2)} - ${escapeHTML(item.title)}</span>
-        ${record.commemorativeDates.some((custom) => custom.id === item.id) ? `<button type="button" data-schedule-date-delete="${item.id}">Excluir</button>` : ""}
+        <button type="button" data-schedule-date-delete="${item.id}">Excluir</button>
       </p>
     `).join("")
     : "<p>Sem datas comemorativas cadastradas.</p>";
