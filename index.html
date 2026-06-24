@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-editor-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -194,51 +194,136 @@
       </div>
 
       <div id="scheduleView" class="app-view" hidden>
-        <section class="hub-dashboard schedule-page" aria-label="Cronograma Luck">
-          <header class="hub-header">
-            <div>
-              <span class="eyebrow">Cronograma</span>
-              <h1>Cronograma</h1>
-              <p>Organização mensal das entregas, pendências e datas comemorativas da Luck.</p>
-            </div>
-            <div class="hub-period">
-              <span>Período</span>
-              <select id="scheduleMonthSelect" aria-label="Período do Cronograma"></select>
-            </div>
-          </header>
+        <section class="schedule-page" aria-label="Cronograma de conteúdos">
+          <section class="schedule-toolbar hub-card" aria-label="Filtros do cronograma">
+            <label>
+              Cliente
+              <select id="scheduleCompanySelect"></select>
+            </label>
+            <label>
+              Mês
+              <select id="scheduleMonthSelect"></select>
+            </label>
+            <label>
+              Ano
+              <select id="scheduleYearSelect"></select>
+            </label>
+            <button id="schedulePdfButton" class="export-main-button schedule-export-button" type="button">
+              <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Exportar PDF</span>
+            </button>
+          </section>
 
           <section id="scheduleSummary" class="hub-kpis schedule-summary" aria-label="Resumo do cronograma"></section>
 
-          <div class="schedule-layout">
-            <section class="hub-card">
-              <header class="hub-card-header">
+          <div class="schedule-workspace">
+            <section class="schedule-document" id="schedulePrintArea">
+              <header class="schedule-document-header">
                 <div>
-                  <span class="hub-card-number">01</span>
-                  <h2>Calendário do mês</h2>
+                  <span>CRONOGRAMA DE CONTEÚDOS</span>
+                  <h1 id="schedulePrintMonth">JUNHO 2026</h1>
                 </div>
-                <strong id="scheduleCalendarMonth" class="hub-card-meta">Junho 2026</strong>
+                <div id="scheduleClientLogo" class="schedule-client-logo">LUCK</div>
               </header>
-              <div class="hub-calendar-legend" aria-label="Legenda do cronograma">
-                <span><i class="calendar-dot video"></i>Vídeos</span>
-                <span><i class="calendar-dot creative"></i>Criativos</span>
-                <span><i class="calendar-dot photo"></i>Fotos</span>
-                <span><i class="calendar-dot flyer"></i>Flyers</span>
-                <span><i class="calendar-dot print"></i>Impressos</span>
-                <span><i class="calendar-dot pending"></i>Pendências</span>
-                <span><i class="calendar-dot commemorative"></i>Datas</span>
+
+              <div class="schedule-legend" aria-label="Legenda visual do cronograma">
+                <span><i class="schedule-legend-video"></i>Degradê = vídeo / reels</span>
+                <span><i class="schedule-legend-creative"></i>Cor sólida = criativo / post / carrossel</span>
+                <span><i class="schedule-legend-outside"></i>Cinza = fora do mês</span>
               </div>
-              <div id="scheduleCalendarGrid" class="hub-calendar-grid schedule-calendar-grid"></div>
+
+              <div id="scheduleCalendarGrid" class="schedule-calendar-grid"></div>
+
+              <footer class="schedule-bottom">
+                <section>
+                  <h2>Datas comemorativas</h2>
+                  <div id="scheduleDatesList" class="schedule-note-list"></div>
+                </section>
+                <section>
+                  <h2>Feriados</h2>
+                  <div id="scheduleHolidaysList" class="schedule-note-list"></div>
+                </section>
+                <section>
+                  <h2>Observações gerais</h2>
+                  <p id="scheduleGeneralNotesText" class="schedule-general-notes">Sem observações cadastradas.</p>
+                </section>
+              </footer>
             </section>
 
-            <aside class="hub-card schedule-agenda-card">
-              <header class="hub-card-header">
-                <div>
-                  <span class="hub-card-number">02</span>
-                  <h2>Agenda do mês</h2>
-                </div>
-                <span id="scheduleAgendaMeta" class="hub-card-meta">0 itens</span>
-              </header>
-              <div id="scheduleAgendaList" class="schedule-agenda-list"></div>
+            <aside class="schedule-editor-stack">
+              <section class="hub-card schedule-editor-card">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">01</span>
+                    <h2 id="scheduleFormTitle">Novo conteúdo</h2>
+                  </div>
+                </header>
+                <form id="scheduleTaskForm" class="schedule-form">
+                  <label>
+                    Data
+                    <input id="scheduleTaskDateInput" type="date" required>
+                  </label>
+                  <label>
+                    Tipo
+                    <select id="scheduleTaskTypeInput"></select>
+                  </label>
+                  <label>
+                    Título
+                    <input id="scheduleTaskTitleInput" type="text" placeholder="Ex.: Vídeo 01 - Campanha de São João" required>
+                  </label>
+                  <label>
+                    Descrição curta
+                    <textarea id="scheduleTaskDescriptionInput" rows="2" placeholder="Conteúdo comercial para abertura do mês"></textarea>
+                  </label>
+                  <label>
+                    Status
+                    <select id="scheduleTaskStatusInput"></select>
+                  </label>
+                  <label>
+                    Observações
+                    <textarea id="scheduleTaskNotesInput" rows="2" placeholder="Ajustes, referência ou orientação para produção"></textarea>
+                  </label>
+                  <div class="schedule-form-actions">
+                    <button id="scheduleCancelEditButton" class="secondary-button" type="button" hidden>Cancelar edição</button>
+                    <button class="primary-button" type="submit">Salvar conteúdo</button>
+                  </div>
+                </form>
+              </section>
+
+              <section class="hub-card schedule-editor-card">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">02</span>
+                    <h2>Conteúdos cadastrados</h2>
+                  </div>
+                  <span id="scheduleAgendaMeta" class="hub-card-meta">0 itens</span>
+                </header>
+                <div id="scheduleAgendaList" class="schedule-agenda-list"></div>
+              </section>
+
+              <section class="hub-card schedule-editor-card">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">03</span>
+                    <h2>Datas e observações</h2>
+                  </div>
+                </header>
+                <form id="scheduleDateForm" class="schedule-inline-form">
+                  <input id="scheduleDateInput" type="date" required>
+                  <input id="scheduleDateTitleInput" type="text" placeholder="Data comemorativa" required>
+                  <button class="secondary-button" type="submit">Adicionar data</button>
+                </form>
+                <form id="scheduleHolidayForm" class="schedule-inline-form">
+                  <input id="scheduleHolidayDateInput" type="date" required>
+                  <input id="scheduleHolidayCityInput" type="text" placeholder="Cidade">
+                  <input id="scheduleHolidayDescriptionInput" type="text" placeholder="Descrição do feriado" required>
+                  <button class="secondary-button" type="submit">Adicionar feriado</button>
+                </form>
+                <label class="schedule-notes-field">
+                  Observações gerais
+                  <textarea id="scheduleGeneralNotesInput" rows="4" placeholder="Observações para aprovação do cliente"></textarea>
+                </label>
+              </section>
             </aside>
           </div>
         </section>
@@ -699,6 +784,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-1"></script>
+    <script src="app.js?v=cronograma-editor-1"></script>
   </body>
 </html>
