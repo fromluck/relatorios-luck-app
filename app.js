@@ -30,6 +30,8 @@ const THEME_STORAGE_KEY = "luck-theme-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
 const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const COMPANY_LOGO_MAX_SIZE = 2.5 * 1024 * 1024;
+const COMPANY_LOGO_SCALE_MIN = 60;
+const COMPANY_LOGO_SCALE_MAX = 220;
 const BACKUP_VERSION = 1;
 const PENDING_COLUMNS = [
   { id: "conteudos", label: "Conteúdos" },
@@ -460,9 +462,12 @@ const elements = {
   scheduleParsePreview: document.querySelector("#scheduleParsePreview"),
   scheduleSummary: document.querySelector("#scheduleSummary"),
   schedulePrintMonth: document.querySelector("#schedulePrintMonth"),
+  schedulePrintArea: document.querySelector("#schedulePrintArea"),
   scheduleClientLogo: document.querySelector("#scheduleClientLogo"),
   scheduleLogoPreview: document.querySelector("#scheduleLogoPreview"),
   scheduleLogoInput: document.querySelector("#scheduleLogoInput"),
+  scheduleLogoSizeInput: document.querySelector("#scheduleLogoSizeInput"),
+  scheduleLogoSizeValue: document.querySelector("#scheduleLogoSizeValue"),
   scheduleLogoRemoveButton: document.querySelector("#scheduleLogoRemoveButton"),
   scheduleCalendarGrid: document.querySelector("#scheduleCalendarGrid"),
   scheduleAgendaMeta: document.querySelector("#scheduleAgendaMeta"),
@@ -692,6 +697,7 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
   const logoDataUrl = String(setting.logoDataUrl || "").startsWith("data:image/")
     ? String(setting.logoDataUrl)
     : "";
+  const logoScale = Number(setting.logoScale ?? 100);
 
   return {
     name: normalizedCompany,
@@ -700,6 +706,9 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
     contactInfo: String(setting.contactInfo || "").trim(),
     notes: String(setting.notes || "").trim(),
     logoDataUrl,
+    logoScale: Number.isFinite(logoScale)
+      ? Math.min(COMPANY_LOGO_SCALE_MAX, Math.max(COMPANY_LOGO_SCALE_MIN, logoScale))
+      : 100,
     videos: Number.isFinite(videos) ? Math.max(0, videos) : 0,
     creatives: Number.isFinite(creatives) ? Math.max(0, creatives) : 0
   };
@@ -3382,6 +3391,23 @@ function scheduleClientLogoMarkup(company) {
   return `<strong>${escapeHTML(company)}</strong>`;
 }
 
+function getScheduleLogoScale(company = selectedScheduleCompany) {
+  const scale = Number(getCompanySetting(company).logoScale || 100);
+  return Number.isFinite(scale)
+    ? Math.min(COMPANY_LOGO_SCALE_MAX, Math.max(COMPANY_LOGO_SCALE_MIN, scale))
+    : 100;
+}
+
+function applyScheduleLogoScale(company = selectedScheduleCompany) {
+  const scale = getScheduleLogoScale(company);
+  const cssScale = String(scale / 100);
+
+  elements.schedulePrintArea?.style.setProperty("--schedule-logo-scale", cssScale);
+  elements.scheduleLogoPreview?.style.setProperty("--schedule-logo-scale", cssScale);
+  if (elements.scheduleLogoSizeInput) elements.scheduleLogoSizeInput.value = String(scale);
+  if (elements.scheduleLogoSizeValue) elements.scheduleLogoSizeValue.textContent = `${scale}%`;
+}
+
 function renderScheduleLogoManager() {
   const setting = getCompanySetting(selectedScheduleCompany);
   if (!elements.scheduleLogoPreview) return;
@@ -3390,6 +3416,7 @@ function renderScheduleLogoManager() {
     ? `<img src="${escapeHTML(setting.logoDataUrl)}" alt="Logo ${escapeHTML(selectedScheduleCompany)}">`
     : scheduleClientLogoMarkup(selectedScheduleCompany);
   elements.scheduleLogoPreview.classList.toggle("has-image", Boolean(setting.logoDataUrl));
+  applyScheduleLogoScale(selectedScheduleCompany);
 }
 
 function saveScheduleClientLogo(dataUrl) {
@@ -3429,6 +3456,14 @@ function removeScheduleClientLogo() {
   saveScheduleClientLogo("");
   if (elements.scheduleLogoInput) elements.scheduleLogoInput.value = "";
   showSaveDialog("Logo removida", `O cronograma voltou a usar o nome de ${selectedScheduleCompany}.`);
+}
+
+function updateScheduleLogoScale(value, options = {}) {
+  const setting = getCompanySetting(selectedScheduleCompany);
+  setting.logoScale = Number(value);
+  companySettings[selectedScheduleCompany] = normalizeCompanySetting(selectedScheduleCompany, setting);
+  applyScheduleLogoScale(selectedScheduleCompany);
+  if (options.save) saveCompanySettings();
 }
 
 function renderScheduleCalendar(monthKey, record) {
@@ -4588,7 +4623,7 @@ function renameCompanyReferences(oldName, nextName) {
 function readCompanySettingsForm(companyName) {
   const videos = Number(elements.targetVideosInput.value);
   const creatives = Number(elements.targetCreativesInput.value);
-  const existingLogo = getCompanySetting(elements.companySelect.value).logoDataUrl || "";
+  const existingSetting = getCompanySetting(elements.companySelect.value);
 
   return normalizeCompanySetting(companyName, {
     name: companyName,
@@ -4596,7 +4631,8 @@ function readCompanySettingsForm(companyName) {
     contact: elements.companyContactInput.value,
     contactInfo: elements.companyContactInfoInput.value,
     notes: elements.companyNotesInput.value,
-    logoDataUrl: existingLogo,
+    logoDataUrl: existingSetting.logoDataUrl || "",
+    logoScale: existingSetting.logoScale || 100,
     videos: Number.isFinite(videos) ? videos : 0,
     creatives: Number.isFinite(creatives) ? creatives : 0
   });
@@ -4934,6 +4970,12 @@ elements.scheduleHolidayForm.addEventListener("submit", addScheduleHoliday);
 elements.scheduleGeneralNotesInput.addEventListener("change", saveScheduleNotes);
 elements.schedulePdfButton.addEventListener("click", exportSchedulePdf);
 elements.scheduleLogoInput.addEventListener("change", handleScheduleLogoChange);
+elements.scheduleLogoSizeInput.addEventListener("input", (event) => {
+  updateScheduleLogoScale(event.target.value);
+});
+elements.scheduleLogoSizeInput.addEventListener("change", (event) => {
+  updateScheduleLogoScale(event.target.value, { save: true });
+});
 elements.scheduleLogoRemoveButton.addEventListener("click", removeScheduleClientLogo);
 elements.scheduleView.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-schedule-edit], [data-schedule-task]");
