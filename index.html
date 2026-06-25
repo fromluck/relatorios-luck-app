@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-config-popup-1">
+    <link rel="stylesheet" href="styles.css?v=luck-os-sidebar-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -48,9 +48,12 @@
 
     <main id="appShell" class="app-shell" hidden>
       <aside class="sidebar" aria-label="Navegação do relatório">
-        <div class="brand">
-          <img src="luck-logo.svg" alt="Luck">
-          <strong>Luck Hub</strong>
+        <div class="brand" aria-label="Luck OS">
+          <div class="brand-os-lockup">
+            <span class="brand-os-word">LUCK</span>
+            <span class="brand-os-badge">OS</span>
+          </div>
+          <small>Sistema da produtora</small>
         </div>
 
         <div class="sidebar-actions" aria-label="Navegação">
@@ -107,10 +110,10 @@
 
       <div class="content-shell">
       <div id="dashboardView" class="app-view">
-        <section class="hub-dashboard" aria-label="Dashboard Luck Hub">
+        <section class="hub-dashboard" aria-label="Dashboard Luck OS">
           <header class="hub-header">
             <div>
-              <span class="eyebrow">Luck Hub</span>
+              <span class="eyebrow">Luck OS</span>
               <h1>Dashboard</h1>
               <p>Visão real das entregas registradas nos relatórios da Luck.</p>
             </div>
@@ -844,6 +847,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-config-popup-1"></script>
+    <script src="app.js?v=luck-os-sidebar-1"></script>
   </body>
 </html>

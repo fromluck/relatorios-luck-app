@@ -418,8 +418,9 @@ select {
 
 .brand {
   display: grid;
-  gap: 10px;
-  align-self: center;
+  gap: 7px;
+  align-self: start;
+  padding: 2px 0 8px;
 }
 
 .brand img {
@@ -692,6 +693,47 @@ select {
 
 .brand strong {
   font-size: 19px;
+}
+
+.brand-os-lockup {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 8px;
+  align-items: end;
+  width: max-content;
+}
+
+.brand .brand-os-word {
+  color: var(--blue);
+  font-size: 54px;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.82;
+}
+
+.brand .brand-os-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 28px;
+  border: 2px solid rgba(234, 90, 0, 0.8);
+  border-radius: 9px;
+  background: #fff7ed;
+  color: var(--blue);
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.brand small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .contract-config {
@@ -1800,6 +1842,16 @@ td.action-cell {
   border-color: var(--blue);
   background: var(--blue);
   color: #ffffff;
+}
+
+:root[data-theme="dark"] .brand-os-badge {
+  border-color: rgba(234, 90, 0, 0.55);
+  background: rgba(234, 90, 0, 0.14);
+  color: #ffb17a;
+}
+
+:root[data-theme="dark"] .brand small {
+  color: #94a3b8;
 }
 
 :root[data-theme="dark"] .sync-status,
