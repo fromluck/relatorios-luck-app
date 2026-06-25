@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-linhas-finas-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-lista-embaixo-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -238,38 +238,51 @@
           <section id="scheduleSummary" class="hub-kpis schedule-summary" aria-label="Resumo do cronograma"></section>
 
           <div class="schedule-workspace">
-            <section class="schedule-document" id="schedulePrintArea">
-              <header class="schedule-document-header">
-                <div>
-                  <span>CRONOGRAMA DE CONTEÚDOS</span>
-                  <h1 id="schedulePrintMonth">JUNHO 2026</h1>
+            <div class="schedule-main-stack">
+              <section class="schedule-document" id="schedulePrintArea">
+                <header class="schedule-document-header">
+                  <div>
+                    <span>CRONOGRAMA DE CONTEÚDOS</span>
+                    <h1 id="schedulePrintMonth">JUNHO 2026</h1>
+                  </div>
+                  <div id="scheduleClientLogo" class="schedule-client-logo">LUCK</div>
+                </header>
+
+                <div class="schedule-legend" aria-label="Legenda visual do cronograma">
+                  <span><i class="schedule-legend-video"></i>Degradê = vídeo / reels</span>
+                  <span><i class="schedule-legend-creative"></i>Cor sólida = criativo / post / carrossel</span>
+                  <span><i class="schedule-legend-outside"></i>Cinza = fora do mês</span>
                 </div>
-                <div id="scheduleClientLogo" class="schedule-client-logo">LUCK</div>
-              </header>
 
-              <div class="schedule-legend" aria-label="Legenda visual do cronograma">
-                <span><i class="schedule-legend-video"></i>Degradê = vídeo / reels</span>
-                <span><i class="schedule-legend-creative"></i>Cor sólida = criativo / post / carrossel</span>
-                <span><i class="schedule-legend-outside"></i>Cinza = fora do mês</span>
-              </div>
+                <div id="scheduleCalendarGrid" class="schedule-calendar-grid"></div>
 
-              <div id="scheduleCalendarGrid" class="schedule-calendar-grid"></div>
+                <footer class="schedule-bottom">
+                  <section>
+                    <h2>Datas comemorativas</h2>
+                    <div id="scheduleDatesList" class="schedule-note-list"></div>
+                  </section>
+                  <section>
+                    <h2>Feriados</h2>
+                    <div id="scheduleHolidaysList" class="schedule-note-list"></div>
+                  </section>
+                  <section>
+                    <h2>Observações gerais</h2>
+                    <p id="scheduleGeneralNotesText" class="schedule-general-notes">Sem observações cadastradas.</p>
+                  </section>
+                </footer>
+              </section>
 
-              <footer class="schedule-bottom">
-                <section>
-                  <h2>Datas comemorativas</h2>
-                  <div id="scheduleDatesList" class="schedule-note-list"></div>
-                </section>
-                <section>
-                  <h2>Feriados</h2>
-                  <div id="scheduleHolidaysList" class="schedule-note-list"></div>
-                </section>
-                <section>
-                  <h2>Observações gerais</h2>
-                  <p id="scheduleGeneralNotesText" class="schedule-general-notes">Sem observações cadastradas.</p>
-                </section>
-              </footer>
-            </section>
+              <section class="hub-card schedule-editor-card schedule-registered-card">
+                <header class="hub-card-header">
+                  <div>
+                    <span class="hub-card-number">02</span>
+                    <h2>Conteúdos cadastrados</h2>
+                  </div>
+                  <span id="scheduleAgendaMeta" class="hub-card-meta">0 itens</span>
+                </header>
+                <div id="scheduleAgendaList" class="schedule-agenda-list"></div>
+              </section>
+            </div>
 
             <aside class="schedule-editor-stack">
               <section class="hub-card schedule-editor-card schedule-logo-card">
@@ -333,17 +346,6 @@
                     <button class="primary-button" type="submit">Salvar conteúdo</button>
                   </div>
                 </form>
-              </section>
-
-              <section class="hub-card schedule-editor-card">
-                <header class="hub-card-header">
-                  <div>
-                    <span class="hub-card-number">02</span>
-                    <h2>Conteúdos cadastrados</h2>
-                  </div>
-                  <span id="scheduleAgendaMeta" class="hub-card-meta">0 itens</span>
-                </header>
-                <div id="scheduleAgendaList" class="schedule-agenda-list"></div>
               </section>
 
               <section class="hub-card schedule-editor-card">
@@ -829,6 +831,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-linhas-finas-1"></script>
+    <script src="app.js?v=cronograma-lista-embaixo-1"></script>
   </body>
 </html>
