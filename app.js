@@ -372,6 +372,7 @@ let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let profilePhotoDraft = profileData.avatarDataUrl || "";
 let selectedTheme = loadTheme();
+let loginRequested = new URLSearchParams(window.location.search).get("login") === "1";
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let scheduleData = normalizeScheduleData(loadScheduleData());
@@ -391,6 +392,9 @@ const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "U
 const elements = {
   appShell: document.querySelector("#appShell"),
   contextPanel: document.querySelector(".context-panel"),
+  welcomeScreen: document.querySelector("#welcomeScreen"),
+  welcomeLoginButtons: document.querySelectorAll("[data-open-login]"),
+  loginBackButton: document.querySelector("#loginBackButton"),
   loginScreen: document.querySelector("#loginScreen"),
   loginEmailInput: document.querySelector("#loginEmailInput"),
   loginPasswordInput: document.querySelector("#loginPasswordInput"),
@@ -1377,6 +1381,16 @@ function setLoginStatus(message) {
   if (elements.loginStatus) elements.loginStatus.textContent = message;
 }
 
+function setLoginRequested(nextValue) {
+  loginRequested = Boolean(nextValue);
+  renderAuthState();
+  if (loginRequested) {
+    window.setTimeout(() => elements.loginEmailInput?.focus(), 60);
+  } else {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
 function getAuthRedirectUrl() {
   return `${window.location.origin}${window.location.pathname}`;
 }
@@ -1417,8 +1431,10 @@ function renderAuthState() {
   const hasBackend = hasSupabaseBackend();
   const isLoggedIn = isSupabaseSessionValid();
   const mustLogin = hasBackend && !isLoggedIn;
+  const showWelcome = mustLogin && !loginRequested;
 
-  if (elements.loginScreen) elements.loginScreen.hidden = !mustLogin;
+  if (elements.welcomeScreen) elements.welcomeScreen.hidden = !showWelcome;
+  if (elements.loginScreen) elements.loginScreen.hidden = !mustLogin || showWelcome;
   if (elements.appShell) elements.appShell.hidden = mustLogin;
   if (elements.authPanel) elements.authPanel.hidden = !hasBackend || mustLogin;
 
@@ -1733,6 +1749,7 @@ async function signUpSupabase() {
 
 function signOutSupabase() {
   setProfileMenuOpen(false);
+  loginRequested = true;
   saveSupabaseSession(null);
   remoteSyncReady = false;
   setSyncStatus("Sessão encerrada. Entre para sincronizar os dados.");
@@ -5075,6 +5092,10 @@ window.addEventListener("afterprint", () => {
   document.body.classList.remove("printing-schedule");
 });
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
+elements.welcomeLoginButtons.forEach((button) => {
+  button.addEventListener("click", () => setLoginRequested(true));
+});
+elements.loginBackButton.addEventListener("click", () => setLoginRequested(false));
 elements.loginButton.addEventListener("click", signInSupabase);
 elements.googleLoginButton.addEventListener("click", signInWithGoogle);
 elements.signupButton.addEventListener("click", signUpSupabase);

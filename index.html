@@ -3,12 +3,139 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=luck-os-sidebar-1">
+    <title>Luck OS</title>
+    <link rel="stylesheet" href="styles.css?v=landing-luck-os-1">
   </head>
   <body>
+    <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
+      <div class="welcome-shell">
+        <header class="welcome-nav">
+          <a class="welcome-brand" href="#lp-top" aria-label="Luck OS">
+            <span class="welcome-brand-word">LUCK</span>
+            <span class="welcome-brand-badge">OS</span>
+          </a>
+          <nav class="welcome-links" aria-label="Navegação da apresentação">
+            <a href="#lp-beneficios">Benefícios</a>
+            <a href="#lp-solucoes">Soluções</a>
+            <a href="#lp-fluxo">Fluxo</a>
+          </nav>
+          <button class="welcome-signin-button" type="button" data-open-login>Sign in</button>
+        </header>
+
+        <main id="lp-top" class="welcome-hero">
+          <div class="welcome-hero-copy">
+            <span class="welcome-pill">Sistema operacional da produção</span>
+            <h1>LUCK OS</h1>
+            <p>Uma área central para planejar conteúdos, acompanhar entregas, organizar pendências e preparar relatórios mensais com mais clareza.</p>
+            <div class="welcome-actions">
+              <button class="welcome-primary-button" type="button" data-open-login>
+                <span>Acessar minha área</span>
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
+              </button>
+              <a class="welcome-secondary-link" href="#lp-solucoes">Ver soluções</a>
+            </div>
+          </div>
+
+          <div class="welcome-visual" aria-hidden="true">
+            <div class="welcome-visual-core">
+              <span>OS</span>
+              <i data-lucide="sparkles"></i>
+            </div>
+            <article class="welcome-float-card card-a">
+              <i data-lucide="calendar-check"></i>
+              <strong>Cronogramas</strong>
+              <span>meses prontos para aprovar</span>
+            </article>
+            <article class="welcome-float-card card-b">
+              <i data-lucide="file-text"></i>
+              <strong>Relatórios</strong>
+              <span>entregas consolidadas</span>
+            </article>
+            <article class="welcome-float-card card-c">
+              <i data-lucide="list-checks"></i>
+              <strong>Pendências</strong>
+              <span>trabalhos em aberto</span>
+            </article>
+            <article class="welcome-float-card card-d">
+              <i data-lucide="wallet"></i>
+              <strong>Financeiro</strong>
+              <span>visão mensal da Luck</span>
+            </article>
+          </div>
+        </main>
+
+        <section id="lp-beneficios" class="welcome-section">
+          <span class="welcome-section-tag">Benefícios</span>
+          <h2>Mais controle para uma rotina criativa que muda o tempo todo.</h2>
+          <div class="welcome-benefit-grid">
+            <article>
+              <i data-lucide="layers"></i>
+              <h3>Centraliza a operação</h3>
+              <p>Clientes, meses, cronogramas, pendências e relatórios ficam no mesmo ambiente.</p>
+            </article>
+            <article>
+              <i data-lucide="clock-3"></i>
+              <h3>Evita retrabalho</h3>
+              <p>O histórico ajuda a entender o que já foi entregue e o que ainda precisa sair.</p>
+            </article>
+            <article>
+              <i data-lucide="send"></i>
+              <h3>Facilita aprovações</h3>
+              <p>O cronograma vira uma peça pronta para apresentar o mês ao cliente.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="lp-solucoes" class="welcome-section welcome-solution-section">
+          <span class="welcome-section-tag">Soluções</span>
+          <h2>Feito para a forma como a Luck acompanha produção.</h2>
+          <div class="welcome-solution-grid">
+            <article>
+              <span>01</span>
+              <h3>Planejamento mensal</h3>
+              <p>Monte o calendário de conteúdos por cliente, mês e tipo de entrega.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Relatórios de produção</h3>
+              <p>Organize o que foi produzido e exporte uma visão profissional em PDF.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Pendências gerais</h3>
+              <p>Registre trabalhos avulsos e acompanhe o que foi concluído.</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Base sincronizada</h3>
+              <p>Salve os dados em banco para manter as informações entre dispositivos.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="lp-fluxo" class="welcome-flow-section">
+          <div>
+            <span class="welcome-section-tag">Fluxo</span>
+            <h2>Do planejamento ao envio para o cliente.</h2>
+          </div>
+          <div class="welcome-flow-list">
+            <article><span>1</span><strong>Planeja</strong><small>Cronograma e datas importantes.</small></article>
+            <article><span>2</span><strong>Produz</strong><small>Conteúdos, vídeos e criativos.</small></article>
+            <article><span>3</span><strong>Acompanha</strong><small>Pendências e entregas do mês.</small></article>
+            <article><span>4</span><strong>Exporta</strong><small>PDF pronto para apresentação.</small></article>
+          </div>
+        </section>
+
+        <footer class="welcome-footer">
+          <strong>Pronto para entrar no Luck OS?</strong>
+          <button class="welcome-primary-button compact" type="button" data-open-login>Sign in</button>
+        </footer>
+      </div>
+    </section>
+
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
       <div class="login-card">
+        <button id="loginBackButton" class="login-back-button" type="button">Voltar</button>
         <header class="login-brand">
           <div class="login-wordmark" aria-label="Luck">LUCK</div>
           <span>Relatórios</span>
@@ -847,6 +974,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=luck-os-sidebar-1"></script>
+    <script src="app.js?v=landing-luck-os-1"></script>
   </body>
 </html>
