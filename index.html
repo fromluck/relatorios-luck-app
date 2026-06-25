@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Produção Mensal</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-lista-embaixo-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-config-popup-1">
   </head>
   <body>
     <section id="loginScreen" class="login-screen" aria-label="Acesso aos relatórios" hidden>
@@ -285,29 +285,10 @@
             </div>
 
             <aside class="schedule-editor-stack">
-              <section class="hub-card schedule-editor-card schedule-logo-card">
-                <header class="hub-card-header">
-                  <div>
-                    <span class="hub-card-number">00</span>
-                    <h2>Logo do cliente</h2>
-                  </div>
-                </header>
-                <div class="schedule-logo-manager">
-                  <div id="scheduleLogoPreview" class="schedule-logo-preview">LUCK</div>
-                  <label class="secondary-button schedule-logo-upload">
-                    Adicionar PNG
-                    <input id="scheduleLogoInput" type="file" accept="image/png">
-                  </label>
-                  <label class="schedule-logo-size-field">
-                    <span>
-                      Tamanho da logo
-                      <strong id="scheduleLogoSizeValue">100%</strong>
-                    </span>
-                    <input id="scheduleLogoSizeInput" type="range" min="60" max="220" step="5" value="100">
-                  </label>
-                  <button id="scheduleLogoRemoveButton" class="secondary-button" type="button">Remover logo</button>
-                </div>
-              </section>
+              <button id="scheduleSettingsButton" class="export-main-button schedule-settings-button" type="button">
+                <i data-lucide="settings" class="sidebar-icon" aria-hidden="true"></i>
+                <span>Configurações</span>
+              </button>
 
               <section class="hub-card schedule-editor-card">
                 <header class="hub-card-header">
@@ -825,12 +806,44 @@
           </section>
         </div>
       </dialog>
+
+      <dialog id="scheduleSettingsDialog" class="save-dialog schedule-settings-dialog">
+        <div class="save-dialog-content">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Cronograma</span>
+              <h2>Configurações</h2>
+            </div>
+            <button id="closeScheduleSettingsDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <section class="schedule-logo-manager">
+            <div>
+              <strong>Logo do cliente</strong>
+              <p>Ajuste o PNG usado na tela e no PDF do cronograma.</p>
+            </div>
+            <div id="scheduleLogoPreview" class="schedule-logo-preview">LUCK</div>
+            <label class="secondary-button schedule-logo-upload">
+              Adicionar PNG
+              <input id="scheduleLogoInput" type="file" accept="image/png">
+            </label>
+            <label class="schedule-logo-size-field">
+              <span>
+                Tamanho da logo
+                <strong id="scheduleLogoSizeValue">100%</strong>
+              </span>
+              <input id="scheduleLogoSizeInput" type="range" min="60" max="220" step="5" value="100">
+            </label>
+            <button id="scheduleLogoRemoveButton" class="secondary-button" type="button">Remover logo</button>
+          </section>
+        </div>
+      </dialog>
       </div>
     </main>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-lista-embaixo-1"></script>
+    <script src="app.js?v=cronograma-config-popup-1"></script>
   </body>
 </html>

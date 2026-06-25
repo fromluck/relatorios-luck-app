@@ -464,6 +464,9 @@ const elements = {
   schedulePrintMonth: document.querySelector("#schedulePrintMonth"),
   schedulePrintArea: document.querySelector("#schedulePrintArea"),
   scheduleClientLogo: document.querySelector("#scheduleClientLogo"),
+  scheduleSettingsButton: document.querySelector("#scheduleSettingsButton"),
+  scheduleSettingsDialog: document.querySelector("#scheduleSettingsDialog"),
+  closeScheduleSettingsDialogButton: document.querySelector("#closeScheduleSettingsDialogButton"),
   scheduleLogoPreview: document.querySelector("#scheduleLogoPreview"),
   scheduleLogoInput: document.querySelector("#scheduleLogoInput"),
   scheduleLogoSizeInput: document.querySelector("#scheduleLogoSizeInput"),
@@ -1205,6 +1208,11 @@ function openSettingsDialog() {
   setProfileMenuOpen(false);
   syncProfilePanel();
   openDialogSmooth(elements.settingsDialog);
+}
+
+function openScheduleSettingsDialog() {
+  renderScheduleLogoManager();
+  openDialogSmooth(elements.scheduleSettingsDialog);
 }
 
 function syncThemeControls() {
@@ -4961,6 +4969,7 @@ elements.scheduleDateForm.addEventListener("submit", addScheduleDate);
 elements.scheduleHolidayForm.addEventListener("submit", addScheduleHoliday);
 elements.scheduleGeneralNotesInput.addEventListener("change", saveScheduleNotes);
 elements.schedulePdfButton.addEventListener("click", exportSchedulePdf);
+elements.scheduleSettingsButton.addEventListener("click", openScheduleSettingsDialog);
 elements.scheduleLogoInput.addEventListener("change", handleScheduleLogoChange);
 elements.scheduleLogoSizeInput.addEventListener("input", (event) => {
   updateScheduleLogoScale(event.target.value);
@@ -5132,6 +5141,14 @@ elements.settingsDialog.addEventListener("click", (event) => {
 elements.settingsDialog.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDialogSmooth(elements.settingsDialog);
+});
+elements.closeScheduleSettingsDialogButton.addEventListener("click", () => closeDialogSmooth(elements.scheduleSettingsDialog));
+elements.scheduleSettingsDialog.addEventListener("click", (event) => {
+  if (event.target === elements.scheduleSettingsDialog) closeDialogSmooth(elements.scheduleSettingsDialog);
+});
+elements.scheduleSettingsDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.scheduleSettingsDialog);
 });
 
 if (window.lucide?.createIcons) {
