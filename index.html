@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=orcamentos-1">
+    <link rel="stylesheet" href="styles.css?v=calculadora-orcamento-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -747,6 +747,75 @@
         </header>
 
         <div class="quote-workspace">
+          <div class="quote-editor-stack">
+          <section id="quoteCalculator" class="hub-card quote-calculator" aria-label="Calculadora de produção">
+            <header class="hub-card-header">
+              <div>
+                <span class="hub-card-number">00</span>
+                <h2>Calculadora de produção</h2>
+              </div>
+            </header>
+
+            <div class="quote-calculator-grid">
+              <label>
+                Vídeos
+                <input id="quoteVideoQtyInput" type="number" min="0" step="1" placeholder="0">
+              </label>
+              <label>
+                Valor por vídeo
+                <input id="quoteVideoPriceInput" type="number" min="0" step="0.01" placeholder="170,00">
+              </label>
+              <label>
+                Artes
+                <input id="quoteArtQtyInput" type="number" min="0" step="1" placeholder="0">
+              </label>
+              <label>
+                Valor por arte
+                <input id="quoteArtPriceInput" type="number" min="0" step="0.01" placeholder="65,00">
+              </label>
+              <label>
+                Gerenciamento
+                <input id="quoteManagementInput" type="number" min="0" step="0.01" placeholder="350,00">
+              </label>
+              <label>
+                Desconto (%)
+                <input id="quoteDiscountInput" type="number" min="0" max="100" step="1" placeholder="0">
+              </label>
+            </div>
+
+            <div class="quote-bonus-options" aria-label="Itens bônus">
+              <label class="check-row">
+                <input id="quoteIncludeManagementInput" type="checkbox">
+                <span>Incluir gerenciamento do perfil</span>
+              </label>
+              <label class="check-row">
+                <input id="quoteBonusDatesInput" type="checkbox">
+                <span>Bônus: datas comemorativas</span>
+              </label>
+              <label class="check-row">
+                <input id="quoteBonusPrintInput" type="checkbox">
+                <span>Bônus: materiais impressos</span>
+              </label>
+            </div>
+
+            <div class="quote-calculator-summary">
+              <article>
+                <span>Subtotal</span>
+                <strong id="quoteCalculatorSubtotal">R$ 0,00</strong>
+              </article>
+              <article>
+                <span>Desconto</span>
+                <strong id="quoteCalculatorDiscount">R$ 0,00</strong>
+              </article>
+              <article class="is-total">
+                <span>Valor final</span>
+                <strong id="quoteCalculatorTotal">R$ 0,00</strong>
+              </article>
+            </div>
+
+            <button id="quoteApplyCalculatorButton" class="export-main-button" type="button">Aplicar ao orçamento</button>
+          </section>
+
           <form id="quoteForm" class="hub-card quote-form">
             <header class="hub-card-header">
               <div>
@@ -797,6 +866,7 @@
               <button id="quoteClearButton" class="secondary-button" type="button">Limpar</button>
             </div>
           </form>
+          </div>
 
           <article id="quotePrintArea" class="quote-document">
             <header class="quote-document-header">
@@ -1097,6 +1167,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=orcamentos-1"></script>
+    <script src="app.js?v=calculadora-orcamento-1"></script>
   </body>
 </html>
