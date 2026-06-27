@@ -1759,6 +1759,193 @@ h1 {
   padding: 20px;
 }
 
+.quote-page {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.quote-header {
+  align-items: center;
+}
+
+.quote-export-button {
+  width: auto;
+  min-width: 180px;
+}
+
+.quote-workspace {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.55fr) minmax(520px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.quote-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.quote-form label {
+  min-width: 0;
+}
+
+.quote-form textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.quote-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.quote-form-actions .export-main-button,
+.quote-form-actions .secondary-button {
+  min-height: 44px;
+}
+
+.quote-document {
+  min-height: 720px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  color: #111827;
+}
+
+.quote-document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  border-top: 4px solid var(--blue);
+  background: #111827;
+  color: #ffffff;
+  padding: 34px;
+}
+
+.quote-document-header span {
+  color: #ffb17a;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.quote-document-header h2 {
+  margin: 6px 0 0;
+  color: #ffffff;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.quote-document-header strong {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  padding: 12px 18px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.quote-document-client,
+.quote-document-section,
+.quote-document-grid,
+.quote-document-footer {
+  margin-right: 34px;
+  margin-left: 34px;
+}
+
+.quote-document-client {
+  display: grid;
+  gap: 4px;
+  padding: 28px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.quote-document-section {
+  display: grid;
+  gap: 10px;
+  padding: 26px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.quote-document-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 22px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.quote-document-grid > div {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.quote-document span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.quote-document h3,
+.quote-document p {
+  margin: 0;
+}
+
+.quote-document h3 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.quote-document p {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.quote-document-grid strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.quote-document-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 22px;
+  padding: 28px 0 34px;
+}
+
+.quote-document-footer > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.quote-signature {
+  min-width: 220px;
+  border-top: 1px solid #94a3b8;
+  color: #64748b;
+  padding-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .pending-toolbar,
 .finance-toolbar {
   display: grid;
@@ -2252,6 +2439,7 @@ td.action-cell {
 :root[data-theme="dark"] .pending-card,
 :root[data-theme="dark"] .company-settings-card,
 :root[data-theme="dark"] .finance-card,
+:root[data-theme="dark"] .quote-form,
 :root[data-theme="dark"] .stat-card,
 :root[data-theme="dark"] .sidebar,
 :root[data-theme="dark"] .profile-menu,
@@ -2263,6 +2451,7 @@ td.action-cell {
 :root[data-theme="dark"] .finance-form,
 :root[data-theme="dark"] .pending-row,
 :root[data-theme="dark"] .finance-row,
+:root[data-theme="dark"] .quote-document,
 :root[data-theme="dark"] .dialog-info-list > div,
 :root[data-theme="dark"] .settings-row,
 :root[data-theme="dark"] .account-summary,
@@ -2344,6 +2533,20 @@ td.action-cell {
   border-color: rgba(244, 63, 94, 0.3);
   background: rgba(127, 29, 29, 0.22);
   color: #fda4af;
+}
+
+:root[data-theme="dark"] .quote-document {
+  background: #ffffff;
+  color: #111827;
+}
+
+:root[data-theme="dark"] .quote-document p {
+  color: #334155;
+}
+
+:root[data-theme="dark"] .quote-document-grid > div {
+  border-color: #e5e7eb;
+  background: #f8fafc;
 }
 
 :root[data-theme="dark"] .theme-toggle {
@@ -4307,6 +4510,85 @@ td.action-cell {
   }
 }
 
+@media print {
+  @page quote {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body.printing-quote {
+    background: #ffffff;
+    color: #111827;
+  }
+
+  body.printing-quote .sidebar,
+  body.printing-quote .control-bar,
+  body.printing-quote .context-panel,
+  body.printing-quote .assistant-panel,
+  body.printing-quote .contract-summary,
+  body.printing-quote .stats-grid,
+  body.printing-quote .report-card,
+  body.printing-quote .dashboard-page,
+  body.printing-quote .pending-card,
+  body.printing-quote .company-settings-card,
+  body.printing-quote .finance-card,
+  body.printing-quote .schedule-page,
+  body.printing-quote .quote-header,
+  body.printing-quote .quote-form {
+    display: none !important;
+  }
+
+  body.printing-quote .app-shell,
+  body.printing-quote .content-shell,
+  body.printing-quote #quoteView,
+  body.printing-quote .quote-page,
+  body.printing-quote .quote-workspace {
+    display: block !important;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  body.printing-quote .quote-document {
+    page: quote;
+    width: 100%;
+    min-height: calc(297mm - 24mm);
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.printing-quote .quote-document-header {
+    padding: 12mm;
+  }
+
+  body.printing-quote .quote-document-header h2 {
+    font-size: 34pt;
+  }
+
+  body.printing-quote .quote-document-header strong {
+    font-size: 16pt;
+  }
+
+  body.printing-quote .quote-document-client,
+  body.printing-quote .quote-document-section,
+  body.printing-quote .quote-document-grid,
+  body.printing-quote .quote-document-footer {
+    margin-right: 12mm;
+    margin-left: 12mm;
+  }
+
+  body.printing-quote .quote-document-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  body.printing-quote .quote-document-footer {
+    break-inside: avoid;
+  }
+}
+
 @media (max-width: 1400px) and (min-width: 921px) {
   .hub-kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4331,6 +4613,10 @@ td.action-cell {
   }
 
   .schedule-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-workspace {
     grid-template-columns: 1fr;
   }
 
@@ -4614,9 +4900,37 @@ td.action-cell {
   .finance-form,
   .pending-row,
   .finance-row,
+  .quote-workspace,
+  .quote-document-grid,
   .settings-grid,
   .settings-grid.compact {
     grid-template-columns: 1fr;
+  }
+
+  .quote-header {
+    align-items: stretch;
+  }
+
+  .quote-export-button {
+    width: 100%;
+  }
+
+  .quote-document {
+    min-height: auto;
+  }
+
+  .quote-document-header,
+  .quote-document-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quote-document-header h2 {
+    font-size: 34px;
+  }
+
+  .quote-signature {
+    min-width: 0;
   }
 
   .settings-row {
