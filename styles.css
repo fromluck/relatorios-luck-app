@@ -1781,6 +1781,89 @@ h1 {
   align-items: start;
 }
 
+.quote-editor-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.quote-calculator {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-top: 4px solid var(--blue);
+}
+
+.quote-calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quote-bonus-options {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 12px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+}
+
+.quote-calculator-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quote-calculator-summary article {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 12px;
+}
+
+.quote-calculator-summary span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quote-calculator-summary strong {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.quote-calculator-summary .is-total {
+  border-color: rgba(234, 90, 0, 0.32);
+  background: #fff3eb;
+}
+
+.quote-calculator-summary .is-total strong {
+  color: #9a3900;
+}
+
+.quote-calculator > .export-main-button {
+  width: 100%;
+}
+
 .quote-form {
   display: grid;
   gap: 16px;
@@ -2439,6 +2522,7 @@ td.action-cell {
 :root[data-theme="dark"] .pending-card,
 :root[data-theme="dark"] .company-settings-card,
 :root[data-theme="dark"] .finance-card,
+:root[data-theme="dark"] .quote-calculator,
 :root[data-theme="dark"] .quote-form,
 :root[data-theme="dark"] .stat-card,
 :root[data-theme="dark"] .sidebar,
@@ -2449,6 +2533,8 @@ td.action-cell {
 :root[data-theme="dark"] .finance-summary article,
 :root[data-theme="dark"] .pending-list-form,
 :root[data-theme="dark"] .finance-form,
+:root[data-theme="dark"] .quote-bonus-options,
+:root[data-theme="dark"] .quote-calculator-summary article,
 :root[data-theme="dark"] .pending-row,
 :root[data-theme="dark"] .finance-row,
 :root[data-theme="dark"] .quote-document,
@@ -2547,6 +2633,11 @@ td.action-cell {
 :root[data-theme="dark"] .quote-document-grid > div {
   border-color: #e5e7eb;
   background: #f8fafc;
+}
+
+:root[data-theme="dark"] .quote-calculator-summary .is-total {
+  border-color: rgba(234, 90, 0, 0.34);
+  background: rgba(234, 90, 0, 0.14);
 }
 
 :root[data-theme="dark"] .theme-toggle {
@@ -4534,6 +4625,8 @@ td.action-cell {
   body.printing-quote .finance-card,
   body.printing-quote .schedule-page,
   body.printing-quote .quote-header,
+  body.printing-quote .quote-editor-stack,
+  body.printing-quote .quote-calculator,
   body.printing-quote .quote-form {
     display: none !important;
   }
@@ -4618,6 +4711,11 @@ td.action-cell {
 
   .quote-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .quote-calculator-grid,
+  .quote-calculator-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .schedule-editor-stack {
@@ -4901,6 +4999,8 @@ td.action-cell {
   .pending-row,
   .finance-row,
   .quote-workspace,
+  .quote-calculator-grid,
+  .quote-calculator-summary,
   .quote-document-grid,
   .settings-grid,
   .settings-grid.compact {
