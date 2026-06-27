@@ -1,4 +1,4 @@
-const MATERIAL_TYPES = [
+﻿const MATERIAL_TYPES = [
   { label: "Vídeo (Reels)", color: "#e11d48" },
   { label: "Criativo (Arte)", color: "#64748b" },
   { label: "Publicação (Fotos)", color: "#7c3aed" },
@@ -19,6 +19,7 @@ const LEGACY_STORAGE_KEYS = [
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
+const QUOTE_STORAGE_KEY = "luck-quote-data-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const DASHBOARD_MONTH_STORAGE_KEY = "luck-dashboard-month-v1";
@@ -48,6 +49,16 @@ const FINANCE_STATUSES = [
 ];
 const SCHEDULE_TYPES = ["Vídeo", "Criativo", "Reels", "Post estático", "Story", "Carrossel", "Data comemorativa"];
 const SCHEDULE_STATUSES = ["Planejado", "Em produção", "Aguardando aprovação", "Aprovado", "Publicado"];
+const DEFAULT_QUOTE_DATA = {
+  client: "",
+  service: "",
+  description: "",
+  amount: 0,
+  validUntil: "",
+  deadline: "",
+  payment: "",
+  terms: "Esta proposta contempla apenas os serviços descritos no escopo. Ajustes adicionais, novas demandas ou alterações fora do combinado podem gerar novo orçamento."
+};
 const SCHEDULE_MONTHS = [
   { value: "01", label: "Janeiro" },
   { value: "02", label: "Fevereiro" },
@@ -375,6 +386,7 @@ let selectedTheme = loadTheme();
 let loginRequested = new URLSearchParams(window.location.search).get("login") === "1";
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
+let quoteData = normalizeQuoteData(loadQuoteData());
 let scheduleData = normalizeScheduleData(loadScheduleData());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
@@ -411,12 +423,14 @@ const elements = {
   companyViewButton: document.querySelector("#companyViewButton"),
   scheduleViewButton: document.querySelector("#scheduleViewButton"),
   financeViewButton: document.querySelector("#financeViewButton"),
+  quoteViewButton: document.querySelector("#quoteViewButton"),
   dashboardView: document.querySelector("#dashboardView"),
   scheduleView: document.querySelector("#scheduleView"),
   reportView: document.querySelector("#reportView"),
   pendingView: document.querySelector("#pendingView"),
   companyView: document.querySelector("#companyView"),
   financeView: document.querySelector("#financeView"),
+  quoteView: document.querySelector("#quoteView"),
   deleteMonthButton: document.querySelector("#deleteMonthButton"),
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
@@ -444,6 +458,28 @@ const elements = {
   financeDueDateInput: document.querySelector("#financeDueDateInput"),
   financeStatusInput: document.querySelector("#financeStatusInput"),
   financeList: document.querySelector("#financeList"),
+  quoteForm: document.querySelector("#quoteForm"),
+  quoteClientInput: document.querySelector("#quoteClientInput"),
+  quoteServiceInput: document.querySelector("#quoteServiceInput"),
+  quoteAmountInput: document.querySelector("#quoteAmountInput"),
+  quoteValidUntilInput: document.querySelector("#quoteValidUntilInput"),
+  quoteDeadlineInput: document.querySelector("#quoteDeadlineInput"),
+  quotePaymentInput: document.querySelector("#quotePaymentInput"),
+  quoteDescriptionInput: document.querySelector("#quoteDescriptionInput"),
+  quoteTermsInput: document.querySelector("#quoteTermsInput"),
+  quoteSaveButton: document.querySelector("#quoteSaveButton"),
+  quoteClearButton: document.querySelector("#quoteClearButton"),
+  quotePdfButton: document.querySelector("#quotePdfButton"),
+  quotePrintArea: document.querySelector("#quotePrintArea"),
+  quoteDocumentTotal: document.querySelector("#quoteDocumentTotal"),
+  quoteDocumentClient: document.querySelector("#quoteDocumentClient"),
+  quoteDocumentDate: document.querySelector("#quoteDocumentDate"),
+  quoteDocumentService: document.querySelector("#quoteDocumentService"),
+  quoteDocumentDescription: document.querySelector("#quoteDocumentDescription"),
+  quoteDocumentValidUntil: document.querySelector("#quoteDocumentValidUntil"),
+  quoteDocumentDeadline: document.querySelector("#quoteDocumentDeadline"),
+  quoteDocumentPayment: document.querySelector("#quoteDocumentPayment"),
+  quoteDocumentTerms: document.querySelector("#quoteDocumentTerms"),
   dashboardMonthSelect: document.querySelector("#dashboardMonthSelect"),
   dashboardKpis: document.querySelector("#dashboardKpis"),
   dashboardClientsMeta: document.querySelector("#dashboardClientsMeta"),
@@ -611,6 +647,7 @@ function getSharedState() {
     profile: window.LUCK_SHARED_BACKUP.profile || null,
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
+    quoteData: window.LUCK_SHARED_BACKUP.quoteData || null,
     scheduleData: window.LUCK_SHARED_BACKUP.scheduleData || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
@@ -995,6 +1032,47 @@ function loadFinancialRecords() {
   return clone(sharedRecords || {});
 }
 
+function normalizeQuoteData(data = {}) {
+  const amount = Number(data?.amount || 0);
+  return {
+    ...DEFAULT_QUOTE_DATA,
+    client: fixPortuguese(String(data?.client || DEFAULT_QUOTE_DATA.client).trim()),
+    service: fixPortuguese(String(data?.service || DEFAULT_QUOTE_DATA.service).trim()),
+    description: fixPortuguese(String(data?.description || DEFAULT_QUOTE_DATA.description).trim()),
+    amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
+    validUntil: isValidDate(data?.validUntil) ? data.validUntil : "",
+    deadline: fixPortuguese(String(data?.deadline || DEFAULT_QUOTE_DATA.deadline).trim()),
+    payment: fixPortuguese(String(data?.payment || DEFAULT_QUOTE_DATA.payment).trim()),
+    terms: fixPortuguese(String(data?.terms || DEFAULT_QUOTE_DATA.terms).trim())
+  };
+}
+
+function loadQuoteData() {
+  const sharedState = getSharedState();
+  const sharedQuote = sharedState?.quoteData;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && sharedQuote && typeof sharedQuote === "object") {
+    return normalizeQuoteData(sharedQuote);
+  }
+
+  const savedState = readSavedState();
+  if (savedState?.quoteData && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeQuoteData(savedState.quoteData);
+  }
+
+  const saved = localStorage.getItem(QUOTE_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeQuoteData(JSON.parse(saved));
+    } catch {
+      return normalizeQuoteData(sharedQuote || {});
+    }
+  }
+
+  return normalizeQuoteData(sharedQuote || {});
+}
+
 function loadFinanceMonth() {
   const saved = localStorage.getItem(FINANCE_MONTH_STORAGE_KEY);
   return isValidMonth(saved) ? saved : currentMonthKey();
@@ -1288,6 +1366,7 @@ function saveLocalState() {
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
+  localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
   localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleData));
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
@@ -1320,6 +1399,12 @@ function savePendingBoards() {
 }
 
 function saveFinancialRecords() {
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
+}
+
+function saveQuoteData() {
   saveLocalState();
   scheduleRemoteSave();
   exposeBackupData();
@@ -1507,6 +1592,10 @@ function getRequestedView() {
     return "financeiro";
   }
 
+  if (params.get("page") === "orcamentos" || window.location.hash === "#orcamentos") {
+    return "orcamentos";
+  }
+
   if (params.get("page") === "pendencias" || window.location.hash === "#pendencias") {
     return "pendencias";
   }
@@ -1516,7 +1605,7 @@ function getRequestedView() {
 
 function updateViewUrl(view, replace = false) {
   const url = new URL(window.location.href);
-  if (["relatorios", "cronograma", "pendencias", "empresas", "financeiro"].includes(view)) {
+  if (["relatorios", "cronograma", "pendencias", "empresas", "financeiro", "orcamentos"].includes(view)) {
     url.searchParams.set("page", view);
   } else {
     url.searchParams.delete("page");
@@ -1534,7 +1623,7 @@ function updateViewUrl(view, replace = false) {
 }
 
 function setActiveView(view, options = {}) {
-  const validViews = ["dashboard", "relatorios", "cronograma", "pendencias", "empresas", "financeiro"];
+  const validViews = ["dashboard", "relatorios", "cronograma", "pendencias", "empresas", "financeiro", "orcamentos"];
   const activeView = validViews.includes(view) ? view : "dashboard";
   const isDashboardView = activeView === "dashboard";
   const isReportView = activeView === "relatorios";
@@ -1543,6 +1632,7 @@ function setActiveView(view, options = {}) {
   const isPendingView = activeView === "pendencias";
   const isCompanyView = activeView === "empresas";
   const isFinanceView = activeView === "financeiro";
+  const isQuoteView = activeView === "orcamentos";
 
   elements.dashboardView.hidden = !isDashboardView;
   elements.scheduleView.hidden = !isScheduleView;
@@ -1550,7 +1640,8 @@ function setActiveView(view, options = {}) {
   elements.pendingView.hidden = !isPendingView;
   elements.companyView.hidden = !isCompanyView;
   elements.financeView.hidden = !isFinanceView;
-  elements.contextPanel.hidden = isDashboardView || isScheduleView || isFinanceView || isPendingView;
+  elements.quoteView.hidden = !isQuoteView;
+  elements.contextPanel.hidden = isDashboardView || isScheduleView || isFinanceView || isPendingView || isQuoteView;
   elements.pdfButton.hidden = !isReportView;
   elements.dashboardViewButton.classList.toggle("is-active", isDashboardView);
   elements.scheduleViewButton.classList.toggle("is-active", isScheduleView);
@@ -1558,12 +1649,14 @@ function setActiveView(view, options = {}) {
   elements.pendingViewButton.classList.toggle("is-active", isPendingView);
   elements.companyViewButton.classList.toggle("is-active", isCompanyView);
   elements.financeViewButton.classList.toggle("is-active", isFinanceView);
+  elements.quoteViewButton.classList.toggle("is-active", isQuoteView);
   elements.dashboardViewButton.setAttribute("aria-pressed", String(isDashboardView));
   elements.scheduleViewButton.setAttribute("aria-pressed", String(isScheduleView));
   elements.reportViewButton.setAttribute("aria-pressed", String(isReportView));
   elements.pendingViewButton.setAttribute("aria-pressed", String(isPendingView));
   elements.companyViewButton.setAttribute("aria-pressed", String(isCompanyView));
   elements.financeViewButton.setAttribute("aria-pressed", String(isFinanceView));
+  elements.quoteViewButton.setAttribute("aria-pressed", String(isQuoteView));
 
   if (options.updateUrl) updateViewUrl(activeView, Boolean(options.replaceUrl));
   if (options.scroll !== false) {
@@ -1767,6 +1860,7 @@ function getCurrentState() {
     theme: selectedTheme,
     pendingBoards,
     financialRecords,
+    quoteData,
     scheduleData
   };
 }
@@ -1855,6 +1949,7 @@ function loadRemoteState() {
         applyTheme(selectedTheme);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
+        quoteData = normalizeQuoteData(state.quoteData || quoteData);
         scheduleData = normalizeScheduleData(state.scheduleData || scheduleData);
         ensureRowIds();
         saveReports();
@@ -1902,6 +1997,7 @@ async function loadSupabaseState() {
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
+      quoteData = normalizeQuoteData(record.state.quoteData || quoteData);
       scheduleData = normalizeScheduleData(record.state.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
@@ -2062,6 +2158,7 @@ function restoreBackupFile(event) {
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
+      quoteData = normalizeQuoteData(payload.quoteData || quoteData);
       scheduleData = normalizeScheduleData(payload.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
@@ -4093,6 +4190,87 @@ function renderFinance() {
     : `<div class="empty-state">Nenhum lançamento financeiro da Luck neste mês.</div>`;
 }
 
+function quoteFallback(value, fallback = "A definir") {
+  return String(value || "").trim() || fallback;
+}
+
+function renderQuoteText(value, fallback) {
+  return escapeHTML(quoteFallback(value, fallback)).replace(/\n/g, "<br>");
+}
+
+function readQuoteForm() {
+  return normalizeQuoteData({
+    client: elements.quoteClientInput.value,
+    service: elements.quoteServiceInput.value,
+    description: elements.quoteDescriptionInput.value,
+    amount: elements.quoteAmountInput.value,
+    validUntil: elements.quoteValidUntilInput.value,
+    deadline: elements.quoteDeadlineInput.value,
+    payment: elements.quotePaymentInput.value,
+    terms: elements.quoteTermsInput.value
+  });
+}
+
+function syncQuoteForm() {
+  elements.quoteClientInput.value = quoteData.client;
+  elements.quoteServiceInput.value = quoteData.service;
+  elements.quoteAmountInput.value = quoteData.amount ? String(quoteData.amount) : "";
+  elements.quoteValidUntilInput.value = quoteData.validUntil;
+  elements.quoteDeadlineInput.value = quoteData.deadline;
+  elements.quotePaymentInput.value = quoteData.payment;
+  elements.quoteDescriptionInput.value = quoteData.description;
+  elements.quoteTermsInput.value = quoteData.terms;
+}
+
+function renderQuoteDocument() {
+  const issuedAt = todayDateKey();
+
+  elements.quoteDocumentTotal.textContent = formatCurrency(quoteData.amount);
+  elements.quoteDocumentClient.textContent = quoteFallback(quoteData.client, "Cliente não informado");
+  elements.quoteDocumentDate.textContent = `Emitido em ${formatDate(issuedAt)}`;
+  elements.quoteDocumentService.textContent = quoteFallback(quoteData.service, "Serviço não informado");
+  elements.quoteDocumentDescription.innerHTML = renderQuoteText(quoteData.description, "Preencha a descrição do serviço para montar a proposta.");
+  elements.quoteDocumentValidUntil.textContent = quoteData.validUntil ? formatDate(quoteData.validUntil) : "A definir";
+  elements.quoteDocumentDeadline.textContent = quoteFallback(quoteData.deadline);
+  elements.quoteDocumentPayment.textContent = quoteFallback(quoteData.payment);
+  elements.quoteDocumentTerms.innerHTML = renderQuoteText(quoteData.terms, "Preencha os termos para finalizar o orçamento.");
+}
+
+function renderQuote() {
+  syncQuoteForm();
+  renderQuoteDocument();
+}
+
+function handleQuoteDraftInput() {
+  quoteData = readQuoteForm();
+  saveLocalState();
+  renderQuoteDocument();
+}
+
+function saveQuoteForm(event) {
+  event.preventDefault();
+  quoteData = readQuoteForm();
+  saveQuoteData();
+  renderQuote();
+  showSaveDialog("Orçamento salvo", "Os dados do orçamento foram salvos no sistema.");
+}
+
+function clearQuoteForm() {
+  quoteData = normalizeQuoteData({});
+  saveQuoteData();
+  renderQuote();
+  showSaveDialog("Orçamento limpo", "A página de orçamento voltou para o modelo inicial.");
+}
+
+function exportQuotePdf() {
+  setActiveView("orcamentos", { updateUrl: false, scroll: false });
+  quoteData = readQuoteForm();
+  saveLocalState();
+  renderQuoteDocument();
+  document.body.classList.add("printing-quote");
+  window.requestAnimationFrame(() => window.print());
+}
+
 function renderContractSummary() {
   const report = getSelectedReport();
   const targets = getContractTarget(report.company);
@@ -4143,6 +4321,7 @@ function render() {
   renderSummary(sections);
   renderPendingBoard();
   renderFinance();
+  renderQuote();
 }
 
 function normalizeText(value) {
@@ -4882,6 +5061,7 @@ function exposeBackupData() {
     theme: selectedTheme,
     pendingBoards,
     financialRecords,
+    quoteData,
     scheduleData
   };
   let backupNode = document.querySelector("#backupData");
@@ -4925,12 +5105,19 @@ elements.companyViewButton.addEventListener("click", () => {
 elements.financeViewButton.addEventListener("click", () => {
   setActiveView("financeiro", { updateUrl: true });
 });
+elements.quoteViewButton.addEventListener("click", () => {
+  setActiveView("orcamentos", { updateUrl: true });
+});
 window.addEventListener("popstate", () => {
   setActiveView(getRequestedView(), { scroll: false });
 });
 elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
 elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.financeForm.addEventListener("submit", addFinanceRecord);
+elements.quoteForm.addEventListener("submit", saveQuoteForm);
+elements.quoteForm.addEventListener("input", handleQuoteDraftInput);
+elements.quoteClearButton.addEventListener("click", clearQuoteForm);
+elements.quotePdfButton.addEventListener("click", exportQuotePdf);
 elements.financeMonthSelect.addEventListener("change", () => {
   selectedFinanceMonth = elements.financeMonthSelect.value;
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
@@ -5090,6 +5277,7 @@ elements.pdfButton.addEventListener("click", exportPdf);
 window.addEventListener("beforeprint", render);
 window.addEventListener("afterprint", () => {
   document.body.classList.remove("printing-schedule");
+  document.body.classList.remove("printing-quote");
 });
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.welcomeLoginButtons.forEach((button) => {
