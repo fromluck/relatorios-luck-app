@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=landing-full-width-1">
+    <link rel="stylesheet" href="styles.css?v=orcamentos-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -208,6 +208,10 @@
             <button id="financeViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
               <i data-lucide="wallet" class="sidebar-icon" aria-hidden="true"></i>
               <span>Financeiro</span>
+            </button>
+            <button id="quoteViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
+              <i data-lucide="receipt-text" class="sidebar-icon" aria-hidden="true"></i>
+              <span>Orçamentos</span>
             </button>
             <button id="settingsViewButton" class="sidebar-link-button" type="button" aria-pressed="false">
               <i data-lucide="settings" class="sidebar-icon" aria-hidden="true"></i>
@@ -728,6 +732,125 @@
       </section>
       </div>
 
+      <div id="quoteView" class="app-view" hidden>
+      <section class="quote-page" aria-label="Orçamentos">
+        <header class="hub-header quote-header">
+          <div>
+            <span class="eyebrow">Orçamentos</span>
+            <h1>Proposta comercial</h1>
+            <p>Monte uma proposta com serviço, valor e termos para enviar ao cliente.</p>
+          </div>
+          <button id="quotePdfButton" class="export-main-button quote-export-button" type="button">
+            <i data-lucide="file-down" class="sidebar-icon" aria-hidden="true"></i>
+            <span>Exportar PDF</span>
+          </button>
+        </header>
+
+        <div class="quote-workspace">
+          <form id="quoteForm" class="hub-card quote-form">
+            <header class="hub-card-header">
+              <div>
+                <span class="hub-card-number">01</span>
+                <h2>Dados do orçamento</h2>
+              </div>
+            </header>
+
+            <div class="settings-grid">
+              <label>
+                Cliente
+                <input id="quoteClientInput" type="text" placeholder="Ex.: Alsol Telecom">
+              </label>
+              <label>
+                Serviço
+                <input id="quoteServiceInput" type="text" placeholder="Ex.: Produção de vídeo institucional">
+              </label>
+              <label>
+                Valor
+                <input id="quoteAmountInput" type="number" min="0" step="0.01" placeholder="0,00">
+              </label>
+              <label>
+                Validade
+                <input id="quoteValidUntilInput" type="date">
+              </label>
+              <label>
+                Prazo de entrega
+                <input id="quoteDeadlineInput" type="text" placeholder="Ex.: 10 dias úteis após aprovação">
+              </label>
+              <label>
+                Forma de pagamento
+                <input id="quotePaymentInput" type="text" placeholder="Ex.: 50% na aprovação e 50% na entrega">
+              </label>
+            </div>
+
+            <label>
+              Descrição do serviço
+              <textarea id="quoteDescriptionInput" rows="6" placeholder="Descreva o escopo, entregáveis e pontos importantes do serviço."></textarea>
+            </label>
+
+            <label>
+              Termos e observações
+              <textarea id="quoteTermsInput" rows="7" placeholder="Ex.: alterações inclusas, prazo de pagamento, validade da proposta e condições gerais."></textarea>
+            </label>
+
+            <div class="quote-form-actions">
+              <button id="quoteSaveButton" class="export-main-button" type="submit">Salvar orçamento</button>
+              <button id="quoteClearButton" class="secondary-button" type="button">Limpar</button>
+            </div>
+          </form>
+
+          <article id="quotePrintArea" class="quote-document">
+            <header class="quote-document-header">
+              <div>
+                <span>LUCK OS</span>
+                <h2>Orçamento</h2>
+              </div>
+              <strong id="quoteDocumentTotal">R$ 0,00</strong>
+            </header>
+
+            <section class="quote-document-client">
+              <span>Cliente</span>
+              <h3 id="quoteDocumentClient">Cliente não informado</h3>
+              <p id="quoteDocumentDate">Emitido em --/--/----</p>
+            </section>
+
+            <section class="quote-document-section">
+              <span>Serviço</span>
+              <h3 id="quoteDocumentService">Serviço não informado</h3>
+              <p id="quoteDocumentDescription">Preencha a descrição do serviço para montar a proposta.</p>
+            </section>
+
+            <section class="quote-document-grid">
+              <div>
+                <span>Validade</span>
+                <strong id="quoteDocumentValidUntil">A definir</strong>
+              </div>
+              <div>
+                <span>Prazo</span>
+                <strong id="quoteDocumentDeadline">A definir</strong>
+              </div>
+              <div>
+                <span>Pagamento</span>
+                <strong id="quoteDocumentPayment">A definir</strong>
+              </div>
+            </section>
+
+            <section class="quote-document-section">
+              <span>Termos</span>
+              <p id="quoteDocumentTerms">Preencha os termos para finalizar o orçamento.</p>
+            </section>
+
+            <footer class="quote-document-footer">
+              <div>
+                <strong>Luck Produtora Audiovisual</strong>
+                <span>Proposta gerada no Luck OS</span>
+              </div>
+              <div class="quote-signature">Aceite do cliente</div>
+            </footer>
+          </article>
+        </div>
+      </section>
+      </div>
+
       <dialog id="editDialog" class="edit-dialog">
         <form id="editForm" method="dialog">
           <div class="dialog-header">
@@ -974,6 +1097,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=landing-full-width-1"></script>
+    <script src="app.js?v=orcamentos-1"></script>
   </body>
 </html>
