@@ -49,6 +49,17 @@ const FINANCE_STATUSES = [
 ];
 const SCHEDULE_TYPES = ["Vídeo", "Criativo", "Reels", "Post estático", "Story", "Carrossel", "Data comemorativa"];
 const SCHEDULE_STATUSES = ["Planejado", "Em produção", "Aguardando aprovação", "Aprovado", "Publicado"];
+const DEFAULT_QUOTE_CALCULATOR = {
+  videoQty: 0,
+  videoPrice: 170,
+  artQty: 0,
+  artPrice: 65,
+  includeManagement: true,
+  managementPrice: 350,
+  bonusDates: true,
+  bonusPrint: true,
+  discountPercent: 0
+};
 const DEFAULT_QUOTE_DATA = {
   client: "",
   service: "",
@@ -57,6 +68,7 @@ const DEFAULT_QUOTE_DATA = {
   validUntil: "",
   deadline: "",
   payment: "",
+  calculator: { ...DEFAULT_QUOTE_CALCULATOR },
   terms: "Esta proposta contempla apenas os serviços descritos no escopo. Ajustes adicionais, novas demandas ou alterações fora do combinado podem gerar novo orçamento."
 };
 const SCHEDULE_MONTHS = [
@@ -459,6 +471,20 @@ const elements = {
   financeStatusInput: document.querySelector("#financeStatusInput"),
   financeList: document.querySelector("#financeList"),
   quoteForm: document.querySelector("#quoteForm"),
+  quoteCalculator: document.querySelector("#quoteCalculator"),
+  quoteVideoQtyInput: document.querySelector("#quoteVideoQtyInput"),
+  quoteVideoPriceInput: document.querySelector("#quoteVideoPriceInput"),
+  quoteArtQtyInput: document.querySelector("#quoteArtQtyInput"),
+  quoteArtPriceInput: document.querySelector("#quoteArtPriceInput"),
+  quoteManagementInput: document.querySelector("#quoteManagementInput"),
+  quoteDiscountInput: document.querySelector("#quoteDiscountInput"),
+  quoteIncludeManagementInput: document.querySelector("#quoteIncludeManagementInput"),
+  quoteBonusDatesInput: document.querySelector("#quoteBonusDatesInput"),
+  quoteBonusPrintInput: document.querySelector("#quoteBonusPrintInput"),
+  quoteCalculatorSubtotal: document.querySelector("#quoteCalculatorSubtotal"),
+  quoteCalculatorDiscount: document.querySelector("#quoteCalculatorDiscount"),
+  quoteCalculatorTotal: document.querySelector("#quoteCalculatorTotal"),
+  quoteApplyCalculatorButton: document.querySelector("#quoteApplyCalculatorButton"),
   quoteClientInput: document.querySelector("#quoteClientInput"),
   quoteServiceInput: document.querySelector("#quoteServiceInput"),
   quoteAmountInput: document.querySelector("#quoteAmountInput"),
@@ -1032,6 +1058,29 @@ function loadFinancialRecords() {
   return clone(sharedRecords || {});
 }
 
+function normalizeQuoteNumber(value, fallback = 0, options = {}) {
+  const min = Number.isFinite(options.min) ? options.min : 0;
+  const max = Number.isFinite(options.max) ? options.max : Infinity;
+  const numeric = Number(String(value ?? "").replace(",", "."));
+  const safe = Number.isFinite(numeric) ? numeric : fallback;
+  return Math.min(max, Math.max(min, safe));
+}
+
+function normalizeQuoteCalculator(data = {}) {
+  const base = { ...DEFAULT_QUOTE_CALCULATOR, ...(data || {}) };
+  return {
+    videoQty: Math.round(normalizeQuoteNumber(base.videoQty, DEFAULT_QUOTE_CALCULATOR.videoQty)),
+    videoPrice: normalizeQuoteNumber(base.videoPrice, DEFAULT_QUOTE_CALCULATOR.videoPrice),
+    artQty: Math.round(normalizeQuoteNumber(base.artQty, DEFAULT_QUOTE_CALCULATOR.artQty)),
+    artPrice: normalizeQuoteNumber(base.artPrice, DEFAULT_QUOTE_CALCULATOR.artPrice),
+    includeManagement: base.includeManagement !== false,
+    managementPrice: normalizeQuoteNumber(base.managementPrice, DEFAULT_QUOTE_CALCULATOR.managementPrice),
+    bonusDates: base.bonusDates !== false,
+    bonusPrint: base.bonusPrint !== false,
+    discountPercent: normalizeQuoteNumber(base.discountPercent, DEFAULT_QUOTE_CALCULATOR.discountPercent, { max: 100 })
+  };
+}
+
 function normalizeQuoteData(data = {}) {
   const amount = Number(data?.amount || 0);
   return {
@@ -1043,6 +1092,7 @@ function normalizeQuoteData(data = {}) {
     validUntil: isValidDate(data?.validUntil) ? data.validUntil : "",
     deadline: fixPortuguese(String(data?.deadline || DEFAULT_QUOTE_DATA.deadline).trim()),
     payment: fixPortuguese(String(data?.payment || DEFAULT_QUOTE_DATA.payment).trim()),
+    calculator: normalizeQuoteCalculator(data?.calculator),
     terms: fixPortuguese(String(data?.terms || DEFAULT_QUOTE_DATA.terms).trim())
   };
 }
@@ -2267,7 +2317,7 @@ function fixPortuguese(value) {
     .replaceAll("Voce", "Você")
     .replaceAll("Nao", "Não")
     .replaceAll("nao", "não")
-    .replaceAll("ate", "até")
+    .replace(/\bate\b/g, "até")
     .replaceAll("inicio", "início")
     .replaceAll("saude", "saúde")
     .replaceAll("esqueca", "esqueça")
@@ -4198,6 +4248,120 @@ function renderQuoteText(value, fallback) {
   return escapeHTML(quoteFallback(value, fallback)).replace(/\n/g, "<br>");
 }
 
+function readQuoteCalculator() {
+  return normalizeQuoteCalculator({
+    videoQty: elements.quoteVideoQtyInput.value,
+    videoPrice: elements.quoteVideoPriceInput.value,
+    artQty: elements.quoteArtQtyInput.value,
+    artPrice: elements.quoteArtPriceInput.value,
+    includeManagement: elements.quoteIncludeManagementInput.checked,
+    managementPrice: elements.quoteManagementInput.value,
+    bonusDates: elements.quoteBonusDatesInput.checked,
+    bonusPrint: elements.quoteBonusPrintInput.checked,
+    discountPercent: elements.quoteDiscountInput.value
+  });
+}
+
+function calculateQuotePackage(calculator = quoteData.calculator) {
+  const calc = normalizeQuoteCalculator(calculator);
+  const videoTotal = calc.videoQty * calc.videoPrice;
+  const artTotal = calc.artQty * calc.artPrice;
+  const managementTotal = calc.includeManagement ? calc.managementPrice : 0;
+  const subtotal = videoTotal + artTotal + managementTotal;
+  const discountValue = subtotal * (calc.discountPercent / 100);
+  const total = Math.max(0, subtotal - discountValue);
+
+  return {
+    calc,
+    videoTotal,
+    artTotal,
+    managementTotal,
+    subtotal,
+    discountValue,
+    total
+  };
+}
+
+function quoteItemLabel(quantity, singular, plural) {
+  return `${quantity} ${quantity === 1 ? singular : plural}`;
+}
+
+function getQuoteBonusLabels(calc) {
+  return [
+    calc.bonusDates ? "Datas comemorativas" : "",
+    calc.bonusPrint ? "Materiais impressos" : ""
+  ].filter(Boolean);
+}
+
+function buildQuoteDescriptionFromCalculator(calculator) {
+  const result = calculateQuotePackage(calculator);
+  const { calc } = result;
+  const lines = ["Pacote de produção mensal:"];
+
+  if (calc.videoQty) {
+    lines.push(`- ${quoteItemLabel(calc.videoQty, "vídeo/reels", "vídeos/reels")} x ${formatCurrency(calc.videoPrice)} = ${formatCurrency(result.videoTotal)}`);
+  }
+
+  if (calc.artQty) {
+    lines.push(`- ${quoteItemLabel(calc.artQty, "criativo/arte", "criativos/artes")} x ${formatCurrency(calc.artPrice)} = ${formatCurrency(result.artTotal)}`);
+  }
+
+  if (calc.includeManagement) {
+    lines.push(`- Gerenciamento e planejamento do perfil = ${formatCurrency(result.managementTotal)}`);
+  }
+
+  const bonus = getQuoteBonusLabels(calc);
+  if (bonus.length) {
+    lines.push("");
+    lines.push(`Bônus inclusos sem custo adicional: ${bonus.join(" e ")}.`);
+  }
+
+  lines.push("");
+  lines.push(`Subtotal: ${formatCurrency(result.subtotal)}`);
+  if (calc.discountPercent > 0) {
+    lines.push(`Desconto: ${calc.discountPercent}% (${formatCurrency(result.discountValue)})`);
+  }
+  lines.push(`Valor final: ${formatCurrency(result.total)}`);
+
+  return lines.join("\n");
+}
+
+function buildQuoteTermsFromCalculator(calculator) {
+  const result = calculateQuotePackage(calculator);
+  const { calc } = result;
+  const terms = [
+    "Esta proposta contempla apenas os serviços descritos no escopo.",
+    "A produção será iniciada após aprovação do orçamento e alinhamento das informações necessárias.",
+    "Ajustes adicionais, novas demandas ou alterações fora do combinado podem gerar novo orçamento."
+  ];
+
+  if (calc.discountPercent > 0) {
+    terms.push(`Foi aplicado desconto comercial de ${calc.discountPercent}% sobre o subtotal, resultando no investimento final de ${formatCurrency(result.total)}.`);
+  }
+
+  return terms.join("\n");
+}
+
+function syncQuoteCalculatorInputs() {
+  const calc = normalizeQuoteCalculator(quoteData.calculator);
+  elements.quoteVideoQtyInput.value = calc.videoQty || "";
+  elements.quoteVideoPriceInput.value = calc.videoPrice ? String(calc.videoPrice) : "";
+  elements.quoteArtQtyInput.value = calc.artQty || "";
+  elements.quoteArtPriceInput.value = calc.artPrice ? String(calc.artPrice) : "";
+  elements.quoteManagementInput.value = calc.managementPrice ? String(calc.managementPrice) : "";
+  elements.quoteDiscountInput.value = calc.discountPercent ? String(calc.discountPercent) : "";
+  elements.quoteIncludeManagementInput.checked = calc.includeManagement;
+  elements.quoteBonusDatesInput.checked = calc.bonusDates;
+  elements.quoteBonusPrintInput.checked = calc.bonusPrint;
+}
+
+function renderQuoteCalculatorSummary(calculator = quoteData.calculator) {
+  const result = calculateQuotePackage(calculator);
+  elements.quoteCalculatorSubtotal.textContent = formatCurrency(result.subtotal);
+  elements.quoteCalculatorDiscount.textContent = formatCurrency(result.discountValue);
+  elements.quoteCalculatorTotal.textContent = formatCurrency(result.total);
+}
+
 function readQuoteForm() {
   return normalizeQuoteData({
     client: elements.quoteClientInput.value,
@@ -4207,6 +4371,7 @@ function readQuoteForm() {
     validUntil: elements.quoteValidUntilInput.value,
     deadline: elements.quoteDeadlineInput.value,
     payment: elements.quotePaymentInput.value,
+    calculator: quoteData.calculator,
     terms: elements.quoteTermsInput.value
   });
 }
@@ -4238,6 +4403,8 @@ function renderQuoteDocument() {
 
 function renderQuote() {
   syncQuoteForm();
+  syncQuoteCalculatorInputs();
+  renderQuoteCalculatorSummary();
   renderQuoteDocument();
 }
 
@@ -4260,6 +4427,32 @@ function clearQuoteForm() {
   saveQuoteData();
   renderQuote();
   showSaveDialog("Orçamento limpo", "A página de orçamento voltou para o modelo inicial.");
+}
+
+function handleQuoteCalculatorInput() {
+  quoteData = normalizeQuoteData({
+    ...quoteData,
+    calculator: readQuoteCalculator()
+  });
+  renderQuoteCalculatorSummary();
+  saveLocalState();
+}
+
+function applyQuoteCalculatorToForm() {
+  const calculator = readQuoteCalculator();
+  const result = calculateQuotePackage(calculator);
+  const current = readQuoteForm();
+  quoteData = normalizeQuoteData({
+    ...current,
+    calculator,
+    service: "Pacote de produção mensal",
+    amount: result.total,
+    description: buildQuoteDescriptionFromCalculator(calculator),
+    terms: buildQuoteTermsFromCalculator(calculator)
+  });
+  saveQuoteData();
+  renderQuote();
+  showSaveDialog("Cálculo aplicado", "O valor final com desconto foi aplicado ao orçamento.");
 }
 
 function exportQuotePdf() {
@@ -5116,6 +5309,8 @@ elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.financeForm.addEventListener("submit", addFinanceRecord);
 elements.quoteForm.addEventListener("submit", saveQuoteForm);
 elements.quoteForm.addEventListener("input", handleQuoteDraftInput);
+elements.quoteCalculator.addEventListener("input", handleQuoteCalculatorInput);
+elements.quoteApplyCalculatorButton.addEventListener("click", applyQuoteCalculatorToForm);
 elements.quoteClearButton.addEventListener("click", clearQuoteForm);
 elements.quotePdfButton.addEventListener("click", exportQuotePdf);
 elements.financeMonthSelect.addEventListener("change", () => {
