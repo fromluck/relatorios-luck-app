@@ -33,6 +33,12 @@ const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const COMPANY_LOGO_MAX_SIZE = 2.5 * 1024 * 1024;
 const COMPANY_LOGO_SCALE_MIN = 60;
 const COMPANY_LOGO_SCALE_MAX = 220;
+const DEFAULT_SCHEDULE_THEME = {
+  titleColor: "#ea5a00",
+  solidColor: "#ea5a00",
+  gradientStart: "#e11d48",
+  gradientEnd: "#f59e0b"
+};
 const BACKUP_VERSION = 1;
 const PENDING_COLUMNS = [
   { id: "conteudos", label: "Conteúdos" },
@@ -538,6 +544,16 @@ const elements = {
   scheduleLogoSizeInput: document.querySelector("#scheduleLogoSizeInput"),
   scheduleLogoSizeValue: document.querySelector("#scheduleLogoSizeValue"),
   scheduleLogoRemoveButton: document.querySelector("#scheduleLogoRemoveButton"),
+  scheduleThemePreview: document.querySelector("#scheduleThemePreview"),
+  scheduleTitleColorInput: document.querySelector("#scheduleTitleColorInput"),
+  scheduleTitleHexInput: document.querySelector("#scheduleTitleHexInput"),
+  scheduleSolidColorInput: document.querySelector("#scheduleSolidColorInput"),
+  scheduleSolidHexInput: document.querySelector("#scheduleSolidHexInput"),
+  scheduleGradientStartInput: document.querySelector("#scheduleGradientStartInput"),
+  scheduleGradientStartHexInput: document.querySelector("#scheduleGradientStartHexInput"),
+  scheduleGradientEndInput: document.querySelector("#scheduleGradientEndInput"),
+  scheduleGradientEndHexInput: document.querySelector("#scheduleGradientEndHexInput"),
+  scheduleThemeResetButton: document.querySelector("#scheduleThemeResetButton"),
   scheduleCalendarGrid: document.querySelector("#scheduleCalendarGrid"),
   scheduleAgendaMeta: document.querySelector("#scheduleAgendaMeta"),
   scheduleAgendaList: document.querySelector("#scheduleAgendaList"),
@@ -749,6 +765,21 @@ function normalizeCompanyName(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizeHexColor(value, fallback) {
+  const raw = String(value || "").trim();
+  const withHash = raw.startsWith("#") ? raw : `#${raw}`;
+  return /^#[0-9a-f]{6}$/i.test(withHash) ? withHash.toLowerCase() : fallback;
+}
+
+function normalizeScheduleTheme(theme = {}) {
+  return {
+    titleColor: normalizeHexColor(theme?.titleColor, DEFAULT_SCHEDULE_THEME.titleColor),
+    solidColor: normalizeHexColor(theme?.solidColor, DEFAULT_SCHEDULE_THEME.solidColor),
+    gradientStart: normalizeHexColor(theme?.gradientStart, DEFAULT_SCHEDULE_THEME.gradientStart),
+    gradientEnd: normalizeHexColor(theme?.gradientEnd, DEFAULT_SCHEDULE_THEME.gradientEnd)
+  };
+}
+
 function getKnownCompanyNames(settings = companySettings, targets = contractTargets) {
   return unique([
     ...initialReports.map((report) => report.company),
@@ -779,6 +810,7 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
     logoScale: Number.isFinite(logoScale)
       ? Math.min(COMPANY_LOGO_SCALE_MAX, Math.max(COMPANY_LOGO_SCALE_MIN, logoScale))
       : 100,
+    theme: normalizeScheduleTheme(setting.theme),
     videos: Number.isFinite(videos) ? Math.max(0, videos) : 0,
     creatives: Number.isFinite(creatives) ? Math.max(0, creatives) : 0
   };
@@ -1344,6 +1376,7 @@ function openSettingsDialog() {
 
 function openScheduleSettingsDialog() {
   renderScheduleLogoManager();
+  renderScheduleThemeManager();
   openDialogSmooth(elements.scheduleSettingsDialog);
 }
 
@@ -3562,6 +3595,46 @@ function getScheduleLogoScale(company = selectedScheduleCompany) {
     : 100;
 }
 
+function getScheduleTheme(company = selectedScheduleCompany) {
+  return normalizeScheduleTheme(getCompanySetting(company).theme);
+}
+
+function applyScheduleThemeToElement(element, theme) {
+  if (!element) return;
+
+  element.style.setProperty("--schedule-title-color", theme.titleColor);
+  element.style.setProperty("--schedule-solid-color", theme.solidColor);
+  element.style.setProperty("--schedule-gradient-start", theme.gradientStart);
+  element.style.setProperty("--schedule-gradient-end", theme.gradientEnd);
+}
+
+function applyScheduleTheme(company = selectedScheduleCompany) {
+  const theme = getScheduleTheme(company);
+
+  applyScheduleThemeToElement(elements.schedulePrintArea, theme);
+  applyScheduleThemeToElement(elements.scheduleThemePreview, theme);
+}
+
+function setScheduleThemeInputs(theme) {
+  const fields = [
+    [elements.scheduleTitleColorInput, elements.scheduleTitleHexInput, theme.titleColor],
+    [elements.scheduleSolidColorInput, elements.scheduleSolidHexInput, theme.solidColor],
+    [elements.scheduleGradientStartInput, elements.scheduleGradientStartHexInput, theme.gradientStart],
+    [elements.scheduleGradientEndInput, elements.scheduleGradientEndHexInput, theme.gradientEnd]
+  ];
+
+  fields.forEach(([colorInput, hexInput, value]) => {
+    if (colorInput) colorInput.value = value;
+    if (hexInput) hexInput.value = value;
+  });
+}
+
+function renderScheduleThemeManager() {
+  const theme = getScheduleTheme(selectedScheduleCompany);
+  setScheduleThemeInputs(theme);
+  applyScheduleTheme(selectedScheduleCompany);
+}
+
 function applyScheduleLogoScale(company = selectedScheduleCompany) {
   const scale = getScheduleLogoScale(company);
   const cssScale = String(scale / 100);
@@ -3628,6 +3701,34 @@ function updateScheduleLogoScale(value, options = {}) {
   companySettings[selectedScheduleCompany] = normalizeCompanySetting(selectedScheduleCompany, setting);
   applyScheduleLogoScale(selectedScheduleCompany);
   if (options.save) saveCompanySettings();
+}
+
+function updateScheduleTheme(partialTheme, options = {}) {
+  const setting = getCompanySetting(selectedScheduleCompany);
+  const nextTheme = normalizeScheduleTheme({
+    ...setting.theme,
+    ...partialTheme
+  });
+
+  setting.theme = nextTheme;
+  companySettings[selectedScheduleCompany] = normalizeCompanySetting(selectedScheduleCompany, setting);
+  setScheduleThemeInputs(nextTheme);
+  applyScheduleTheme(selectedScheduleCompany);
+  if (options.save) {
+    saveCompanySettings();
+    renderScheduleCalendar(selectedScheduleMonth, getScheduleRecord());
+  }
+}
+
+function updateScheduleThemeField(key, value, options = {}) {
+  const currentTheme = getScheduleTheme(selectedScheduleCompany);
+  const nextColor = normalizeHexColor(value, currentTheme[key] || DEFAULT_SCHEDULE_THEME[key]);
+  updateScheduleTheme({ [key]: nextColor }, options);
+}
+
+function resetScheduleTheme() {
+  updateScheduleTheme({ ...DEFAULT_SCHEDULE_THEME }, { save: true });
+  showSaveDialog("Cores restauradas", "O cronograma voltou para as cores padrão da Luck.");
 }
 
 function renderScheduleCalendar(monthKey, record) {
@@ -3912,6 +4013,7 @@ function renderSchedule() {
   elements.schedulePrintMonth.textContent = dashboardPeriodLabel(selectedScheduleMonth).toUpperCase();
   elements.scheduleClientLogo.innerHTML = scheduleClientLogoMarkup(selectedScheduleCompany);
   renderScheduleLogoManager();
+  renderScheduleThemeManager();
   elements.scheduleCompanySelect.value = selectedScheduleCompany;
   elements.scheduleMonthSelect.value = monthYear(selectedScheduleMonth).monthNumber;
   elements.scheduleYearSelect.value = monthYear(selectedScheduleMonth).year;
@@ -3931,8 +4033,9 @@ function renderSchedule() {
 
 function schedulePreviewColor(type) {
   const taskClass = scheduleTaskClass(type);
-  if (taskClass === "is-video") return "#e11d48";
-  if (taskClass === "is-creative") return "#ea5a00";
+  const theme = getScheduleTheme(selectedScheduleCompany);
+  if (taskClass === "is-video") return theme.gradientStart;
+  if (taskClass === "is-creative") return theme.solidColor;
   if (taskClass === "is-story") return "#16a34a";
   return "#334155";
 }
@@ -5022,6 +5125,7 @@ function readCompanySettingsForm(companyName) {
     notes: elements.companyNotesInput.value,
     logoDataUrl: existingSetting.logoDataUrl || "",
     logoScale: existingSetting.logoScale || 100,
+    theme: existingSetting.theme || DEFAULT_SCHEDULE_THEME,
     videos: Number.isFinite(videos) ? videos : 0,
     creatives: Number.isFinite(creatives) ? creatives : 0
   });
@@ -5377,6 +5481,23 @@ elements.scheduleLogoSizeInput.addEventListener("change", (event) => {
   updateScheduleLogoScale(event.target.value, { save: true });
 });
 elements.scheduleLogoRemoveButton.addEventListener("click", removeScheduleClientLogo);
+[
+  ["titleColor", elements.scheduleTitleColorInput, elements.scheduleTitleHexInput],
+  ["solidColor", elements.scheduleSolidColorInput, elements.scheduleSolidHexInput],
+  ["gradientStart", elements.scheduleGradientStartInput, elements.scheduleGradientStartHexInput],
+  ["gradientEnd", elements.scheduleGradientEndInput, elements.scheduleGradientEndHexInput]
+].forEach(([key, colorInput, hexInput]) => {
+  colorInput.addEventListener("input", (event) => {
+    updateScheduleThemeField(key, event.target.value);
+  });
+  colorInput.addEventListener("change", (event) => {
+    updateScheduleThemeField(key, event.target.value, { save: true });
+  });
+  hexInput.addEventListener("change", (event) => {
+    updateScheduleThemeField(key, event.target.value, { save: true });
+  });
+});
+elements.scheduleThemeResetButton.addEventListener("click", resetScheduleTheme);
 elements.scheduleView.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-schedule-edit], [data-schedule-task]");
   const duplicateButton = event.target.closest("[data-schedule-duplicate]");
