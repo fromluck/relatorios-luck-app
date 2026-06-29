@@ -4699,19 +4699,38 @@ td.action-cell {
   }
 
   body.printing-schedule .schedule-bottom {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16mm;
+    grid-template-columns: minmax(64mm, 1.45fr) minmax(38mm, 0.8fr) minmax(48mm, 1fr);
+    gap: 10mm;
     margin-top: 5mm;
-    break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  body.printing-schedule .schedule-bottom section {
+    min-width: 0;
   }
 
   body.printing-schedule .schedule-bottom h2 {
     font-size: 6.9pt;
   }
 
+  body.printing-schedule .schedule-bottom section:first-child .schedule-note-list {
+    display: block;
+    column-count: 2;
+    column-gap: 5mm;
+    column-fill: balance;
+  }
+
   body.printing-schedule .schedule-note-list p,
   body.printing-schedule .schedule-general-notes {
     font-size: 6.3pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.printing-schedule .schedule-bottom section:first-child .schedule-note-list p {
+    display: block;
+    margin-bottom: 0.7mm;
   }
 
   body.printing-schedule .schedule-note-list button {
