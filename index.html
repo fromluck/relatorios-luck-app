@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=calculadora-orcamento-1">
+    <link rel="stylesheet" href="styles.css?v=cronograma-cores-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -1159,6 +1159,46 @@
             </label>
             <button id="scheduleLogoRemoveButton" class="secondary-button" type="button">Remover logo</button>
           </section>
+
+          <section class="schedule-theme-manager" aria-label="Cores do cronograma">
+            <div>
+              <strong>Cores do cronograma</strong>
+              <p>Defina a identidade visual deste cliente na tela e no PDF.</p>
+            </div>
+
+            <div id="scheduleThemePreview" class="schedule-theme-preview">
+              <span>CRONOGRAMA DE CONTEÚDOS</span>
+              <div>
+                <strong>Vídeo / Reels</strong>
+                <strong>Criativo</strong>
+              </div>
+            </div>
+
+            <div class="schedule-color-grid">
+              <label class="schedule-color-field">
+                <span>Faixa do título</span>
+                <input id="scheduleTitleColorInput" type="color" value="#ea5a00">
+                <input id="scheduleTitleHexInput" type="text" inputmode="text" value="#ea5a00" aria-label="Hexadecimal da faixa do título">
+              </label>
+              <label class="schedule-color-field">
+                <span>Cor sólida</span>
+                <input id="scheduleSolidColorInput" type="color" value="#ea5a00">
+                <input id="scheduleSolidHexInput" type="text" inputmode="text" value="#ea5a00" aria-label="Hexadecimal da cor sólida">
+              </label>
+              <label class="schedule-color-field">
+                <span>Degradê início</span>
+                <input id="scheduleGradientStartInput" type="color" value="#e11d48">
+                <input id="scheduleGradientStartHexInput" type="text" inputmode="text" value="#e11d48" aria-label="Hexadecimal do início do degradê">
+              </label>
+              <label class="schedule-color-field">
+                <span>Degradê fim</span>
+                <input id="scheduleGradientEndInput" type="color" value="#f59e0b">
+                <input id="scheduleGradientEndHexInput" type="text" inputmode="text" value="#f59e0b" aria-label="Hexadecimal do fim do degradê">
+              </label>
+            </div>
+
+            <button id="scheduleThemeResetButton" class="secondary-button" type="button">Restaurar cores padrão</button>
+          </section>
         </div>
       </dialog>
       </div>
@@ -1167,6 +1207,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=calculadora-orcamento-1"></script>
+    <script src="app.js?v=cronograma-cores-1"></script>
   </body>
 </html>
