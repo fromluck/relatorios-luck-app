@@ -484,6 +484,7 @@ const elements = {
   financeAmountInput: document.querySelector("#financeAmountInput"),
   financeDueDateInput: document.querySelector("#financeDueDateInput"),
   financeStatusInput: document.querySelector("#financeStatusInput"),
+  financeRecurringPrompt: document.querySelector("#financeRecurringPrompt"),
   financeList: document.querySelector("#financeList"),
   quoteForm: document.querySelector("#quoteForm"),
   quoteCalculator: document.querySelector("#quoteCalculator"),
@@ -1102,6 +1103,8 @@ function normalizeFinancialRecord(record) {
     amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
     dueDate: isValidDate(record?.dueDate) ? record.dueDate : "",
     status: record?.status === "paid" ? "paid" : "pending",
+    recurringFrom: record?.recurringFrom || "",
+    recurringSourceMonth: isValidMonth(record?.recurringSourceMonth) ? record.recurringSourceMonth : "",
     createdAt: record?.createdAt || new Date().toISOString()
   };
 }
@@ -2467,6 +2470,25 @@ function currentMonthKey() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function shiftMonth(month, offset) {
+  const { year, monthNumber } = monthYear(month);
+  const date = new Date(Number(year), Number(monthNumber) - 1 + offset, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function nextMonthKey() {
+  return shiftMonth(currentMonthKey(), 1);
+}
+
+function previousMonthKey(month) {
+  return shiftMonth(month, -1);
+}
+
+function daysInMonthKey(month) {
+  const { year, monthNumber } = monthYear(month);
+  return new Date(Number(year), Number(monthNumber), 0).getDate();
+}
+
 function monthsUntilCurrent() {
   const today = new Date();
   const year = today.getFullYear();
@@ -3123,7 +3145,8 @@ function refreshPendingMonthOptions() {
 }
 
 function getSelectableFinanceMonths() {
-  return unique([...monthsUntilCurrent(), ...getFinanceRecordMonths()])
+  return unique([...monthsUntilCurrent(), currentMonthKey(), nextMonthKey(), selectedFinanceMonth, ...getFinanceRecordMonths()])
+    .filter(isValidMonth)
     .sort()
     .reverse();
 }
@@ -3408,6 +3431,47 @@ function getFinanceRecords(month) {
   return financialRecords[key];
 }
 
+function financeMonthlyKey(record) {
+  return normalizeText(record?.description || "").replace(/\s+/g, " ").trim();
+}
+
+function moveDueDateToMonth(dueDate, targetMonth) {
+  if (!isValidDate(dueDate)) return "";
+
+  const day = Math.min(Number(dueDate.slice(8, 10)), daysInMonthKey(targetMonth));
+  return `${targetMonth}-${String(day).padStart(2, "0")}`;
+}
+
+function getFinanceRecurringCandidates(month) {
+  if (!isValidMonth(month)) return { sourceMonth: "", records: [] };
+
+  const sourceMonth = previousMonthKey(month);
+  const targetMonthlyKeys = new Set(
+    getFinanceRecords(month)
+      .filter((record) => record.type === "Mensalidade")
+      .map(financeMonthlyKey)
+  );
+  const records = getFinanceRecords(sourceMonth)
+    .filter((record) => record.type === "Mensalidade" && record.amount > 0)
+    .filter((record) => !targetMonthlyKeys.has(financeMonthlyKey(record)));
+
+  return { sourceMonth, records };
+}
+
+function buildRecurringFinanceRecord(record, targetMonth, sourceMonth) {
+  return {
+    id: `finance-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    description: record.description,
+    type: "Mensalidade",
+    amount: record.amount,
+    dueDate: moveDueDateToMonth(record.dueDate, targetMonth),
+    status: "pending",
+    recurringFrom: record.id,
+    recurringSourceMonth: sourceMonth,
+    createdAt: new Date().toISOString()
+  };
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -3442,11 +3506,17 @@ function renderFinanceSummary(records) {
 }
 
 function renderFinanceRow(record) {
+  const details = [
+    record.type,
+    record.dueDate ? formatDate(record.dueDate) : "",
+    record.recurringSourceMonth ? `fixo de ${formatMonth(record.recurringSourceMonth)}` : ""
+  ].filter(Boolean).join(" · ");
+
   return `
     <article class="finance-row">
       <div>
         <strong>${escapeHTML(record.description)}</strong>
-        <small>${record.type} ${record.dueDate ? `- ${formatDate(record.dueDate)}` : ""}</small>
+        <small>${escapeHTML(details)}</small>
       </div>
       <strong>${formatCurrency(record.amount)}</strong>
       <select data-finance-status="${record.id}" aria-label="Status financeiro">
@@ -3456,6 +3526,33 @@ function renderFinanceRow(record) {
       </select>
       <button class="row-action danger" type="button" data-finance-delete="${record.id}">Excluir</button>
     </article>
+  `;
+}
+
+function renderFinanceRecurringPrompt() {
+  if (!elements.financeRecurringPrompt) return;
+
+  const { sourceMonth, records } = getFinanceRecurringCandidates(selectedFinanceMonth);
+  elements.financeRecurringPrompt.hidden = records.length === 0;
+
+  if (!records.length) {
+    elements.financeRecurringPrompt.innerHTML = "";
+    return;
+  }
+
+  const total = records.reduce((sum, record) => sum + record.amount, 0);
+  const names = records.slice(0, 4).map((record) => record.description).join(", ");
+  const extraCount = Math.max(0, records.length - 4);
+
+  elements.financeRecurringPrompt.innerHTML = `
+    <div>
+      <span class="eyebrow">Mensalidades fixas</span>
+      <strong>${records.length} ${records.length === 1 ? "fixo disponível" : "fixos disponíveis"} de ${formatMonth(sourceMonth)}</strong>
+      <p>${escapeHTML(names)}${extraCount ? ` e mais ${extraCount}` : ""}. Total previsto: ${formatCurrency(total)}.</p>
+    </div>
+    <button class="export-main-button" type="button" data-finance-recurring-add>
+      Adicionar fixos
+    </button>
   `;
 }
 
@@ -4759,6 +4856,7 @@ function renderFinance() {
   elements.financeMonthTitle.textContent = formatMonth(selectedFinanceMonth);
   elements.financeTitle.textContent = "Financeiro - Luck";
   renderFinanceSummary(records);
+  renderFinanceRecurringPrompt();
   elements.financeList.innerHTML = records.length
     ? records.map(renderFinanceRow).join("")
     : `<div class="empty-state">Nenhum lançamento financeiro da Luck neste mês.</div>`;
@@ -5676,6 +5774,35 @@ function addFinanceRecord(event) {
   renderReminderSystem();
 }
 
+function addRecurringFinanceRecords() {
+  const { sourceMonth, records } = getFinanceRecurringCandidates(selectedFinanceMonth);
+
+  if (!records.length) {
+    showSaveDialog("Nada para adicionar", `Não há mensalidades fixas de ${formatMonth(previousMonthKey(selectedFinanceMonth)).toLowerCase()} para copiar.`);
+    return;
+  }
+
+  const targetRecords = getFinanceRecords(selectedFinanceMonth);
+  const copiedRecords = records.map((record) => buildRecurringFinanceRecord(record, selectedFinanceMonth, sourceMonth));
+  targetRecords.push(...copiedRecords);
+  targetRecords.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "") || a.description.localeCompare(b.description, "pt-BR"));
+
+  saveFinancialRecords();
+  renderFinance();
+  renderReminderSystem();
+  showSaveDialog(
+    "Mensalidades adicionadas",
+    `${copiedRecords.length} ${copiedRecords.length === 1 ? "fixo foi adicionado" : "fixos foram adicionados"} em ${formatMonth(selectedFinanceMonth).toLowerCase()}.`
+  );
+}
+
+function handleFinanceRecurringPromptClick(event) {
+  const addButton = event.target.closest("[data-finance-recurring-add]");
+  if (!addButton) return;
+
+  addRecurringFinanceRecords();
+}
+
 function updateFinanceStatus(recordId, status) {
   const record = getFinanceRecords(selectedFinanceMonth).find((item) => item.id === recordId);
   if (!record) return;
@@ -5849,6 +5976,7 @@ window.addEventListener("popstate", () => {
 elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
 elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.financeForm.addEventListener("submit", addFinanceRecord);
+elements.financeRecurringPrompt?.addEventListener("click", handleFinanceRecurringPromptClick);
 elements.quoteForm.addEventListener("submit", saveQuoteForm);
 elements.quoteForm.addEventListener("input", handleQuoteDraftInput);
 elements.quoteCalculator.addEventListener("input", handleQuoteCalculatorInput);
