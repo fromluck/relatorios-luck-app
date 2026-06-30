@@ -28,7 +28,9 @@ const SCHEDULE_COMPANY_STORAGE_KEY = "luck-schedule-company-v1";
 const SCHEDULE_STORAGE_KEY = "luck-schedule-data-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
+const REMINDER_SETTINGS_STORAGE_KEY = "luck-reminder-settings-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
+const DEFAULT_REMINDER_SETTINGS = { sound: true, visual: true };
 const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const COMPANY_LOGO_MAX_SIZE = 2.5 * 1024 * 1024;
 const COMPANY_LOGO_SCALE_MIN = 60;
@@ -401,6 +403,7 @@ let supabaseSession = loadSupabaseSession();
 let profileData = loadProfile();
 let profilePhotoDraft = profileData.avatarDataUrl || "";
 let selectedTheme = loadTheme();
+let reminderSettings = loadReminderSettings();
 let loginRequested = new URLSearchParams(window.location.search).get("login") === "1";
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
@@ -413,6 +416,11 @@ let selectedScheduleMonth = loadScheduleMonth();
 let selectedScheduleCompany = loadScheduleCompany();
 let editingScheduleTaskId = null;
 let parsedScheduleItems = [];
+let activeReminders = [];
+let lastReminderSignature = "";
+let dismissedReminderSignature = sessionStorage.getItem("luck-reminder-dismissed-signature") || "";
+let reminderSoundUnlocked = false;
+let pendingReminderSound = false;
 applyTheme(selectedTheme);
 saveLocalState();
 
@@ -629,7 +637,22 @@ const elements = {
   settingsThemeText: document.querySelector("#settingsThemeText"),
   settingsSyncText: document.querySelector("#settingsSyncText"),
   settingsSyncBadge: document.querySelector("#settingsSyncBadge"),
+  settingsReminderText: document.querySelector("#settingsReminderText"),
+  reminderSoundButtons: document.querySelectorAll("[data-reminder-sound]"),
   authLogoutButton: document.querySelector("#authLogoutButton"),
+  reminderLayer: document.querySelector("#reminderLayer"),
+  reminderButton: document.querySelector("#reminderButton"),
+  reminderBadge: document.querySelector("#reminderBadge"),
+  reminderToast: document.querySelector("#reminderToast"),
+  reminderToastCount: document.querySelector("#reminderToastCount"),
+  reminderToastTitle: document.querySelector("#reminderToastTitle"),
+  reminderToastText: document.querySelector("#reminderToastText"),
+  reminderToastOpenButton: document.querySelector("#reminderToastOpenButton"),
+  reminderToastDismissButton: document.querySelector("#reminderToastDismissButton"),
+  reminderDialog: document.querySelector("#reminderDialog"),
+  closeReminderDialogButton: document.querySelector("#closeReminderDialogButton"),
+  reminderList: document.querySelector("#reminderList"),
+  reminderEmpty: document.querySelector("#reminderEmpty"),
   saveDialog: document.querySelector("#saveDialog"),
   saveDialogTitle: document.querySelector("#saveDialogTitle"),
   saveDialogMessage: document.querySelector("#saveDialogMessage"),
@@ -691,6 +714,7 @@ function getSharedState() {
     financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
     quoteData: window.LUCK_SHARED_BACKUP.quoteData || null,
     scheduleData: window.LUCK_SHARED_BACKUP.scheduleData || null,
+    reminderSettings: window.LUCK_SHARED_BACKUP.reminderSettings || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -914,6 +938,34 @@ function loadTheme() {
   if (saved) return normalizeTheme(saved);
 
   return normalizeTheme(sharedState?.theme);
+}
+
+function normalizeReminderSettings(settings = DEFAULT_REMINDER_SETTINGS) {
+  const source = { ...DEFAULT_REMINDER_SETTINGS, ...(settings || {}) };
+  return {
+    sound: source.sound !== false,
+    visual: source.visual !== false
+  };
+}
+
+function loadReminderSettings() {
+  const sharedState = getSharedState();
+  const savedState = readSavedState();
+
+  if (savedState?.reminderSettings && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeReminderSettings(savedState.reminderSettings);
+  }
+
+  const saved = localStorage.getItem(REMINDER_SETTINGS_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeReminderSettings(JSON.parse(saved));
+    } catch {
+      return normalizeReminderSettings(sharedState?.reminderSettings);
+    }
+  }
+
+  return normalizeReminderSettings(sharedState?.reminderSettings);
 }
 
 function loadProfile() {
@@ -1238,6 +1290,7 @@ function syncProfilePanel() {
   if (elements.settingsSyncBadge) elements.settingsSyncBadge.textContent = hasSupabaseBackend() ? "Online" : "Local";
   if (elements.authStatus) elements.authStatus.textContent = "Conta Luck conectada.";
   syncThemeControls();
+  syncReminderControls();
 }
 
 function setProfileEditStatus(message = "", type = "") {
@@ -1457,6 +1510,7 @@ function saveLocalState() {
   localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
   localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+  localStorage.setItem(REMINDER_SETTINGS_STORAGE_KEY, JSON.stringify(reminderSettings));
 }
 
 function saveCompanySettings() {
@@ -1941,6 +1995,7 @@ function getCurrentState() {
     companySettings,
     profile: profileData,
     theme: selectedTheme,
+    reminderSettings,
     pendingBoards,
     financialRecords,
     quoteData,
@@ -2029,6 +2084,7 @@ function loadRemoteState() {
         syncContractTargetsFromCompanySettings();
         profileData = normalizeProfile(state.profile || profileData);
         selectedTheme = normalizeTheme(state.theme || selectedTheme);
+        reminderSettings = normalizeReminderSettings(state.reminderSettings || reminderSettings);
         applyTheme(selectedTheme);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
@@ -2077,6 +2133,7 @@ async function loadSupabaseState() {
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(record.state.profile || profileData);
       selectedTheme = normalizeTheme(record.state.theme || selectedTheme);
+      reminderSettings = normalizeReminderSettings(record.state.reminderSettings || reminderSettings);
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
@@ -2238,6 +2295,7 @@ function restoreBackupFile(event) {
       syncContractTargetsFromCompanySettings();
       profileData = normalizeProfile(payload.profile || profileData);
       selectedTheme = normalizeTheme(payload.theme || selectedTheme);
+      reminderSettings = normalizeReminderSettings(payload.reminderSettings || reminderSettings);
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
@@ -2990,7 +3048,10 @@ function getSelectableScheduleMonths() {
 }
 
 function getScheduleCompanyNames() {
-  const companies = getKnownCompanyNames()
+  const companies = unique([
+    ...getKnownCompanyNames(),
+    ...Object.values(scheduleData || {}).map((record) => record?.client)
+  ])
     .filter((company) => company && normalizeText(company) !== "luck")
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
   return unique([...companies, "Luck Produtora"]);
@@ -3414,6 +3475,341 @@ function daysUntilLabel(date) {
   return `Faltam ${days} dias`;
 }
 
+function syncReminderControls() {
+  if (elements.settingsReminderText) {
+    elements.settingsReminderText.textContent = reminderSettings.sound
+      ? "Avisos visuais ativos com som curto para novas necessidades."
+      : "Avisos visuais ativos. O som dos lembretes está silenciado.";
+  }
+
+  elements.reminderSoundButtons?.forEach((button) => {
+    const isActive = button.dataset.reminderSound === (reminderSettings.sound ? "on" : "off");
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function saveReminderSettings() {
+  reminderSettings = normalizeReminderSettings(reminderSettings);
+  localStorage.setItem(REMINDER_SETTINGS_STORAGE_KEY, JSON.stringify(reminderSettings));
+  saveLocalState();
+  scheduleRemoteSave();
+  syncReminderControls();
+}
+
+function setReminderSound(enabled) {
+  reminderSettings.sound = Boolean(enabled);
+  saveReminderSettings();
+  if (reminderSettings.sound && activeReminders.length) requestReminderSound();
+}
+
+function reminderLevelRank(level) {
+  return { danger: 0, warning: 1, info: 2 }[level] ?? 3;
+}
+
+function getOpenPendingReminderRows() {
+  const months = unique([...getSelectablePendingMonths(), selectedPendingMonth, currentMonthKey()])
+    .filter(isValidMonth)
+    .sort()
+    .reverse();
+
+  return months.flatMap((month) =>
+    getPendingRows(getPendingBoard(month))
+      .filter((row) => row.status !== "done")
+      .map((row) => ({ ...row, month }))
+  );
+}
+
+function buildPendingReminders() {
+  const rows = getOpenPendingReminderRows();
+  if (!rows.length) return [];
+
+  const monthGroups = rows.reduce((groups, row) => {
+    groups[row.month] = (groups[row.month] || 0) + 1;
+    return groups;
+  }, {});
+  const monthText = Object.entries(monthGroups)
+    .map(([month, count]) => `${count} em ${formatMonth(month).toLowerCase()}`)
+    .join(", ");
+  const reminders = [{
+    id: `pending-summary-${rows.map((row) => row.card.id).sort().join("-")}`,
+    level: "danger",
+    title: `${rows.length} ${rows.length === 1 ? "pendência aberta" : "pendências abertas"} na Luck`,
+    body: `Existem trabalhos em aberto para resolver: ${monthText}.`,
+    target: { view: "pendencias", month: rows[0].month }
+  }];
+
+  rows.slice(0, 6).forEach((row) => {
+    const typeMeta = PENDING_TYPES.find((type) => type.id === row.type) || PENDING_TYPES[0];
+    reminders.push({
+      id: `pending-${row.card.id}-${row.month}`,
+      level: "warning",
+      title: row.card.title,
+      body: `${typeMeta.label} pendente em ${formatMonth(row.month).toLowerCase()}.`,
+      target: { view: "pendencias", month: row.month }
+    });
+  });
+
+  return reminders;
+}
+
+function buildContractReminders() {
+  const report = getSelectedReport();
+  if (!report || normalizeText(report.company) === "luck") return [];
+
+  const targets = getContractTarget(report.company);
+  const counts = getContractCountsForMonth(report.company, report.month);
+  const backlog = getPreviousContractBacklog(report.company, report.month);
+  const metrics = [
+    { key: "videos", label: "vídeos", target: targets.videos || 0, produced: counts.videos, backlog: backlog.videos },
+    { key: "creatives", label: "criativos", target: targets.creatives || 0, produced: counts.creatives, backlog: backlog.creatives }
+  ];
+
+  return metrics
+    .map((metric) => {
+      const effectiveTarget = metric.target ? metric.target + metric.backlog : 0;
+      const missing = Math.max(0, effectiveTarget - metric.produced);
+      if (!missing) return null;
+
+      const targetText = metric.backlog
+        ? `${metric.target} do mês + ${metric.backlog} pendentes`
+        : `${metric.target} no contrato`;
+
+      return {
+        id: `contract-${report.company}-${report.month}-${metric.key}-${missing}`,
+        level: "warning",
+        title: `${report.company}: faltam ${missing} ${metric.label}`,
+        body: `${metric.produced} de ${effectiveTarget} entregues em ${formatMonth(report.month).toLowerCase()} (${targetText}).`,
+        target: { view: "relatorios", company: report.company, month: report.month }
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildFinanceReminders() {
+  const today = todayDateKey();
+  const soonLimit = new Date(`${today}T00:00:00`);
+  soonLimit.setDate(soonLimit.getDate() + 3);
+  const soonKey = `${soonLimit.getFullYear()}-${String(soonLimit.getMonth() + 1).padStart(2, "0")}-${String(soonLimit.getDate()).padStart(2, "0")}`;
+  const reminders = [];
+
+  Object.entries(financialRecords).forEach(([key, records]) => {
+    const month = key.split("::").pop();
+    if (!Array.isArray(records)) return;
+
+    records
+      .filter((record) => record.status !== "paid")
+      .filter((record) => !record.dueDate || record.dueDate <= soonKey || month === currentMonthKey())
+      .slice(0, 4)
+      .forEach((record) => {
+        const isOverdue = record.dueDate && record.dueDate < today;
+        reminders.push({
+          id: `finance-${record.id}-${record.status}`,
+          level: isOverdue ? "danger" : "info",
+          title: isOverdue ? `Financeiro atrasado: ${record.description}` : `Financeiro pendente: ${record.description}`,
+          body: `${formatCurrency(record.amount)}${record.dueDate ? ` com vencimento em ${formatDate(record.dueDate)}` : ` em ${formatMonth(month).toLowerCase()}`}.`,
+          target: { view: "financeiro", month }
+        });
+      });
+  });
+
+  return reminders;
+}
+
+function buildScheduleReminders() {
+  const today = todayDateKey();
+  const reminders = [];
+
+  Object.values(scheduleData).forEach((record) => {
+    if (!record?.tasks?.length) return;
+    const client = record.client || "Cliente";
+
+    record.tasks
+      .filter((task) => !["Aprovado", "Publicado"].includes(task.status))
+      .filter((task) => {
+        const days = daysUntilDate(task.date);
+        return task.date < today || (days >= 0 && days <= 3);
+      })
+      .slice(0, 4)
+      .forEach((task) => {
+        const days = daysUntilDate(task.date);
+        const level = task.date < today ? "danger" : days <= 1 ? "warning" : "info";
+        reminders.push({
+          id: `schedule-${task.id}-${task.date}-${task.status}`,
+          level,
+          title: task.date < today ? `Cronograma atrasado: ${task.title}` : `Cronograma próximo: ${task.title}`,
+          body: `${client} · ${task.type} · ${task.status} · ${task.date < today ? formatDate(task.date) : daysUntilLabel(task.date)}.`,
+          target: { view: "cronograma", company: client, month: task.date.slice(0, 7) }
+        });
+      });
+  });
+
+  return reminders;
+}
+
+function buildReminders() {
+  return [
+    ...buildPendingReminders(),
+    ...buildContractReminders(),
+    ...buildFinanceReminders(),
+    ...buildScheduleReminders()
+  ]
+    .sort((a, b) => reminderLevelRank(a.level) - reminderLevelRank(b.level) || a.title.localeCompare(b.title, "pt-BR"))
+    .slice(0, 20);
+}
+
+function reminderSignature(reminders) {
+  return reminders.map((reminder) => reminder.id).join("|");
+}
+
+function playReminderSound() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const now = audioContext.currentTime;
+    const gain = audioContext.createGain();
+    const first = audioContext.createOscillator();
+    const second = audioContext.createOscillator();
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+    first.type = "sine";
+    second.type = "sine";
+    first.frequency.setValueAtTime(740, now);
+    second.frequency.setValueAtTime(980, now + 0.12);
+    first.connect(gain);
+    second.connect(gain);
+    gain.connect(audioContext.destination);
+    first.start(now);
+    first.stop(now + 0.18);
+    second.start(now + 0.14);
+    second.stop(now + 0.34);
+    setTimeout(() => audioContext.close(), 520);
+  } catch {
+    pendingReminderSound = false;
+  }
+}
+
+function requestReminderSound() {
+  if (!reminderSettings.sound) return;
+  if (!reminderSoundUnlocked) {
+    pendingReminderSound = true;
+    return;
+  }
+  pendingReminderSound = false;
+  playReminderSound();
+}
+
+function unlockReminderSound() {
+  reminderSoundUnlocked = true;
+  if (pendingReminderSound && activeReminders.length) requestReminderSound();
+}
+
+function renderReminderDialog() {
+  if (!elements.reminderList || !elements.reminderEmpty) return;
+
+  elements.reminderEmpty.hidden = activeReminders.length > 0;
+  elements.reminderList.innerHTML = activeReminders.map((reminder) => `
+    <article class="reminder-item ${reminder.level}">
+      <div>
+        <strong>${escapeHTML(reminder.title)}</strong>
+        <small>${escapeHTML(reminder.body)}</small>
+      </div>
+      <button class="secondary-button" type="button" data-reminder-open="${escapeHTML(reminder.id)}">Abrir</button>
+    </article>
+  `).join("");
+}
+
+function renderReminderSystem(options = {}) {
+  if (!elements.reminderButton || !elements.reminderBadge) return;
+
+  activeReminders = buildReminders();
+  const count = activeReminders.length;
+  const signature = reminderSignature(activeReminders);
+  const firstReminder = activeReminders[0];
+
+  elements.reminderBadge.textContent = count > 99 ? "99+" : String(count);
+  elements.reminderButton.classList.toggle("has-none", count === 0);
+  elements.reminderButton.title = count
+    ? `${count} ${count === 1 ? "lembrete ativo" : "lembretes ativos"}`
+    : "Nenhum lembrete ativo";
+
+  if (elements.reminderToast) {
+    const showToast = count > 0 && reminderSettings.visual && dismissedReminderSignature !== signature;
+    elements.reminderToast.hidden = !showToast;
+    if (showToast && firstReminder) {
+      elements.reminderToastCount.textContent = String(count);
+      elements.reminderToastTitle.textContent = firstReminder.title;
+      elements.reminderToastText.textContent = firstReminder.body;
+    }
+  }
+
+  if (count > 0 && signature && signature !== lastReminderSignature && options.sound !== false) {
+    requestReminderSound();
+  }
+
+  lastReminderSignature = signature;
+  syncReminderControls();
+  renderReminderDialog();
+}
+
+function dismissReminderToast() {
+  dismissedReminderSignature = reminderSignature(activeReminders);
+  sessionStorage.setItem("luck-reminder-dismissed-signature", dismissedReminderSignature);
+  if (elements.reminderToast) elements.reminderToast.hidden = true;
+}
+
+function openReminderDialog() {
+  dismissReminderToast();
+  renderReminderDialog();
+  openDialogSmooth(elements.reminderDialog);
+}
+
+function activateReminder(reminderId) {
+  const reminder = activeReminders.find((item) => item.id === reminderId);
+  if (!reminder?.target) return;
+
+  const { view, company, month } = reminder.target;
+  if (view === "pendencias" && isValidMonth(month)) {
+    selectedPendingMonth = month;
+    localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
+    refreshPendingMonthOptions();
+    renderPendingBoard();
+  }
+
+  if (view === "financeiro" && isValidMonth(month)) {
+    selectedFinanceMonth = month;
+    localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
+    refreshFinanceMonthOptions();
+    renderFinance();
+  }
+
+  if (view === "cronograma") {
+    if (company) selectedScheduleCompany = normalizeCompanyName(company);
+    if (isValidMonth(month)) selectedScheduleMonth = month;
+    localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
+    localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
+    refreshScheduleMonthOptions();
+    renderSchedule();
+  }
+
+  if (view === "relatorios") {
+    if (company && [...elements.companySelect.options].some((option) => option.value === company)) {
+      elements.companySelect.value = company;
+    }
+    refreshMonthOptions();
+    if (isValidMonth(month) && [...elements.monthSelect.options].some((option) => option.value === month)) {
+      elements.monthSelect.value = month;
+    }
+    render();
+  }
+
+  closeDialogSmooth(elements.reminderDialog, () => setActiveView(view, { updateUrl: true }));
+}
+
 function dashboardPeriodLabel(month) {
   const { year } = monthYear(month);
   return `${toTitleCase(formatMonth(month))} ${year}`;
@@ -3561,6 +3957,7 @@ function saveScheduleData() {
   saveLocalState();
   scheduleRemoteSave();
   exposeBackupData();
+  renderReminderSystem();
 }
 
 function getScheduleCommemorativeDates(record) {
@@ -4618,6 +5015,7 @@ function render() {
   renderPendingBoard();
   renderFinance();
   renderQuote();
+  renderReminderSystem();
 }
 
 function normalizeText(value) {
@@ -5058,6 +5456,7 @@ function addPendingCard(type, title, status = "pending") {
 
   savePendingBoards();
   renderPendingBoard();
+  renderReminderSystem();
 }
 
 function updatePendingCard(cardId, updates = {}) {
@@ -5077,6 +5476,7 @@ function updatePendingCard(cardId, updates = {}) {
 
   savePendingBoards();
   renderPendingBoard();
+  renderReminderSystem();
 }
 
 function removePendingCard(cardId) {
@@ -5086,6 +5486,7 @@ function removePendingCard(cardId) {
   found.board[found.columnId].splice(found.index, 1);
   savePendingBoards();
   renderPendingBoard();
+  renderReminderSystem();
 }
 
 function findCompanyByName(name, ignoredName = "") {
@@ -5239,6 +5640,7 @@ function addFinanceRecord(event) {
   elements.financeStatusInput.value = "pending";
   saveFinancialRecords();
   renderFinance();
+  renderReminderSystem();
 }
 
 function updateFinanceStatus(recordId, status) {
@@ -5248,6 +5650,7 @@ function updateFinanceStatus(recordId, status) {
   record.status = status === "paid" ? "paid" : "pending";
   saveFinancialRecords();
   renderFinance();
+  renderReminderSystem();
 }
 
 function removeFinanceRecord(recordId) {
@@ -5257,6 +5660,7 @@ function removeFinanceRecord(recordId) {
   financialRecords[key] = records.filter((record) => record.id !== recordId);
   saveFinancialRecords();
   renderFinance();
+  renderReminderSystem();
 }
 
 function handleFinanceListChange(event) {
@@ -5356,6 +5760,7 @@ function exposeBackupData() {
     companySettings,
     profile: profileData,
     theme: selectedTheme,
+    reminderSettings,
     pendingBoards,
     financialRecords,
     quoteData,
@@ -5613,6 +6018,26 @@ elements.profileSettingsButton.addEventListener("click", openSettingsDialog);
 document.querySelectorAll("[data-theme-option]").forEach((button) => {
   button.addEventListener("click", () => applyTheme(button.dataset.themeOption, { save: true }));
 });
+elements.reminderSoundButtons?.forEach((button) => {
+  button.addEventListener("click", () => setReminderSound(button.dataset.reminderSound === "on"));
+});
+elements.reminderButton?.addEventListener("click", openReminderDialog);
+elements.reminderToastOpenButton?.addEventListener("click", openReminderDialog);
+elements.reminderToastDismissButton?.addEventListener("click", dismissReminderToast);
+elements.closeReminderDialogButton?.addEventListener("click", () => closeDialogSmooth(elements.reminderDialog));
+elements.reminderDialog?.addEventListener("click", (event) => {
+  if (event.target === elements.reminderDialog) {
+    closeDialogSmooth(elements.reminderDialog);
+    return;
+  }
+
+  const reminderButton = event.target.closest("[data-reminder-open]");
+  if (reminderButton) activateReminder(reminderButton.dataset.reminderOpen);
+});
+elements.reminderDialog?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDialogSmooth(elements.reminderDialog);
+});
 elements.profileEditForm.addEventListener("submit", saveProfile);
 elements.profilePhotoInput.addEventListener("change", handleProfilePhotoChange);
 elements.removeProfilePhotoButton.addEventListener("click", removeProfilePhoto);
@@ -5625,6 +6050,7 @@ document.addEventListener("click", (event) => {
   if (elements.authPanel?.contains(event.target)) return;
   setProfileMenuOpen(false);
 });
+document.addEventListener("pointerdown", unlockReminderSound, { once: true });
 elements.closeSaveDialogButton.addEventListener("click", () => closeDialogSmooth(elements.saveDialog));
 elements.saveDialog.addEventListener("click", (event) => {
   if (event.target === elements.saveDialog) closeDialogSmooth(elements.saveDialog);
