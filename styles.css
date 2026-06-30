@@ -502,18 +502,40 @@ textarea,
   line-height: 1.08;
 }
 
-.welcome-benefit-grid,
 .welcome-solution-grid,
 .welcome-flow-list {
   display: grid;
   gap: 14px;
 }
 
-.welcome-benefit-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.welcome-benefit-marquee {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 2px 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
 
-.welcome-benefit-grid article,
+.welcome-benefit-track {
+  display: flex;
+  gap: 14px;
+  width: max-content;
+  will-change: transform;
+  animation: welcome-benefits-slide 58s linear infinite;
+}
+
+.welcome-benefit-marquee:hover .welcome-benefit-track {
+  animation-play-state: paused;
+}
+
+.welcome-benefit-set {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 14px;
+}
+
+.welcome-benefit-set article,
 .welcome-solution-grid article,
 .welcome-flow-list article {
   border: 1px solid #e2e8f0;
@@ -522,31 +544,43 @@ textarea,
   padding: 24px;
 }
 
-.welcome-benefit-grid article {
+.welcome-benefit-set article {
   display: grid;
+  flex: 0 0 clamp(300px, 28vw, 430px);
   gap: 12px;
   min-height: 190px;
+  align-content: start;
 }
 
-.welcome-benefit-grid svg {
+.welcome-benefit-set svg {
   width: 26px;
   height: 26px;
   color: var(--blue);
 }
 
-.welcome-benefit-grid h3,
+.welcome-benefit-set h3,
 .welcome-solution-grid h3 {
   margin: 0;
   font-size: 19px;
 }
 
-.welcome-benefit-grid p,
+.welcome-benefit-set p,
 .welcome-solution-grid p {
   margin: 0;
   color: #64748b;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.55;
+}
+
+@keyframes welcome-benefits-slide {
+  from {
+    transform: translate3d(calc(-50% - 7px), 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .welcome-solution-section {
@@ -1004,7 +1038,8 @@ textarea,
   .login-screen::after,
   .welcome-visual::before,
   .welcome-visual-core,
-  .welcome-float-card {
+  .welcome-float-card,
+  .welcome-benefit-track {
     animation: none;
   }
 }
@@ -5399,7 +5434,6 @@ td.action-cell {
     min-height: 390px;
   }
 
-  .welcome-benefit-grid,
   .welcome-solution-grid,
   .welcome-flow-list {
     grid-template-columns: 1fr 1fr;
@@ -5669,7 +5703,6 @@ td.action-cell {
     order: 5;
   }
 
-  .welcome-benefit-grid,
   .welcome-solution-grid,
   .welcome-flow-list {
     grid-template-columns: 1fr;
