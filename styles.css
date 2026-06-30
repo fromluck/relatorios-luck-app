@@ -292,6 +292,7 @@ textarea,
 .welcome-visual {
   position: relative;
   min-height: 440px;
+  perspective: 900px;
 }
 
 .welcome-visual::before {
@@ -305,38 +306,69 @@ textarea,
     linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
   background-size: 54px 54px;
   opacity: 0.9;
+  animation: welcome-grid-drift 18s ease-in-out infinite alternate;
 }
 
 .welcome-visual-core {
+  --core-float-x: 0px;
+  --core-float-y: -14px;
+  --core-float-rotate: 1.4deg;
   position: absolute;
   top: 50%;
   left: 50%;
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 118px;
-  height: 118px;
-  border: 1px solid #dbe1e8;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
+  align-content: center;
+  gap: 7px;
+  width: 142px;
+  height: 122px;
+  border: 1px solid rgba(203, 213, 225, 0.88);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 237, 0.92));
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
   transform: translate(-50%, -50%);
+  will-change: transform;
+  animation: welcome-core-float 7.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
-.welcome-visual-core span {
+.welcome-visual-core::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(234, 90, 0, 0.12);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.welcome-core-word {
   color: var(--blue);
-  font-size: 42px;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.welcome-core-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  height: 28px;
+  border: 2px solid rgba(234, 90, 0, 0.75);
+  border-radius: 9px;
+  color: var(--blue);
+  font-size: 14px;
   font-weight: 950;
   line-height: 1;
 }
 
-.welcome-visual-core svg {
-  width: 20px;
-  height: 20px;
-  color: #f59e0b;
-}
-
 .welcome-float-card {
+  --float-x: 0px;
+  --float-y: -10px;
+  --float-rotate: 1deg;
+  --float-duration: 8.5s;
+  --float-delay: 0s;
   position: absolute;
   z-index: 2;
   display: grid;
@@ -347,6 +379,9 @@ textarea,
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 22px 44px rgba(15, 23, 42, 0.13);
   padding: 18px;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: welcome-card-float var(--float-duration) cubic-bezier(0.45, 0, 0.55, 1) var(--float-delay) infinite;
 }
 
 .welcome-float-card svg {
@@ -368,23 +403,75 @@ textarea,
 }
 
 .welcome-float-card.card-a {
+  --float-x: 10px;
+  --float-y: -14px;
+  --float-rotate: -1.4deg;
+  --float-duration: 8.4s;
+  --float-delay: -1.2s;
   top: 20px;
   left: 12px;
 }
 
 .welcome-float-card.card-b {
+  --float-x: -12px;
+  --float-y: -10px;
+  --float-rotate: 1.2deg;
+  --float-duration: 9.2s;
+  --float-delay: -2.5s;
   top: 76px;
   right: 2px;
 }
 
 .welcome-float-card.card-c {
+  --float-x: 12px;
+  --float-y: 10px;
+  --float-rotate: 1deg;
+  --float-duration: 8.9s;
+  --float-delay: -3.1s;
   bottom: 42px;
   left: 34px;
 }
 
 .welcome-float-card.card-d {
+  --float-x: -10px;
+  --float-y: 12px;
+  --float-rotate: -1deg;
+  --float-duration: 9.8s;
+  --float-delay: -4s;
   right: 26px;
   bottom: 8px;
+}
+
+@keyframes welcome-card-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(var(--float-x), var(--float-y), 0) rotate(var(--float-rotate));
+  }
+}
+
+@keyframes welcome-core-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) translate3d(var(--core-float-x), var(--core-float-y), 0) rotate(var(--core-float-rotate));
+  }
+}
+
+@keyframes welcome-grid-drift {
+  from {
+    transform: translate3d(-5px, 4px, 0);
+  }
+
+  to {
+    transform: translate3d(7px, -6px, 0);
+  }
 }
 
 .welcome-section,
@@ -788,7 +875,10 @@ textarea,
 
 @media (prefers-reduced-motion: reduce) {
   .login-screen::before,
-  .login-screen::after {
+  .login-screen::after,
+  .welcome-visual::before,
+  .welcome-visual-core,
+  .welcome-float-card {
     animation: none;
   }
 }
@@ -5394,10 +5484,14 @@ td.action-cell {
   }
 
   .welcome-visual-core {
+    --float-x: 0px;
+    --float-y: -8px;
+    --float-rotate: 0.8deg;
     justify-self: center;
     order: 1;
-    width: 96px;
-    height: 96px;
+    width: 124px;
+    height: 104px;
+    animation: welcome-card-float 8s cubic-bezier(0.45, 0, 0.55, 1) -1.3s infinite;
   }
 
   .welcome-float-card {
