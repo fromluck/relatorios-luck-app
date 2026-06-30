@@ -8,6 +8,7 @@
   --black: #101317;
   --blue: #ea5a00;
   --video: #e11d48;
+  --edited: #0ea5e9;
   --creative: #64748b;
   --photo: #7c3aed;
   --flyer: #16a34a;
@@ -3081,6 +3082,7 @@ td.action-cell {
 .calendar-dot.commemorative { background: #ef4444; }
 .calendar-dot.meeting { background: #8b5cf6; }
 .calendar-dot.video { background: var(--video); }
+.calendar-dot.edited { background: var(--edited); }
 .calendar-dot.creative { background: var(--creative); }
 .calendar-dot.photo { background: var(--photo); }
 .calendar-dot.flyer { background: var(--flyer); }
