@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=cronograma-datas-colunas-1">
+    <link rel="stylesheet" href="styles.css?v=lembretes-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -1126,6 +1126,16 @@
                 <p id="syncStatus" class="sync-status" role="status">Verificando banco de dados...</p>
               </div>
             </article>
+            <article class="settings-row">
+              <div>
+                <strong>Lembretes</strong>
+                <small id="settingsReminderText">Avisos visuais e sonoros para pendências importantes.</small>
+              </div>
+              <div class="theme-toggle reminder-sound-toggle" role="group" aria-label="Som dos lembretes">
+                <button class="theme-option-button" type="button" data-reminder-sound="on" aria-pressed="true">Som ligado</button>
+                <button class="theme-option-button" type="button" data-reminder-sound="off" aria-pressed="false">Silenciar</button>
+              </div>
+            </article>
           </section>
         </div>
       </dialog>
@@ -1201,12 +1211,47 @@
           </section>
         </div>
       </dialog>
+
+      <div id="reminderLayer" class="reminder-layer" aria-live="polite">
+        <section id="reminderToast" class="reminder-toast" hidden>
+          <span id="reminderToastCount" class="reminder-toast-count">0</span>
+          <div>
+            <strong id="reminderToastTitle">Lembrete</strong>
+            <p id="reminderToastText">Existem itens que precisam de atenção.</p>
+          </div>
+          <div class="reminder-toast-actions">
+            <button id="reminderToastOpenButton" class="secondary-button" type="button">Ver</button>
+            <button id="reminderToastDismissButton" class="icon-button" type="button" aria-label="Dispensar lembrete">x</button>
+          </div>
+        </section>
+
+        <button id="reminderButton" class="reminder-button" type="button" aria-label="Abrir lembretes">
+          <i data-lucide="bell-ring" aria-hidden="true"></i>
+          <span>Lembretes</span>
+          <strong id="reminderBadge">0</strong>
+        </button>
+      </div>
+
+      <dialog id="reminderDialog" class="save-dialog reminder-dialog">
+        <div class="save-dialog-content">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Lembretes</span>
+              <h2>Itens que precisam de atenção</h2>
+            </div>
+            <button id="closeReminderDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <section id="reminderList" class="reminder-list" aria-label="Lista de lembretes"></section>
+          <p id="reminderEmpty" class="empty-state" hidden>Nenhuma pendência importante agora.</p>
+        </div>
+      </dialog>
       </div>
     </main>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=cronograma-datas-colunas-1"></script>
+    <script src="app.js?v=lembretes-1"></script>
   </body>
 </html>
