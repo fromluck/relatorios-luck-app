@@ -3484,6 +3484,20 @@ function daysUntilLabel(date) {
   return `Faltam ${days} dias`;
 }
 
+function isTextEditingTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"]'));
+}
+
+function clearStaticTextCaret(target = document.activeElement) {
+  if (isTextEditingTarget(target)) return;
+
+  const selection = window.getSelection?.();
+  if (selection?.type === "Caret" && selection.rangeCount) {
+    selection.removeAllRanges();
+  }
+}
+
 function syncReminderControls() {
   if (elements.settingsReminderText) {
     elements.settingsReminderText.textContent = reminderSettings.sound
@@ -6068,6 +6082,12 @@ elements.authLogoutButton.addEventListener("click", signOutSupabase);
 document.addEventListener("click", (event) => {
   if (elements.authPanel?.contains(event.target)) return;
   setProfileMenuOpen(false);
+});
+document.addEventListener("mouseup", (event) => {
+  window.setTimeout(() => clearStaticTextCaret(event.target), 0);
+});
+document.addEventListener("keyup", (event) => {
+  clearStaticTextCaret(event.target);
 });
 document.addEventListener("pointerdown", unlockReminderSound, { once: true });
 elements.closeSaveDialogButton.addEventListener("click", () => closeDialogSmooth(elements.saveDialog));
