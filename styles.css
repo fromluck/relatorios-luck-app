@@ -1731,6 +1731,43 @@ h1 {
   color: #14532d;
 }
 
+.finance-recurring-prompt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(234, 90, 0, 0.26);
+  border-radius: 8px;
+  background: #fff7ed;
+  padding: 14px;
+}
+
+.finance-recurring-prompt[hidden] {
+  display: none;
+}
+
+.finance-recurring-prompt strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.finance-recurring-prompt p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.finance-recurring-prompt .export-main-button {
+  min-height: 42px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+
 .pending-row.is-done {
   background: #f0fdf4;
   border-color: #bbf7d0;
@@ -2549,6 +2586,7 @@ td.action-cell {
 :root[data-theme="dark"] .schedule-color-field,
 :root[data-theme="dark"] .pending-row,
 :root[data-theme="dark"] .finance-row,
+:root[data-theme="dark"] .finance-recurring-prompt,
 :root[data-theme="dark"] .quote-document,
 :root[data-theme="dark"] .dialog-info-list > div,
 :root[data-theme="dark"] .settings-row,
@@ -5194,6 +5232,14 @@ td.action-cell {
   .context-actions {
     grid-column: 1 / -1;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .finance-recurring-prompt {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-recurring-prompt .export-main-button {
+    width: 100%;
   }
 
   .brand,
