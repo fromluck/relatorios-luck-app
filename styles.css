@@ -49,6 +49,7 @@ body {
     radial-gradient(circle at 84% 18%, rgba(15, 23, 42, 0.08), transparent 28%),
     var(--bg);
   color: var(--ink);
+  caret-color: transparent;
   font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
@@ -61,8 +62,16 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+[contenteditable="plaintext-only"] {
+  caret-color: var(--blue);
 }
 
 :root[data-theme="dark"] input,
