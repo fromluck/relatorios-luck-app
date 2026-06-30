@@ -1,5 +1,6 @@
 ﻿const MATERIAL_TYPES = [
   { label: "Vídeo (Reels)", color: "#e11d48" },
+  { label: "Vídeo Editado", color: "#0ea5e9" },
   { label: "Criativo (Arte)", color: "#64748b" },
   { label: "Publicação (Fotos)", color: "#7c3aed" },
   { label: "Flyer", color: "#16a34a" },
@@ -2376,6 +2377,14 @@ function normalizePendingBoards(boards) {
 
 function normalizeMaterial(material) {
   const normalized = normalizeText(material);
+  if (
+    normalized.includes("video editado") ||
+    normalized.includes("edicao de video") ||
+    normalized.includes("editar video") ||
+    normalized.includes("ajuste de video")
+  ) {
+    return "Vídeo Editado";
+  }
   if (normalized.includes("video")) return "Vídeo (Reels)";
   if (normalized.includes("publicacao") || normalized.includes("foto")) return "Publicação (Fotos)";
   if (normalized.includes("impresso")) return "Impresso";
@@ -3818,6 +3827,7 @@ function dashboardPeriodLabel(month) {
 function dashboardMaterialType(material) {
   const normalized = normalizeMaterial(material);
   if (normalized === "Vídeo (Reels)") return "video";
+  if (normalized === "Vídeo Editado") return "edited";
   if (normalized === "Publicação (Fotos)") return "photo";
   if (normalized === "Flyer") return "flyer";
   if (normalized === "Impresso") return "print";
@@ -5028,6 +5038,14 @@ function normalizeText(value) {
 function inferMaterial(line) {
   const normalized = normalizeText(line);
 
+  if (
+    normalized.includes("video editado") ||
+    normalized.includes("edicao de video") ||
+    normalized.includes("editar video") ||
+    normalized.includes("ajuste de video")
+  ) {
+    return "Vídeo Editado";
+  }
   if (normalized.includes("flyer")) return "Flyer";
   if (normalized.includes("impresso") || normalized.includes("banner") || normalized.includes("placa") || normalized.includes("cartao")) return "Impresso";
   if (normalized.includes("foto") || normalized.includes("Publicação")) return "Publicação (Fotos)";
@@ -5163,6 +5181,7 @@ function parseGeneralProductions(text, reportMonth) {
   for (const match of reelsMatches) {
     const source = match[0].trim();
     if (!source || normalizeText(source).includes("grid")) continue;
+    if (inferMaterial(source) === "Vídeo Editado") continue;
 
     items.push({
       section: "",
