@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=lp-floating-1">
+    <link rel="stylesheet" href="styles.css?v=footer-pro-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -127,8 +127,49 @@
         </section>
 
         <footer class="welcome-footer">
-          <strong>Pronto para entrar no Luck OS?</strong>
-          <button class="welcome-primary-button compact" type="button" data-open-login>Sign in</button>
+          <div class="welcome-footer-main">
+            <div class="welcome-footer-brand">
+              <a class="welcome-brand" href="#lp-top" aria-label="Luck OS">
+                <span class="welcome-brand-word">LUCK</span>
+                <span class="welcome-brand-badge">OS</span>
+              </a>
+              <p>Sistema operacional da produtora para centralizar cronogramas, relatórios, pendências e financeiro em um só lugar.</p>
+              <div class="welcome-socials" aria-label="Redes da Luck">
+                <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram"><i data-lucide="camera"></i></a>
+                <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="YouTube"><i data-lucide="play"></i></a>
+                <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer" aria-label="LinkedIn"><i data-lucide="briefcase"></i></a>
+              </div>
+            </div>
+
+            <nav class="welcome-footer-column" aria-label="Produto">
+              <span>Produto</span>
+              <a href="#lp-beneficios">Benefícios</a>
+              <a href="#lp-solucoes">Soluções</a>
+              <a href="#lp-fluxo">Fluxo de trabalho</a>
+            </nav>
+
+            <nav class="welcome-footer-column" aria-label="Módulos">
+              <span>Módulos</span>
+              <a href="#lp-top">Cronograma</a>
+              <a href="#lp-top">Relatórios</a>
+              <a href="#lp-top">Pendências</a>
+              <a href="#lp-top">Financeiro</a>
+            </nav>
+
+            <div class="welcome-footer-column">
+              <span>Acesso</span>
+              <button class="welcome-footer-link-button" type="button" data-open-login>Entrar na área</button>
+              <button class="welcome-footer-link-button" type="button" data-open-login>Criar acesso</button>
+              <small>Uso interno da Luck Produtora.</small>
+            </div>
+          </div>
+
+          <div class="welcome-footer-bottom">
+            <p>© 2026 Luck Produtora. Todos os direitos reservados.</p>
+            <p>Luck OS · Sistema da produtora</p>
+          </div>
+
+          <span class="welcome-footer-watermark" aria-hidden="true">luck os</span>
         </footer>
       </div>
     </section>
@@ -1253,6 +1294,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=lp-floating-1"></script>
+    <script src="app.js?v=footer-pro-1"></script>
   </body>
 </html>
