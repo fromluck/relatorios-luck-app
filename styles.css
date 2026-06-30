@@ -4188,13 +4188,31 @@ td.action-cell {
   padding: 0 13px;
 }
 
+.reminder-dialog {
+  width: min(680px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  overflow: hidden;
+}
+
 .reminder-dialog .save-dialog-content {
-  width: min(620px, calc(100vw - 32px));
+  width: 100%;
+  max-height: min(78vh, 720px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.reminder-dialog .dialog-header {
+  min-width: 0;
+}
+
+.reminder-dialog .dialog-header h2 {
+  overflow-wrap: anywhere;
 }
 
 .reminder-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .reminder-item {
@@ -4207,6 +4225,7 @@ td.action-cell {
   border-radius: 8px;
   background: #ffffff;
   padding: 12px;
+  min-width: 0;
 }
 
 .reminder-item::before {
@@ -4225,6 +4244,8 @@ td.action-cell {
 .reminder-item strong,
 .reminder-item small {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .reminder-item strong {
@@ -4243,6 +4264,7 @@ td.action-cell {
 }
 
 .reminder-item .secondary-button {
+  white-space: nowrap;
   min-height: 34px;
   border-radius: 7px;
   padding: 0 12px;
