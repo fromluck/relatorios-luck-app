@@ -397,6 +397,8 @@ let reportData = normalizeReportData(loadReports());
 ensureRowIds();
 let parsedQuickItems = [];
 let editingItemId = null;
+let editingCompanyName = "";
+let companyContractDraft = null;
 let contractTargets = loadContractTargets();
 let companySettings = loadCompanySettings();
 syncContractTargetsFromCompanySettings();
@@ -462,13 +464,24 @@ const elements = {
   targetVideosInput: document.querySelector("#targetVideosInput"),
   targetCreativesInput: document.querySelector("#targetCreativesInput"),
   companySettingsForm: document.querySelector("#companySettingsForm"),
+  companySettingsDialog: document.querySelector("#companySettingsDialog"),
+  closeCompanySettingsDialogButton: document.querySelector("#closeCompanySettingsDialogButton"),
+  cancelCompanySettingsButton: document.querySelector("#cancelCompanySettingsButton"),
   companySettingsTitle: document.querySelector("#companySettingsTitle"),
   companySettingsBadge: document.querySelector("#companySettingsBadge"),
+  companyList: document.querySelector("#companyList"),
   companyNameInput: document.querySelector("#companyNameInput"),
   companySegmentInput: document.querySelector("#companySegmentInput"),
   companyContactInput: document.querySelector("#companyContactInput"),
   companyContactInfoInput: document.querySelector("#companyContactInfoInput"),
   companyNotesInput: document.querySelector("#companyNotesInput"),
+  companyContractFileInput: document.querySelector("#companyContractFileInput"),
+  companyContractFileName: document.querySelector("#companyContractFileName"),
+  companyContractStatusPreview: document.querySelector("#companyContractStatusPreview"),
+  companyContractOpenLink: document.querySelector("#companyContractOpenLink"),
+  companyContractStartInput: document.querySelector("#companyContractStartInput"),
+  companyContractEndInput: document.querySelector("#companyContractEndInput"),
+  removeCompanyContractButton: document.querySelector("#removeCompanyContractButton"),
   newCompanyForm: document.querySelector("#newCompanyForm"),
   newCompanyNameInput: document.querySelector("#newCompanyNameInput"),
   newCompanyVideosInput: document.querySelector("#newCompanyVideosInput"),
@@ -837,6 +850,13 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
       ? Math.min(COMPANY_LOGO_SCALE_MAX, Math.max(COMPANY_LOGO_SCALE_MIN, logoScale))
       : 100,
     theme: normalizeScheduleTheme(setting.theme),
+    contractFileName: String(setting.contractFileName || "").trim(),
+    contractFileType: String(setting.contractFileType || "").trim(),
+    contractFileDataUrl: String(setting.contractFileDataUrl || "").startsWith("data:")
+      ? String(setting.contractFileDataUrl)
+      : "",
+    contractStartDate: isValidDate(setting.contractStartDate) ? setting.contractStartDate : "",
+    contractEndDate: isValidDate(setting.contractEndDate) ? setting.contractEndDate : "",
     videos: Number.isFinite(videos) ? Math.max(0, videos) : 0,
     creatives: Number.isFinite(creatives) ? Math.max(0, creatives) : 0
   };
@@ -2578,6 +2598,119 @@ function escapeHTML(value) {
     .replaceAll("'", "&#039;");
 }
 
+function getCompanyContractStatus(setting = {}) {
+  const hasFile = Boolean(setting.contractFileDataUrl || setting.contractFileName);
+  const startDate = setting.contractStartDate || "";
+  const endDate = setting.contractEndDate || "";
+  const today = todayDateKey();
+
+  if (!hasFile && !startDate && !endDate) {
+    return {
+      label: "Sem contrato",
+      detail: "Anexe o contrato e informe a vigência.",
+      tone: "empty"
+    };
+  }
+
+  if (!startDate || !endDate) {
+    return {
+      label: hasFile ? "Contrato anexado" : "Vigência incompleta",
+      detail: "Informe início e fim para validar o status.",
+      tone: "warning"
+    };
+  }
+
+  if (today < startDate) {
+    return {
+      label: "Contrato agendado",
+      detail: `Vigência começa em ${formatDate(startDate)}.`,
+      tone: "scheduled"
+    };
+  }
+
+  if (today > endDate) {
+    return {
+      label: "Contrato vencido",
+      detail: `Venceu em ${formatDate(endDate)}.`,
+      tone: "expired"
+    };
+  }
+
+  const daysLeft = Math.round((new Date(`${endDate}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / 86400000);
+  if (daysLeft <= 30) {
+    return {
+      label: "Vence em breve",
+      detail: `${daysLeft} ${daysLeft === 1 ? "dia restante" : "dias restantes"}.`,
+      tone: "warning"
+    };
+  }
+
+  return {
+    label: "Contrato ativo",
+    detail: `Válido até ${formatDate(endDate)}.`,
+    tone: "active"
+  };
+}
+
+function formatContractPeriod(setting = {}) {
+  if (setting.contractStartDate && setting.contractEndDate) {
+    return `${formatDate(setting.contractStartDate)} até ${formatDate(setting.contractEndDate)}`;
+  }
+
+  if (setting.contractStartDate) return `Desde ${formatDate(setting.contractStartDate)}`;
+  if (setting.contractEndDate) return `Até ${formatDate(setting.contractEndDate)}`;
+  return "Vigência não informada";
+}
+
+function renderCompanyList() {
+  if (!elements.companyList) return;
+
+  const companies = getKnownCompanyNames()
+    .filter((company) => company && normalizeText(company) !== "luck");
+
+  elements.companySettingsBadge.textContent = `${companies.length} ${companies.length === 1 ? "cliente" : "clientes"}`;
+
+  elements.companyList.innerHTML = companies.length
+    ? companies.map((company) => {
+      const setting = getCompanySetting(company);
+      const status = getCompanyContractStatus(setting);
+      const isSelected = company === elements.companySelect.value;
+      const initials = company.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "CL";
+      const fileText = setting.contractFileName || "Nenhum contrato anexado";
+
+      return `
+        <article class="company-card ${isSelected ? "is-selected" : ""}">
+          <div class="company-card-header">
+            <span class="company-card-avatar">${escapeHTML(initials)}</span>
+            <div>
+              <h3>${escapeHTML(company)}</h3>
+              <p>${escapeHTML(setting.segment || "Segmento não informado")}</p>
+            </div>
+            <span class="company-contract-status ${status.tone}">${escapeHTML(status.label)}</span>
+          </div>
+
+          <div class="company-card-metrics">
+            <span><small>Vídeos</small><strong>${Number(setting.videos) || 0}</strong></span>
+            <span><small>Criativos</small><strong>${Number(setting.creatives) || 0}</strong></span>
+            <span><small>Vigência</small><strong>${escapeHTML(formatContractPeriod(setting))}</strong></span>
+          </div>
+
+          <div class="company-card-details">
+            <span>Responsável: ${escapeHTML(setting.contact || "Não informado")}</span>
+            <span>Contato: ${escapeHTML(setting.contactInfo || "Não informado")}</span>
+            <span>Contrato: ${escapeHTML(fileText)}</span>
+          </div>
+
+          <div class="company-card-actions">
+            <button class="secondary-button" type="button" data-company-select="${escapeHTML(company)}">Selecionar</button>
+            <button class="export-main-button" type="button" data-company-config="${escapeHTML(company)}">Configurar</button>
+          </div>
+        </article>
+      `;
+    }).join("")
+    : `<div class="empty-state">Nenhum cliente cadastrado ainda.</div>`;
+}
+
 function pendingBoardKey(month) {
   return `luck::${month}`;
 }
@@ -2981,12 +3114,42 @@ function syncTargetInputs() {
   syncCompanySettingsInputs();
 }
 
+function companyContractFromSetting(setting = {}) {
+  return {
+    contractFileName: setting.contractFileName || "",
+    contractFileType: setting.contractFileType || "",
+    contractFileDataUrl: setting.contractFileDataUrl || ""
+  };
+}
+
+function updateCompanyContractPreview() {
+  if (!elements.companyContractFileName) return;
+
+  const setting = {
+    ...(getCompanySetting(editingCompanyName || elements.companySelect.value)),
+    ...(companyContractDraft || {}),
+    contractStartDate: elements.companyContractStartInput?.value || "",
+    contractEndDate: elements.companyContractEndInput?.value || ""
+  };
+  const status = getCompanyContractStatus(setting);
+  const fileName = setting.contractFileName || "Nenhum contrato anexado";
+
+  elements.companyContractFileName.textContent = fileName;
+  elements.companyContractStatusPreview.textContent = `${status.label}. ${status.detail}`;
+  elements.companyContractStatusPreview.dataset.contractTone = status.tone;
+
+  if (elements.companyContractOpenLink) {
+    const hasFile = Boolean(setting.contractFileDataUrl);
+    elements.companyContractOpenLink.hidden = !hasFile;
+    elements.companyContractOpenLink.href = hasFile ? setting.contractFileDataUrl : "#";
+  }
+}
+
 function syncCompanySettingsInputs() {
   const company = elements.companySelect.value;
   const settings = getCompanySetting(company);
 
   elements.companySettingsTitle.textContent = company || "Empresa";
-  elements.companySettingsBadge.textContent = company || "Cliente atual";
   elements.companyNameInput.value = settings.name || company || "";
   elements.companySegmentInput.value = settings.segment || "";
   elements.companyContactInput.value = settings.contact || "";
@@ -2994,6 +3157,11 @@ function syncCompanySettingsInputs() {
   elements.companyNotesInput.value = settings.notes || "";
   elements.targetVideosInput.value = settings.videos || 0;
   elements.targetCreativesInput.value = settings.creatives || 0;
+  if (elements.companyContractStartInput) elements.companyContractStartInput.value = settings.contractStartDate || "";
+  if (elements.companyContractEndInput) elements.companyContractEndInput.value = settings.contractEndDate || "";
+  if (elements.companyContractFileInput) elements.companyContractFileInput.value = "";
+  companyContractDraft = companyContractFromSetting(settings);
+  updateCompanyContractPreview();
 }
 
 function populateControls() {
@@ -5134,6 +5302,7 @@ function render() {
   renderDashboard();
   renderSchedule();
   renderSummary(sections);
+  renderCompanyList();
   renderPendingBoard();
   renderFinance();
   renderQuote();
@@ -5647,7 +5816,8 @@ function renameCompanyReferences(oldName, nextName) {
 function readCompanySettingsForm(companyName) {
   const videos = Number(elements.targetVideosInput.value);
   const creatives = Number(elements.targetCreativesInput.value);
-  const existingSetting = getCompanySetting(elements.companySelect.value);
+  const existingSetting = getCompanySetting(editingCompanyName || elements.companySelect.value);
+  const contractDraft = companyContractDraft || companyContractFromSetting(existingSetting);
 
   return normalizeCompanySetting(companyName, {
     name: companyName,
@@ -5658,6 +5828,11 @@ function readCompanySettingsForm(companyName) {
     logoDataUrl: existingSetting.logoDataUrl || "",
     logoScale: existingSetting.logoScale || 100,
     theme: existingSetting.theme || DEFAULT_SCHEDULE_THEME,
+    contractFileName: contractDraft.contractFileName || "",
+    contractFileType: contractDraft.contractFileType || "",
+    contractFileDataUrl: contractDraft.contractFileDataUrl || "",
+    contractStartDate: elements.companyContractStartInput?.value || "",
+    contractEndDate: elements.companyContractEndInput?.value || "",
     videos: Number.isFinite(videos) ? videos : 0,
     creatives: Number.isFinite(creatives) ? creatives : 0
   });
@@ -5666,11 +5841,18 @@ function readCompanySettingsForm(companyName) {
 function saveCompanySettingsForm(event) {
   event.preventDefault();
 
-  const oldName = elements.companySelect.value;
+  const oldName = editingCompanyName || elements.companySelect.value;
   const nextName = normalizeCompanyName(elements.companyNameInput.value);
 
   if (!nextName) {
     showSaveDialog("Nome obrigatório", "Informe o nome da empresa para salvar a configuração.");
+    return;
+  }
+
+  const contractStartDate = elements.companyContractStartInput?.value || "";
+  const contractEndDate = elements.companyContractEndInput?.value || "";
+  if (contractStartDate && contractEndDate && contractStartDate > contractEndDate) {
+    showSaveDialog("Vigência inválida", "A data final do contrato precisa ser igual ou posterior à data inicial.");
     return;
   }
 
@@ -5696,11 +5878,85 @@ function saveCompanySettingsForm(event) {
   elements.companySelect.value = nextName;
   refreshMonthOptions();
   if ([...elements.monthSelect.options].some((option) => option.value === selectedMonth)) {
-    elements.monthSelect.value = selectedMonth;
+  elements.monthSelect.value = selectedMonth;
   }
   syncCompanySettingsInputs();
   render();
-  showSaveDialog("Empresa salva", `As configurações de ${nextName} foram atualizadas.`);
+  closeDialogSmooth(elements.companySettingsDialog, () => {
+    showSaveDialog("Empresa salva", `As configurações de ${nextName} foram atualizadas.`);
+  });
+}
+
+function openCompanySettingsDialog(company = elements.companySelect.value) {
+  const normalizedCompany = normalizeCompanyName(company);
+  if (!normalizedCompany) return;
+
+  editingCompanyName = normalizedCompany;
+  if ([...elements.companySelect.options].some((option) => option.value === normalizedCompany)) {
+    elements.companySelect.value = normalizedCompany;
+  }
+  refreshMonthOptions();
+  syncCompanySettingsInputs();
+  openDialogSmooth(elements.companySettingsDialog);
+}
+
+function closeCompanySettingsDialog() {
+  closeDialogSmooth(elements.companySettingsDialog, () => {
+    editingCompanyName = "";
+    companyContractDraft = null;
+    syncCompanySettingsInputs();
+  });
+}
+
+function selectCompanyFromList(company) {
+  const normalizedCompany = normalizeCompanyName(company);
+  if (!normalizedCompany) return;
+
+  if ([...elements.companySelect.options].some((option) => option.value === normalizedCompany)) {
+    elements.companySelect.value = normalizedCompany;
+  }
+  refreshMonthOptions();
+  syncCompanySettingsInputs();
+  render();
+}
+
+function handleCompanyListClick(event) {
+  const selectButton = event.target.closest("[data-company-select]");
+  if (selectButton) {
+    selectCompanyFromList(selectButton.dataset.companySelect);
+    return;
+  }
+
+  const configButton = event.target.closest("[data-company-config]");
+  if (configButton) {
+    openCompanySettingsDialog(configButton.dataset.companyConfig);
+  }
+}
+
+function handleCompanyContractFileChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    companyContractDraft = {
+      contractFileName: file.name,
+      contractFileType: file.type || "application/octet-stream",
+      contractFileDataUrl: String(reader.result || "")
+    };
+    updateCompanyContractPreview();
+  });
+  reader.readAsDataURL(file);
+}
+
+function removeCompanyContract() {
+  companyContractDraft = {
+    contractFileName: "",
+    contractFileType: "",
+    contractFileDataUrl: ""
+  };
+  if (elements.companyContractFileInput) elements.companyContractFileInput.value = "";
+  updateCompanyContractPreview();
 }
 
 function createNewCompany(event) {
@@ -5962,6 +6218,7 @@ elements.pendingViewButton.addEventListener("click", () => {
 });
 elements.companyViewButton.addEventListener("click", () => {
   syncCompanySettingsInputs();
+  renderCompanyList();
   setActiveView("empresas", { updateUrl: true });
 });
 elements.financeViewButton.addEventListener("click", () => {
@@ -5974,6 +6231,20 @@ window.addEventListener("popstate", () => {
   setActiveView(getRequestedView(), { scroll: false });
 });
 elements.companySettingsForm.addEventListener("submit", saveCompanySettingsForm);
+elements.companyList?.addEventListener("click", handleCompanyListClick);
+elements.closeCompanySettingsDialogButton?.addEventListener("click", closeCompanySettingsDialog);
+elements.cancelCompanySettingsButton?.addEventListener("click", closeCompanySettingsDialog);
+elements.companySettingsDialog?.addEventListener("click", (event) => {
+  if (event.target === elements.companySettingsDialog) closeCompanySettingsDialog();
+});
+elements.companySettingsDialog?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeCompanySettingsDialog();
+});
+elements.companyContractFileInput?.addEventListener("change", handleCompanyContractFileChange);
+elements.removeCompanyContractButton?.addEventListener("click", removeCompanyContract);
+elements.companyContractStartInput?.addEventListener("input", updateCompanyContractPreview);
+elements.companyContractEndInput?.addEventListener("input", updateCompanyContractPreview);
 elements.newCompanyForm.addEventListener("submit", createNewCompany);
 elements.financeForm.addEventListener("submit", addFinanceRecord);
 elements.financeRecurringPrompt?.addEventListener("click", handleFinanceRecurringPromptClick);
