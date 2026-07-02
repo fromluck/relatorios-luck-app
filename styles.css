@@ -2397,6 +2397,282 @@ h1 {
   color: #9a3900;
 }
 
+.company-list-panel {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.company-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.company-card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-top: 4px solid #ea5a00;
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 16px;
+}
+
+.company-card.is-selected {
+  border-color: rgba(234, 90, 0, 0.42);
+  border-top-color: var(--blue);
+  background: #fffaf6;
+}
+
+.company-card-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.company-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.company-card h3,
+.company-card p {
+  margin: 0;
+}
+
+.company-card h3 {
+  font-size: 17px;
+}
+
+.company-card p,
+.company-card-details {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.company-contract-status {
+  justify-self: end;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.company-contract-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.company-contract-status.warning,
+.company-contract-status.scheduled {
+  background: #fff7ed;
+  color: #9a3900;
+}
+
+.company-contract-status.expired {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.company-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.company-card-metrics span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.company-card-metrics small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.company-card-metrics strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.company-card-details {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.company-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.company-card-actions button {
+  min-height: 38px;
+}
+
+.company-config-dialog {
+  width: min(860px, calc(100% - 28px));
+}
+
+.company-config-dialog form {
+  max-height: min(calc(100vh - 32px), 920px);
+  overflow-y: auto;
+  border-top: 5px solid var(--blue);
+  background: #ffffff;
+}
+
+.company-config-dialog .dialog-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.company-contract-box {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 16px;
+}
+
+.company-contract-file {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.company-contract-file strong,
+.company-contract-file small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-contract-file strong {
+  color: var(--ink);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.company-contract-file small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.company-contract-file small[data-contract-tone="active"] {
+  color: #166534;
+}
+
+.company-contract-file small[data-contract-tone="expired"] {
+  color: #991b1b;
+}
+
+.company-contract-file small[data-contract-tone="warning"],
+.company-contract-file small[data-contract-tone="scheduled"] {
+  color: #9a3900;
+}
+
+.company-contract-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.contract-upload-button {
+  cursor: pointer;
+}
+
+.contract-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+:root[data-theme="dark"] .company-card,
+:root[data-theme="dark"] .company-contract-box,
+:root[data-theme="dark"] .company-contract-file,
+:root[data-theme="dark"] .company-card-metrics span {
+  border-color: var(--line);
+  background: #101722;
+}
+
+:root[data-theme="dark"] .company-card.is-selected {
+  border-color: rgba(234, 90, 0, 0.5);
+  background: rgba(234, 90, 0, 0.1);
+}
+
+:root[data-theme="dark"] .company-contract-status {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .company-contract-status.active {
+  background: rgba(22, 101, 52, 0.32);
+  color: #86efac;
+}
+
+:root[data-theme="dark"] .company-contract-status.warning,
+:root[data-theme="dark"] .company-contract-status.scheduled {
+  background: rgba(234, 90, 0, 0.18);
+  color: #ffb17a;
+}
+
+:root[data-theme="dark"] .company-contract-status.expired {
+  background: rgba(127, 29, 29, 0.32);
+  color: #fda4af;
+}
+
 .section-block {
   display: grid;
   gap: 10px;
@@ -5529,6 +5805,10 @@ td.action-cell {
     grid-template-columns: 1fr;
   }
 
+  .company-list {
+    grid-template-columns: 1fr;
+  }
+
   .hub-layout {
     grid-template-columns: 1fr;
   }
@@ -5586,6 +5866,26 @@ td.action-cell {
   .reminder-item .secondary-button {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .company-card-header,
+  .company-card-metrics,
+  .company-contract-file,
+  .company-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .company-contract-status {
+    justify-self: start;
+  }
+
+  .company-contract-actions {
+    justify-content: stretch;
+  }
+
+  .company-contract-actions > * {
+    justify-content: center;
+    width: 100%;
   }
 
   .welcome-screen {
