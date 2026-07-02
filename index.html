@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=beneficios-marquee-1">
+    <link rel="stylesheet" href="styles.css?v=clientes-contrato-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -717,49 +717,15 @@
         </header>
 
         <div class="company-settings-body">
-          <form id="companySettingsForm" class="company-settings-form">
+          <section class="company-list-panel" aria-label="Clientes cadastrados">
             <div class="settings-copy">
-              <span class="eyebrow">Empresa selecionada</span>
-              <h3 id="companySettingsTitle">Rede de Postos SJ</h3>
-              <p>Cadastre os dados que ajudam a identificar o cliente e mantenha aqui a meta mensal do contrato.</p>
+              <span class="eyebrow">Clientes cadastrados</span>
+              <h3>Todos os clientes</h3>
+              <p>Veja todos os clientes disponíveis e abra as configurações para ajustar metas, contatos e contrato.</p>
             </div>
 
-            <div class="settings-grid">
-              <label>
-                Nome da empresa
-                <input id="companyNameInput" type="text" required placeholder="Ex.: Rede de Postos SJ">
-              </label>
-              <label>
-                Segmento
-                <input id="companySegmentInput" type="text" placeholder="Ex.: Telecom, varejo, construção">
-              </label>
-              <label>
-                Responsável
-                <input id="companyContactInput" type="text" placeholder="Nome do contato">
-              </label>
-              <label>
-                Contato
-                <input id="companyContactInfoInput" type="text" placeholder="WhatsApp ou e-mail">
-              </label>
-              <label>
-                Vídeos contratados
-                <input id="targetVideosInput" type="number" min="0" step="1">
-              </label>
-              <label>
-                Criativos contratados
-                <input id="targetCreativesInput" type="number" min="0" step="1">
-              </label>
-            </div>
-
-            <label>
-              Observações
-              <textarea id="companyNotesInput" rows="4" placeholder="Ex.: detalhes do contrato, preferências do cliente ou pontos de atenção"></textarea>
-            </label>
-
-            <div class="settings-actions">
-              <button id="saveCompanySettingsButton" class="export-main-button" type="submit">Salvar configuração</button>
-            </div>
-          </form>
+            <div id="companyList" class="company-list"></div>
+          </section>
 
           <form id="newCompanyForm" class="new-company-form">
             <div class="settings-copy">
@@ -786,6 +752,90 @@
           </form>
         </div>
       </section>
+
+      <dialog id="companySettingsDialog" class="edit-dialog company-config-dialog">
+        <form id="companySettingsForm" method="dialog" class="company-settings-form">
+          <div class="dialog-header">
+            <div>
+              <span class="eyebrow">Configuração do cliente</span>
+              <h2 id="companySettingsTitle">Rede de Postos SJ</h2>
+              <p>Dados do cliente, metas mensais e contrato de prestação de serviço.</p>
+            </div>
+            <button id="closeCompanySettingsDialogButton" class="icon-button" type="button" aria-label="Fechar">x</button>
+          </div>
+
+          <div class="settings-grid">
+            <label>
+              Nome da empresa
+              <input id="companyNameInput" type="text" required placeholder="Ex.: Rede de Postos SJ">
+            </label>
+            <label>
+              Segmento
+              <input id="companySegmentInput" type="text" placeholder="Ex.: Telecom, varejo, construção">
+            </label>
+            <label>
+              Responsável
+              <input id="companyContactInput" type="text" placeholder="Nome do contato">
+            </label>
+            <label>
+              Contato
+              <input id="companyContactInfoInput" type="text" placeholder="WhatsApp ou e-mail">
+            </label>
+            <label>
+              Vídeos contratados
+              <input id="targetVideosInput" type="number" min="0" step="1">
+            </label>
+            <label>
+              Criativos contratados
+              <input id="targetCreativesInput" type="number" min="0" step="1">
+            </label>
+          </div>
+
+          <section class="company-contract-box" aria-label="Contrato de prestação de serviço">
+            <div class="settings-copy">
+              <span class="eyebrow">Contrato</span>
+              <h3>Prestação de serviço</h3>
+              <p>Anexe o contrato e informe a vigência para acompanhar se o cliente está com contrato ativo.</p>
+            </div>
+
+            <div class="company-contract-file">
+              <div>
+                <strong id="companyContractFileName">Nenhum contrato anexado</strong>
+                <small id="companyContractStatusPreview">Sem vigência cadastrada.</small>
+              </div>
+              <div class="company-contract-actions">
+                <label class="secondary-button contract-upload-button">
+                  Anexar contrato
+                  <input id="companyContractFileInput" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,image/*,application/pdf">
+                </label>
+                <a id="companyContractOpenLink" class="secondary-button" href="#" target="_blank" rel="noreferrer" hidden>Abrir</a>
+                <button id="removeCompanyContractButton" class="danger-button" type="button">Remover</button>
+              </div>
+            </div>
+
+            <div class="settings-grid compact">
+              <label>
+                Início da vigência
+                <input id="companyContractStartInput" type="date">
+              </label>
+              <label>
+                Fim da vigência
+                <input id="companyContractEndInput" type="date">
+              </label>
+            </div>
+          </section>
+
+          <label>
+            Observações
+            <textarea id="companyNotesInput" rows="4" placeholder="Ex.: detalhes do contrato, preferências do cliente ou pontos de atenção"></textarea>
+          </label>
+
+          <div class="dialog-actions">
+            <button id="cancelCompanySettingsButton" class="secondary-button" type="button">Cancelar</button>
+            <button id="saveCompanySettingsButton" class="primary-button" type="submit">Salvar configuração</button>
+          </div>
+        </form>
+      </dialog>
       </div>
 
       <div id="financeView" class="app-view" hidden>
@@ -1366,6 +1416,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=beneficios-marquee-1"></script>
+    <script src="app.js?v=clientes-contrato-1"></script>
   </body>
 </html>
