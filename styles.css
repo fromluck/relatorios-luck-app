@@ -730,7 +730,7 @@ textarea,
   text-decoration: none;
   font: inherit;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -757,7 +757,7 @@ textarea,
   padding-top: 20px;
   color: #94a3b8;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .welcome-footer-bottom p {
@@ -1474,7 +1474,7 @@ label {
   gap: 6px;
   color: #334155;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 select,
@@ -1519,7 +1519,7 @@ button {
   border: 0;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .primary-button {
@@ -2063,6 +2063,23 @@ h1 {
   min-width: 0;
 }
 
+.quote-page label {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.quote-page input,
+.quote-page select,
+.quote-page textarea {
+  font-weight: 500;
+}
+
+.quote-page input::placeholder,
+.quote-page textarea::placeholder {
+  font-weight: 500;
+}
+
 .quote-header {
   align-items: center;
 }
@@ -2113,7 +2130,7 @@ h1 {
   min-height: 32px;
   color: var(--ink);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .check-row input {
@@ -2140,12 +2157,13 @@ h1 {
 .quote-calculator-summary span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .quote-calculator-summary strong {
   font-size: 19px;
+  font-weight: 750;
   line-height: 1;
 }
 
@@ -2202,7 +2220,7 @@ h1 {
   color: #9a3900;
   padding: 8px 12px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .quote-history-filter {
@@ -2239,13 +2257,14 @@ h1 {
 .quote-history-item strong {
   color: var(--ink);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .quote-history-item small {
   margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -2261,6 +2280,7 @@ h1 {
   min-height: 34px;
   padding: 0 12px;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .quote-document {
@@ -2271,6 +2291,10 @@ h1 {
   background: #ffffff;
   box-shadow: var(--shadow);
   color: #111827;
+}
+
+.quote-document.is-previewing {
+  animation: quote-preview-pulse 1100ms ease both;
 }
 
 .quote-document-header {
@@ -2287,7 +2311,7 @@ h1 {
 .quote-document-header span {
   color: #ffb17a;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -2296,6 +2320,7 @@ h1 {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 42px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -2306,6 +2331,7 @@ h1 {
   color: #111827;
   padding: 12px 18px;
   font-size: 20px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -2351,7 +2377,7 @@ h1 {
 .quote-document span {
   color: #64748b;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -2363,18 +2389,20 @@ h1 {
 
 .quote-document h3 {
   font-size: 22px;
+  font-weight: 650;
   line-height: 1.2;
 }
 
 .quote-document p {
   color: #334155;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.65;
 }
 
 .quote-document-grid strong {
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.35;
 }
 
@@ -2398,7 +2426,21 @@ h1 {
   padding-top: 10px;
   text-align: center;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 550;
+}
+
+@keyframes quote-preview-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 90, 0, 0.28), var(--shadow);
+  }
+
+  42% {
+    box-shadow: 0 0 0 5px rgba(234, 90, 0, 0.16), var(--shadow);
+  }
+
+  100% {
+    box-shadow: var(--shadow);
+  }
 }
 
 .pending-toolbar,

@@ -5453,6 +5453,19 @@ function loadQuoteHistoryItem(id) {
   return item;
 }
 
+function revealQuotePreview() {
+  if (!elements.quotePrintArea) return;
+
+  elements.quotePrintArea.classList.remove("is-previewing");
+  void elements.quotePrintArea.offsetWidth;
+  elements.quotePrintArea.classList.add("is-previewing");
+  elements.quotePrintArea.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+    inline: "nearest"
+  });
+}
+
 function exportQuoteHistoryItem(id) {
   const item = loadQuoteHistoryItem(id);
   if (!item) return;
@@ -5479,7 +5492,8 @@ function deleteQuoteHistoryItem(id) {
 function handleQuoteHistoryClick(event) {
   const viewButton = event.target.closest("[data-quote-history-view]");
   if (viewButton) {
-    loadQuoteHistoryItem(viewButton.dataset.quoteHistoryView);
+    const item = loadQuoteHistoryItem(viewButton.dataset.quoteHistoryView);
+    if (item) revealQuotePreview();
     return;
   }
 
