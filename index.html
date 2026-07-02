@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=pdf-sem-cabecalho-1">
+    <link rel="stylesheet" href="styles.css?v=orcamento-historico-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -1030,6 +1030,25 @@
               <button id="quoteClearButton" class="secondary-button" type="button">Limpar</button>
             </div>
           </form>
+
+          <section class="hub-card quote-history-card" aria-label="Histórico de orçamentos">
+            <header class="hub-card-header">
+              <div>
+                <span class="hub-card-number">02</span>
+                <h2>Histórico de orçamentos</h2>
+              </div>
+              <span id="quoteHistoryCount" class="section-count">0 orçamentos</span>
+            </header>
+
+            <label class="quote-history-filter">
+              Mês do histórico
+              <select id="quoteHistoryMonthSelect"></select>
+            </label>
+
+            <div id="quoteHistoryList" class="quote-history-list">
+              <div class="empty-state">Nenhum orçamento salvo neste mês.</div>
+            </div>
+          </section>
           </div>
 
           <article id="quotePrintArea" class="quote-document">
@@ -1416,6 +1435,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=pdf-sem-cabecalho-1"></script>
+    <script src="app.js?v=orcamento-historico-1"></script>
   </body>
 </html>

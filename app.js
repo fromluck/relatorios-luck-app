@@ -21,6 +21,8 @@ const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const QUOTE_STORAGE_KEY = "luck-quote-data-v1";
+const QUOTE_HISTORY_STORAGE_KEY = "luck-quote-history-v1";
+const QUOTE_MONTH_STORAGE_KEY = "luck-quote-month-v1";
 const FINANCE_MONTH_STORAGE_KEY = "luck-finance-month-v1";
 const PENDING_MONTH_STORAGE_KEY = "luck-pending-month-v1";
 const DASHBOARD_MONTH_STORAGE_KEY = "luck-dashboard-month-v1";
@@ -74,6 +76,7 @@ const DEFAULT_QUOTE_DATA = {
   service: "",
   description: "",
   amount: 0,
+  issuedAt: "",
   validUntil: "",
   deadline: "",
   payment: "",
@@ -411,13 +414,16 @@ let loginRequested = new URLSearchParams(window.location.search).get("login") ==
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
 let quoteData = normalizeQuoteData(loadQuoteData());
+let quoteHistory = normalizeQuoteHistory(loadQuoteHistory());
 let scheduleData = normalizeScheduleData(loadScheduleData());
 let selectedFinanceMonth = loadFinanceMonth();
 let selectedPendingMonth = loadPendingMonth();
 let selectedDashboardMonth = loadDashboardMonth();
+let selectedQuoteMonth = loadQuoteMonth();
 let selectedScheduleMonth = loadScheduleMonth();
 let selectedScheduleCompany = loadScheduleCompany();
 let editingScheduleTaskId = null;
+let selectedQuoteHistoryId = null;
 let parsedScheduleItems = [];
 let activeReminders = [];
 let lastReminderSignature = "";
@@ -525,6 +531,9 @@ const elements = {
   quoteSaveButton: document.querySelector("#quoteSaveButton"),
   quoteClearButton: document.querySelector("#quoteClearButton"),
   quotePdfButton: document.querySelector("#quotePdfButton"),
+  quoteHistoryMonthSelect: document.querySelector("#quoteHistoryMonthSelect"),
+  quoteHistoryCount: document.querySelector("#quoteHistoryCount"),
+  quoteHistoryList: document.querySelector("#quoteHistoryList"),
   quotePrintArea: document.querySelector("#quotePrintArea"),
   quoteDocumentTotal: document.querySelector("#quoteDocumentTotal"),
   quoteDocumentClient: document.querySelector("#quoteDocumentClient"),
@@ -728,6 +737,7 @@ function getSharedState() {
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
     quoteData: window.LUCK_SHARED_BACKUP.quoteData || null,
+    quoteHistory: window.LUCK_SHARED_BACKUP.quoteHistory || null,
     scheduleData: window.LUCK_SHARED_BACKUP.scheduleData || null,
     reminderSettings: window.LUCK_SHARED_BACKUP.reminderSettings || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
@@ -1197,6 +1207,7 @@ function normalizeQuoteData(data = {}) {
     service: fixPortuguese(String(data?.service || DEFAULT_QUOTE_DATA.service).trim()),
     description: fixPortuguese(String(data?.description || DEFAULT_QUOTE_DATA.description).trim()),
     amount: Number.isFinite(amount) ? Math.max(0, amount) : 0,
+    issuedAt: isValidDate(data?.issuedAt) ? data.issuedAt : "",
     validUntil: isValidDate(data?.validUntil) ? data.validUntil : "",
     deadline: fixPortuguese(String(data?.deadline || DEFAULT_QUOTE_DATA.deadline).trim()),
     payment: fixPortuguese(String(data?.payment || DEFAULT_QUOTE_DATA.payment).trim()),
@@ -1229,6 +1240,64 @@ function loadQuoteData() {
   }
 
   return normalizeQuoteData(sharedQuote || {});
+}
+
+function normalizeQuoteHistoryItem(item = {}) {
+  const data = normalizeQuoteData(item?.data || item);
+  const issuedAt = isValidDate(item?.issuedAt || data.issuedAt) ? item.issuedAt || data.issuedAt : todayDateKey();
+  const month = isValidMonth(item?.month) ? item.month : issuedAt.slice(0, 7);
+  const createdAt = Number.isFinite(Date.parse(item?.createdAt || "")) ? item.createdAt : new Date().toISOString();
+  const updatedAt = Number.isFinite(Date.parse(item?.updatedAt || "")) ? item.updatedAt : createdAt;
+  const title = fixPortuguese(String(item?.title || data.client || data.service || "Orçamento sem título").trim());
+
+  return {
+    id: String(item?.id || `quote-${Math.random().toString(16).slice(2)}-${Date.now()}`),
+    month,
+    title,
+    issuedAt,
+    createdAt,
+    updatedAt,
+    data: normalizeQuoteData({ ...data, issuedAt })
+  };
+}
+
+function normalizeQuoteHistory(data = []) {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map(normalizeQuoteHistoryItem)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+}
+
+function loadQuoteHistory() {
+  const sharedState = getSharedState();
+  const sharedHistory = sharedState?.quoteHistory;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && Array.isArray(sharedHistory)) {
+    return normalizeQuoteHistory(sharedHistory);
+  }
+
+  const savedState = readSavedState();
+  if (Array.isArray(savedState?.quoteHistory) && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeQuoteHistory(savedState.quoteHistory);
+  }
+
+  const saved = localStorage.getItem(QUOTE_HISTORY_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeQuoteHistory(JSON.parse(saved));
+    } catch {
+      return normalizeQuoteHistory(sharedHistory || []);
+    }
+  }
+
+  return normalizeQuoteHistory(sharedHistory || []);
+}
+
+function loadQuoteMonth() {
+  const saved = localStorage.getItem(QUOTE_MONTH_STORAGE_KEY);
+  return isValidMonth(saved) ? saved : currentMonthKey();
 }
 
 function loadFinanceMonth() {
@@ -1527,9 +1596,11 @@ function saveLocalState() {
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
   localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
+  localStorage.setItem(QUOTE_HISTORY_STORAGE_KEY, JSON.stringify(quoteHistory));
   localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleData));
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
   localStorage.setItem(PENDING_MONTH_STORAGE_KEY, selectedPendingMonth);
+  localStorage.setItem(QUOTE_MONTH_STORAGE_KEY, selectedQuoteMonth);
   localStorage.setItem(SCHEDULE_MONTH_STORAGE_KEY, selectedScheduleMonth);
   localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
@@ -2023,6 +2094,7 @@ function getCurrentState() {
     pendingBoards,
     financialRecords,
     quoteData,
+    quoteHistory,
     scheduleData
   };
 }
@@ -2113,6 +2185,7 @@ function loadRemoteState() {
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
         quoteData = normalizeQuoteData(state.quoteData || quoteData);
+        quoteHistory = normalizeQuoteHistory(state.quoteHistory || quoteHistory);
         scheduleData = normalizeScheduleData(state.scheduleData || scheduleData);
         ensureRowIds();
         saveReports();
@@ -2162,6 +2235,7 @@ async function loadSupabaseState() {
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
       quoteData = normalizeQuoteData(record.state.quoteData || quoteData);
+      quoteHistory = normalizeQuoteHistory(record.state.quoteHistory || quoteHistory);
       scheduleData = normalizeScheduleData(record.state.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
@@ -2324,6 +2398,7 @@ function restoreBackupFile(event) {
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
       quoteData = normalizeQuoteData(payload.quoteData || quoteData);
+      quoteHistory = normalizeQuoteHistory(payload.quoteHistory || quoteHistory);
       scheduleData = normalizeScheduleData(payload.scheduleData || scheduleData);
       ensureRowIds();
       saveReports();
@@ -3186,6 +3261,7 @@ function populateControls() {
   refreshScheduleMonthOptions();
   refreshPendingMonthOptions();
   refreshFinanceMonthOptions();
+  refreshQuoteMonthOptions();
 }
 
 function refreshMonthOptions() {
@@ -3329,6 +3405,33 @@ function refreshFinanceMonthOptions() {
 
   selectedFinanceMonth = preferredMonth;
   elements.financeMonthSelect.value = selectedFinanceMonth;
+}
+
+function getQuoteHistoryMonths() {
+  return quoteHistory
+    .map((item) => item.month)
+    .filter(isValidMonth);
+}
+
+function getSelectableQuoteMonths() {
+  return unique([...monthsUntilCurrent(), currentMonthKey(), selectedQuoteMonth, ...getQuoteHistoryMonths()])
+    .filter(isValidMonth)
+    .sort()
+    .reverse();
+}
+
+function refreshQuoteMonthOptions() {
+  if (!elements.quoteHistoryMonthSelect) return;
+
+  const months = getSelectableQuoteMonths();
+  const preferredMonth = months.includes(selectedQuoteMonth) ? selectedQuoteMonth : currentMonthKey();
+
+  elements.quoteHistoryMonthSelect.innerHTML = months
+    .map((month) => `<option value="${month}">${formatMonth(month)}</option>`)
+    .join("");
+
+  selectedQuoteMonth = preferredMonth;
+  elements.quoteHistoryMonthSelect.value = selectedQuoteMonth;
 }
 
 function getVisibleSections(report) {
@@ -5158,6 +5261,7 @@ function readQuoteForm() {
     service: elements.quoteServiceInput.value,
     description: elements.quoteDescriptionInput.value,
     amount: elements.quoteAmountInput.value,
+    issuedAt: quoteData.issuedAt || todayDateKey(),
     validUntil: elements.quoteValidUntilInput.value,
     deadline: elements.quoteDeadlineInput.value,
     payment: elements.quotePaymentInput.value,
@@ -5178,7 +5282,7 @@ function syncQuoteForm() {
 }
 
 function renderQuoteDocument() {
-  const issuedAt = todayDateKey();
+  const issuedAt = quoteData.issuedAt || todayDateKey();
 
   elements.quoteDocumentTotal.textContent = formatCurrency(quoteData.amount);
   elements.quoteDocumentClient.textContent = quoteFallback(quoteData.client, "Cliente não informado");
@@ -5191,11 +5295,57 @@ function renderQuoteDocument() {
   elements.quoteDocumentTerms.innerHTML = renderQuoteText(quoteData.terms, "Preencha os termos para finalizar o orçamento.");
 }
 
+function getQuoteHistoryForMonth(month = selectedQuoteMonth) {
+  return quoteHistory
+    .filter((item) => item.month === month)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+}
+
+function quoteHistoryTitle(item) {
+  return quoteFallback(item.title || item.data?.client || item.data?.service, "Orçamento sem título");
+}
+
+function renderQuoteHistoryItem(item) {
+  const data = normalizeQuoteData(item.data);
+  const isActive = selectedQuoteHistoryId === item.id;
+  const details = [
+    data.service || "Serviço não informado",
+    item.issuedAt ? `emitido em ${formatDate(item.issuedAt)}` : "",
+    data.amount ? formatCurrency(data.amount) : "sem valor definido"
+  ].filter(Boolean).join(" · ");
+
+  return `
+    <article class="quote-history-item ${isActive ? "is-active" : ""}">
+      <div>
+        <strong>${escapeHTML(quoteHistoryTitle(item))}</strong>
+        <small>${escapeHTML(details)}</small>
+      </div>
+      <div class="quote-history-actions">
+        <button class="secondary-button" type="button" data-quote-history-view="${escapeHTML(item.id)}">Visualizar</button>
+        <button class="secondary-button" type="button" data-quote-history-export="${escapeHTML(item.id)}">Exportar</button>
+        <button class="danger-button" type="button" data-quote-history-delete="${escapeHTML(item.id)}">Excluir</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderQuoteHistory() {
+  if (!elements.quoteHistoryList) return;
+
+  refreshQuoteMonthOptions();
+  const items = getQuoteHistoryForMonth(selectedQuoteMonth);
+  elements.quoteHistoryCount.textContent = `${items.length} ${items.length === 1 ? "orçamento" : "orçamentos"}`;
+  elements.quoteHistoryList.innerHTML = items.length
+    ? items.map(renderQuoteHistoryItem).join("")
+    : `<div class="empty-state">Nenhum orçamento salvo em ${formatMonth(selectedQuoteMonth).toLowerCase()}.</div>`;
+}
+
 function renderQuote() {
   syncQuoteForm();
   syncQuoteCalculatorInputs();
   renderQuoteCalculatorSummary();
   renderQuoteDocument();
+  renderQuoteHistory();
 }
 
 function handleQuoteDraftInput() {
@@ -5207,16 +5357,49 @@ function handleQuoteDraftInput() {
 function saveQuoteForm(event) {
   event.preventDefault();
   quoteData = readQuoteForm();
+  saveQuoteToHistory();
   saveQuoteData();
   renderQuote();
-  showSaveDialog("Orçamento salvo", "Os dados do orçamento foram salvos no sistema.");
+  showSaveDialog("Orçamento salvo", `O orçamento foi salvo no histórico de ${formatMonth(selectedQuoteMonth).toLowerCase()}.`);
 }
 
 function clearQuoteForm() {
   quoteData = normalizeQuoteData({});
+  selectedQuoteHistoryId = null;
   saveQuoteData();
   renderQuote();
   showSaveDialog("Orçamento limpo", "A página de orçamento voltou para o modelo inicial.");
+}
+
+function saveQuoteToHistory() {
+  const now = new Date().toISOString();
+  const snapshot = normalizeQuoteData({
+    ...quoteData,
+    issuedAt: quoteData.issuedAt || todayDateKey()
+  });
+  const existingIndex = selectedQuoteHistoryId
+    ? quoteHistory.findIndex((item) => item.id === selectedQuoteHistoryId)
+    : -1;
+  const previous = existingIndex >= 0 ? quoteHistory[existingIndex] : null;
+  const item = normalizeQuoteHistoryItem({
+    ...previous,
+    id: previous?.id || `quote-${Math.random().toString(16).slice(2)}-${Date.now()}`,
+    month: selectedQuoteMonth,
+    title: snapshot.client || snapshot.service || "Orçamento sem título",
+    issuedAt: snapshot.issuedAt,
+    createdAt: previous?.createdAt || now,
+    updatedAt: now,
+    data: snapshot
+  });
+
+  if (existingIndex >= 0) {
+    quoteHistory.splice(existingIndex, 1, item);
+  } else {
+    quoteHistory.unshift(item);
+  }
+
+  selectedQuoteHistoryId = item.id;
+  quoteHistory = normalizeQuoteHistory(quoteHistory);
 }
 
 function handleQuoteCalculatorInput() {
@@ -5252,6 +5435,64 @@ function exportQuotePdf() {
   renderQuoteDocument();
   document.body.classList.add("printing-quote");
   window.requestAnimationFrame(() => window.print());
+}
+
+function findQuoteHistoryItem(id) {
+  return quoteHistory.find((item) => item.id === id) || null;
+}
+
+function loadQuoteHistoryItem(id) {
+  const item = findQuoteHistoryItem(id);
+  if (!item) return null;
+
+  selectedQuoteHistoryId = item.id;
+  selectedQuoteMonth = item.month;
+  quoteData = normalizeQuoteData(item.data);
+  saveLocalState();
+  renderQuote();
+  return item;
+}
+
+function exportQuoteHistoryItem(id) {
+  const item = loadQuoteHistoryItem(id);
+  if (!item) return;
+
+  window.setTimeout(() => exportQuotePdf(), 80);
+}
+
+function deleteQuoteHistoryItem(id) {
+  const item = findQuoteHistoryItem(id);
+  if (!item) return;
+
+  const confirmed = window.confirm(`Excluir o orçamento "${quoteHistoryTitle(item)}" do histórico?`);
+  if (!confirmed) return;
+
+  quoteHistory = quoteHistory.filter((quote) => quote.id !== id);
+  if (selectedQuoteHistoryId === id) {
+    selectedQuoteHistoryId = null;
+  }
+  saveQuoteData();
+  renderQuoteHistory();
+  showSaveDialog("Orçamento excluído", "O orçamento foi removido do histórico.");
+}
+
+function handleQuoteHistoryClick(event) {
+  const viewButton = event.target.closest("[data-quote-history-view]");
+  if (viewButton) {
+    loadQuoteHistoryItem(viewButton.dataset.quoteHistoryView);
+    return;
+  }
+
+  const exportButton = event.target.closest("[data-quote-history-export]");
+  if (exportButton) {
+    exportQuoteHistoryItem(exportButton.dataset.quoteHistoryExport);
+    return;
+  }
+
+  const deleteButton = event.target.closest("[data-quote-history-delete]");
+  if (deleteButton) {
+    deleteQuoteHistoryItem(deleteButton.dataset.quoteHistoryDelete);
+  }
 }
 
 function renderContractSummary() {
@@ -6180,6 +6421,7 @@ function exposeBackupData() {
     pendingBoards,
     financialRecords,
     quoteData,
+    quoteHistory,
     scheduleData
   };
   let backupNode = document.querySelector("#backupData");
@@ -6254,6 +6496,12 @@ elements.quoteCalculator.addEventListener("input", handleQuoteCalculatorInput);
 elements.quoteApplyCalculatorButton.addEventListener("click", applyQuoteCalculatorToForm);
 elements.quoteClearButton.addEventListener("click", clearQuoteForm);
 elements.quotePdfButton.addEventListener("click", exportQuotePdf);
+elements.quoteHistoryMonthSelect?.addEventListener("change", () => {
+  selectedQuoteMonth = elements.quoteHistoryMonthSelect.value;
+  localStorage.setItem(QUOTE_MONTH_STORAGE_KEY, selectedQuoteMonth);
+  renderQuoteHistory();
+});
+elements.quoteHistoryList?.addEventListener("click", handleQuoteHistoryClick);
 elements.financeMonthSelect.addEventListener("change", () => {
   selectedFinanceMonth = elements.financeMonthSelect.value;
   localStorage.setItem(FINANCE_MONTH_STORAGE_KEY, selectedFinanceMonth);
