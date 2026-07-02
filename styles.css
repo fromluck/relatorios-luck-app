@@ -5107,7 +5107,7 @@ td.action-cell {
 @media print {
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 0;
   }
 
   * {
@@ -5130,7 +5130,7 @@ td.action-cell {
     max-width: none;
     display: flex;
     flex-direction: column;
-    padding: 0;
+    padding: 10mm;
   }
 
   .content-shell {
@@ -5552,12 +5552,13 @@ td.action-cell {
 @media print {
   @page quote {
     size: A4;
-    margin: 12mm;
+    margin: 0;
   }
 
   body.printing-quote {
     background: #ffffff;
     color: #111827;
+    margin: 0;
   }
 
   body.printing-quote .sidebar,
@@ -5593,8 +5594,10 @@ td.action-cell {
 
   body.printing-quote .quote-document {
     page: quote;
-    width: 100%;
-    min-height: calc(297mm - 24mm);
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 12mm;
     overflow: hidden;
     border: 0;
     border-radius: 0;
