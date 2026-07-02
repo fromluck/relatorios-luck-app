@@ -2205,7 +2205,7 @@ h1 {
   align-items: flex-start;
   gap: 24px;
   border-top: 4px solid var(--blue);
-  background: #111827;
+  background: #000000;
   color: #ffffff;
   padding: 34px;
 }
