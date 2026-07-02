@@ -19,6 +19,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const TARGETS_STORAGE_KEY = "luck-contract-targets-v1";
 const COMPANY_SETTINGS_STORAGE_KEY = "luck-company-settings-v1";
+const DELETED_COMPANIES_STORAGE_KEY = "luck-deleted-companies-v1";
 const FINANCE_STORAGE_KEY = "luck-finance-records-v1";
 const QUOTE_STORAGE_KEY = "luck-quote-data-v1";
 const QUOTE_HISTORY_STORAGE_KEY = "luck-quote-history-v1";
@@ -396,6 +397,7 @@ const initialReports = [
 
 let remoteSyncReady = false;
 let remoteSaveTimer = null;
+let deletedCompanies = loadDeletedCompanies();
 let reportData = normalizeReportData(loadReports());
 ensureRowIds();
 let parsedQuickItems = [];
@@ -733,6 +735,7 @@ function getSharedState() {
     reports: window.LUCK_SHARED_BACKUP.reports,
     contractTargets: window.LUCK_SHARED_BACKUP.contractTargets || null,
     companySettings: window.LUCK_SHARED_BACKUP.companySettings || null,
+    deletedCompanies: window.LUCK_SHARED_BACKUP.deletedCompanies || null,
     profile: window.LUCK_SHARED_BACKUP.profile || null,
     pendingBoards: window.LUCK_SHARED_BACKUP.pendingBoards || null,
     financialRecords: window.LUCK_SHARED_BACKUP.financialRecords || null,
@@ -776,7 +779,7 @@ function loadReports() {
   candidates
     .sort((a, b) => b.score - a.score);
 
-  return clone(candidates[0]?.reports || initialReports);
+  return filterActiveReports(clone(candidates[0]?.reports || initialReports));
 }
 
 function reportScore(reports) {
@@ -814,6 +817,69 @@ function normalizeCompanyName(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizeDeletedCompanies(values = []) {
+  return unique((Array.isArray(values) ? values : [])
+    .map(normalizeCompanyName)
+    .filter(Boolean));
+}
+
+function isDeletedCompanyName(company, list = deletedCompanies) {
+  const normalizedCompany = normalizeText(normalizeCompanyName(company));
+  if (!normalizedCompany) return false;
+  return (list || []).some((item) => normalizeText(item) === normalizedCompany);
+}
+
+function filterActiveCompanies(companies) {
+  return unique((companies || [])
+    .map(normalizeCompanyName)
+    .filter((company) => company && !isDeletedCompanyName(company)));
+}
+
+function filterActiveReports(reports = []) {
+  return (Array.isArray(reports) ? reports : [])
+    .filter((report) => !isDeletedCompanyName(report?.company));
+}
+
+function filterActiveScheduleData(data = {}) {
+  return Object.fromEntries(Object.entries(data || {})
+    .filter(([key, record]) => {
+      const keyCompany = key.split("::")[0];
+      const company = record?.client || keyCompany;
+      return !isDeletedCompanyName(company);
+    }));
+}
+
+function restoreDeletedCompanyName(company) {
+  const normalizedCompany = normalizeText(normalizeCompanyName(company));
+  deletedCompanies = deletedCompanies.filter((item) => normalizeText(item) !== normalizedCompany);
+}
+
+function loadDeletedCompanies() {
+  const sharedState = getSharedState();
+  const sharedDeletedCompanies = sharedState?.deletedCompanies;
+  const forceShared = new URLSearchParams(window.location.search).has("shared");
+
+  if (forceShared && Array.isArray(sharedDeletedCompanies)) {
+    return normalizeDeletedCompanies(sharedDeletedCompanies);
+  }
+
+  const savedState = readSavedState();
+  if (Array.isArray(savedState?.deletedCompanies) && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeDeletedCompanies(savedState.deletedCompanies);
+  }
+
+  const saved = localStorage.getItem(DELETED_COMPANIES_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeDeletedCompanies(JSON.parse(saved));
+    } catch {
+      return normalizeDeletedCompanies(sharedDeletedCompanies || []);
+    }
+  }
+
+  return normalizeDeletedCompanies(sharedDeletedCompanies || []);
+}
+
 function normalizeHexColor(value, fallback) {
   const raw = String(value || "").trim();
   const withHash = raw.startsWith("#") ? raw : `#${raw}`;
@@ -830,13 +896,13 @@ function normalizeScheduleTheme(theme = {}) {
 }
 
 function getKnownCompanyNames(settings = companySettings, targets = contractTargets) {
-  return unique([
+  return filterActiveCompanies([
     ...initialReports.map((report) => report.company),
     ...reportData.map((report) => report.company),
     ...Object.keys(CONTRACT_TARGETS),
     ...Object.keys(targets || {}),
     ...Object.keys(settings || {})
-  ].map(normalizeCompanyName).filter(Boolean));
+  ]);
 }
 
 function normalizeCompanySetting(company, setting = {}, targets = contractTargets) {
@@ -874,13 +940,13 @@ function normalizeCompanySetting(company, setting = {}, targets = contractTarget
 
 function normalizeCompanySettings(settings = {}, targets = contractTargets) {
   const nextSettings = {};
-  const knownNames = unique([
+  const knownNames = filterActiveCompanies([
     ...initialReports.map((report) => report.company),
     ...reportData.map((report) => report.company),
     ...Object.keys(CONTRACT_TARGETS),
     ...Object.keys(targets || {}),
     ...Object.keys(settings || {})
-  ].map(normalizeCompanyName).filter(Boolean));
+  ]);
 
   knownNames.forEach((company) => {
     nextSettings[company] = normalizeCompanySetting(company, settings?.[company] || {}, targets);
@@ -926,6 +992,13 @@ function syncContractTargetsFromCompanySettings() {
       videos: Number(setting.videos) || 0,
       creatives: Number(setting.creatives) || 0
     };
+  });
+
+  deletedCompanies.forEach((company) => {
+    const deletedCompanyKey = normalizeText(company);
+    Object.keys(contractTargets).forEach((key) => {
+      if (normalizeText(key) === deletedCompanyKey) delete contractTargets[key];
+    });
   });
 }
 
@@ -1594,6 +1667,7 @@ function saveLocalState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
   localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(contractTargets));
   localStorage.setItem(COMPANY_SETTINGS_STORAGE_KEY, JSON.stringify(companySettings));
+  localStorage.setItem(DELETED_COMPANIES_STORAGE_KEY, JSON.stringify(deletedCompanies));
   localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(financialRecords));
   localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
   localStorage.setItem(QUOTE_HISTORY_STORAGE_KEY, JSON.stringify(quoteHistory));
@@ -2088,6 +2162,7 @@ function getCurrentState() {
     reports: reportData,
     contractTargets,
     companySettings,
+    deletedCompanies,
     profile: profileData,
     theme: selectedTheme,
     reminderSettings,
@@ -2171,7 +2246,8 @@ function loadRemoteState() {
       setSyncStatus("Banco conectado. Alterações salvas automaticamente.", "online");
 
       if (Array.isArray(state?.reports)) {
-        reportData = normalizeReportData(state.reports);
+        deletedCompanies = normalizeDeletedCompanies(state.deletedCompanies || deletedCompanies);
+        reportData = normalizeReportData(filterActiveReports(state.reports));
         contractTargets = {
           ...CONTRACT_TARGETS,
           ...(state.contractTargets || contractTargets)
@@ -2186,7 +2262,7 @@ function loadRemoteState() {
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
         quoteData = normalizeQuoteData(state.quoteData || quoteData);
         quoteHistory = normalizeQuoteHistory(state.quoteHistory || quoteHistory);
-        scheduleData = normalizeScheduleData(state.scheduleData || scheduleData);
+        scheduleData = normalizeScheduleData(filterActiveScheduleData(state.scheduleData || scheduleData));
         ensureRowIds();
         saveReports();
         saveCompanySettings();
@@ -2221,7 +2297,8 @@ async function loadSupabaseState() {
     setSyncStatus("Banco conectado. Alterações salvas automaticamente.", "online");
 
     if (Array.isArray(record?.state?.reports)) {
-      reportData = normalizeReportData(record.state.reports);
+      deletedCompanies = normalizeDeletedCompanies(record.state.deletedCompanies || deletedCompanies);
+      reportData = normalizeReportData(filterActiveReports(record.state.reports));
       contractTargets = {
         ...CONTRACT_TARGETS,
         ...(record.state.contractTargets || contractTargets)
@@ -2236,7 +2313,7 @@ async function loadSupabaseState() {
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
       quoteData = normalizeQuoteData(record.state.quoteData || quoteData);
       quoteHistory = normalizeQuoteHistory(record.state.quoteHistory || quoteHistory);
-      scheduleData = normalizeScheduleData(record.state.scheduleData || scheduleData);
+      scheduleData = normalizeScheduleData(filterActiveScheduleData(record.state.scheduleData || scheduleData));
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -2384,7 +2461,8 @@ function restoreBackupFile(event) {
       const selectedCompany = elements.companySelect.value;
       const selectedMonth = elements.monthSelect.value;
 
-      reportData = normalizeReportData(nextReports);
+      deletedCompanies = normalizeDeletedCompanies(payload.deletedCompanies || deletedCompanies);
+      reportData = normalizeReportData(filterActiveReports(nextReports));
       contractTargets = {
         ...CONTRACT_TARGETS,
         ...(payload.contractTargets || contractTargets)
@@ -2399,7 +2477,7 @@ function restoreBackupFile(event) {
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
       quoteData = normalizeQuoteData(payload.quoteData || quoteData);
       quoteHistory = normalizeQuoteHistory(payload.quoteHistory || quoteHistory);
-      scheduleData = normalizeScheduleData(payload.scheduleData || scheduleData);
+      scheduleData = normalizeScheduleData(filterActiveScheduleData(payload.scheduleData || scheduleData));
       ensureRowIds();
       saveReports();
       saveCompanySettings();
@@ -2779,6 +2857,7 @@ function renderCompanyList() {
           <div class="company-card-actions">
             <button class="secondary-button" type="button" data-company-select="${escapeHTML(company)}">Selecionar</button>
             <button class="export-main-button" type="button" data-company-config="${escapeHTML(company)}">Configurar</button>
+            <button class="danger-button" type="button" data-company-delete="${escapeHTML(company)}">Excluir</button>
           </div>
         </article>
       `;
@@ -3327,7 +3406,7 @@ function getScheduleCompanyNames() {
     ...getKnownCompanyNames(),
     ...Object.values(scheduleData || {}).map((record) => record?.client)
   ])
-    .filter((company) => company && normalizeText(company) !== "luck")
+    .filter((company) => company && normalizeText(company) !== "luck" && !isDeletedCompanyName(company))
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
   return unique([...companies, "Luck Produtora"]);
 }
@@ -6120,6 +6199,7 @@ function saveCompanySettingsForm(event) {
   const selectedMonth = elements.monthSelect.value || currentMonthKey();
   const settings = readCompanySettingsForm(nextName);
 
+  restoreDeletedCompanyName(nextName);
   renameCompanyReferences(oldName, nextName);
   companySettings[nextName] = settings;
   contractTargets[nextName] = {
@@ -6175,6 +6255,61 @@ function selectCompanyFromList(company) {
   render();
 }
 
+function getFallbackCompanyAfterDelete(deletedCompany) {
+  return getKnownCompanyNames()
+    .filter((company) => normalizeText(company) !== normalizeText(deletedCompany))
+    .find((company) => normalizeText(company) !== "luck") || "Luck";
+}
+
+function deleteCompany(company) {
+  const normalizedCompany = normalizeCompanyName(company);
+  if (!normalizedCompany || normalizeText(normalizedCompany) === "luck") return;
+
+  const reportCount = reportData.filter((report) => report.company === normalizedCompany).length;
+  const scheduleCount = Object.values(scheduleData || {})
+    .filter((record) => normalizeText(record?.client) === normalizeText(normalizedCompany))
+    .length;
+  const confirmed = window.confirm(
+    `Excluir ${normalizedCompany} do sistema?\n\n` +
+    `Isso vai remover configurações, metas, relatórios e cronogramas deste cliente.` +
+    `${reportCount || scheduleCount ? `\n\nItens encontrados: ${reportCount} relatórios e ${scheduleCount} cronogramas.` : ""}`
+  );
+
+  if (!confirmed) return;
+
+  deletedCompanies = normalizeDeletedCompanies([...deletedCompanies, normalizedCompany]);
+  const deletedCompanyKey = normalizeText(normalizedCompany);
+  reportData = reportData.filter((report) => normalizeText(report.company) !== deletedCompanyKey);
+  Object.keys(companySettings).forEach((key) => {
+    if (normalizeText(key) === deletedCompanyKey) delete companySettings[key];
+  });
+  Object.keys(contractTargets).forEach((key) => {
+    if (normalizeText(key) === deletedCompanyKey) delete contractTargets[key];
+  });
+  scheduleData = filterActiveScheduleData(scheduleData);
+
+  const fallbackCompany = getFallbackCompanyAfterDelete(normalizedCompany);
+  const currentMonth = elements.monthSelect.value || currentMonthKey();
+
+  populateControls();
+  if ([...elements.companySelect.options].some((option) => option.value === fallbackCompany)) {
+    elements.companySelect.value = fallbackCompany;
+  }
+  refreshMonthOptions();
+  ensureReport(elements.companySelect.value, elements.monthSelect.value || currentMonth, { save: false });
+
+  if (isDeletedCompanyName(selectedScheduleCompany)) {
+    selectedScheduleCompany = getScheduleCompanyNames()[0] || "Luck Produtora";
+    localStorage.setItem(SCHEDULE_COMPANY_STORAGE_KEY, selectedScheduleCompany);
+  }
+
+  saveCompanySettings();
+  populateControls();
+  syncCompanySettingsInputs();
+  render();
+  showSaveDialog("Cliente excluído", `${normalizedCompany} foi removido do sistema.`);
+}
+
 function handleCompanyListClick(event) {
   const selectButton = event.target.closest("[data-company-select]");
   if (selectButton) {
@@ -6185,6 +6320,12 @@ function handleCompanyListClick(event) {
   const configButton = event.target.closest("[data-company-config]");
   if (configButton) {
     openCompanySettingsDialog(configButton.dataset.companyConfig);
+    return;
+  }
+
+  const deleteButton = event.target.closest("[data-company-delete]");
+  if (deleteButton) {
+    deleteCompany(deleteButton.dataset.companyDelete);
   }
 }
 
@@ -6233,6 +6374,7 @@ function createNewCompany(event) {
   const videos = Number(elements.newCompanyVideosInput.value) || 0;
   const creatives = Number(elements.newCompanyCreativesInput.value) || 0;
 
+  restoreDeletedCompanyName(companyName);
   companySettings[companyName] = normalizeCompanySetting(companyName, {
     videos,
     creatives
@@ -6429,6 +6571,7 @@ function exposeBackupData() {
     reports: reportData,
     contractTargets,
     companySettings,
+    deletedCompanies,
     profile: profileData,
     theme: selectedTheme,
     reminderSettings,
