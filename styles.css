@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #eef1f4;
+  --bg: #f5f6f8;
   --panel: #ffffff;
-  --ink: #18202a;
-  --muted: #657080;
-  --line: #dbe1e8;
+  --ink: #101828;
+  --muted: #667085;
+  --line: #e1e6ee;
   --black: #101317;
   --blue: #ea5a00;
-  --video: #e11d48;
-  --edited: #0ea5e9;
+  --video: #e54668;
+  --edited: #2f80ed;
   --creative: #64748b;
-  --photo: #7c3aed;
-  --flyer: #16a34a;
-  --print: #f59e0b;
-  --shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+  --photo: #7a5af8;
+  --flyer: #24965a;
+  --print: #d97706;
+  --shadow: 0 14px 36px rgba(16, 24, 40, 0.07);
 }
 
 :root[data-theme="dark"] {
@@ -45,8 +45,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 18% 12%, rgba(234, 90, 0, 0.12), transparent 30%),
-    radial-gradient(circle at 84% 18%, rgba(15, 23, 42, 0.08), transparent 28%),
+    radial-gradient(circle at 12% 8%, rgba(234, 90, 0, 0.055), transparent 28%),
+    radial-gradient(circle at 86% 8%, rgba(16, 24, 40, 0.045), transparent 26%),
     var(--bg);
   color: var(--ink);
   caret-color: transparent;
@@ -5347,6 +5347,207 @@ td.action-cell {
 
 :root[data-theme="dark"] .hub-calendar-day.has-event {
   background: #211b17;
+}
+
+.sidebar {
+  box-shadow: 8px 0 28px rgba(16, 24, 40, 0.045);
+}
+
+.sidebar-link-button {
+  color: #344054;
+  font-weight: 700;
+}
+
+.sidebar-link-button:hover {
+  background: #f7f8fa;
+  color: var(--ink);
+  transform: none;
+}
+
+.sidebar-link-button.is-active {
+  border-color: var(--blue);
+  background: var(--blue);
+  box-shadow: 0 12px 24px rgba(234, 90, 0, 0.14);
+}
+
+.sync-status {
+  border-color: #d0f0da;
+  background: #f6fef9;
+  color: #087443;
+  font-weight: 700;
+}
+
+.hub-header,
+.hub-card,
+.hub-kpi,
+.hub-client-summary,
+.report-card,
+.pending-card,
+.company-settings-card,
+.finance-card,
+.context-panel,
+.assistant-panel,
+.stat-card {
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.055);
+}
+
+.hub-header {
+  min-height: 112px;
+  padding: 22px 26px;
+}
+
+.hub-header h1 {
+  font-size: 30px;
+  font-weight: 780;
+}
+
+.hub-period {
+  border-left-color: rgba(234, 90, 0, 0.72);
+}
+
+.hub-period span,
+.hub-card-meta,
+.hub-kpi span,
+.hub-client-summary p span,
+.hub-production-row small,
+.hub-recording-item small,
+.hub-date-item small,
+.hub-date-item p {
+  color: #667085;
+}
+
+.hub-period span,
+.hub-card-meta,
+.hub-kpi span,
+.stat-card span,
+.contract-card span {
+  font-weight: 720;
+}
+
+.hub-kpi {
+  min-height: 100px;
+  gap: 10px;
+  border-color: #e5e7eb;
+  background: #ffffff;
+  padding: 17px;
+}
+
+.hub-kpi::before {
+  height: 3px;
+  background: #e7eaee;
+}
+
+.hub-kpi.orange::before,
+.hub-kpi.green::before {
+  background: rgba(234, 90, 0, 0.84);
+}
+
+.hub-kpi strong {
+  font-size: 29px;
+  font-weight: 760;
+}
+
+.hub-card {
+  border-color: #e5e7eb;
+}
+
+.hub-card-number,
+.total-pill,
+.settings-badge {
+  background: #fff4eb;
+  color: #b54708;
+}
+
+.hub-card h2 {
+  font-size: 17px;
+  font-weight: 760;
+}
+
+.hub-client-summary {
+  border-top-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.hub-client-mark {
+  background: color-mix(in srgb, var(--client-accent) 88%, #ffffff);
+}
+
+.hub-client-total {
+  color: #344054;
+  font-weight: 760;
+}
+
+.hub-client-delivery-copy,
+.hub-client-summary > small {
+  color: #667085;
+}
+
+.hub-client-summary h3,
+.hub-client-delivery-copy b,
+.hub-alert strong {
+  font-weight: 740;
+}
+
+.hub-client-metrics span {
+  background: #f6f7f9;
+  color: #344054;
+  font-weight: 700;
+}
+
+.hub-bar-track {
+  background: #eaecf0;
+}
+
+.hub-smart-dates {
+  border-top-color: #e5e7eb;
+}
+
+.hub-smart-callout {
+  background: #fff6ee;
+  color: #9a3b00;
+  font-weight: 720;
+}
+
+.hub-date-item time {
+  background: #fff1f2;
+}
+
+.hub-production-row header span {
+  color: #667085;
+}
+
+.hub-alert-card {
+  border-left-color: #e5e7eb;
+}
+
+.hub-alert {
+  background: #ffffff;
+}
+
+.contract-card {
+  background: #111827;
+}
+
+.video-contract,
+.creative-contract,
+.stat-card {
+  border-top-width: 4px;
+}
+
+.stat-card {
+  min-height: 108px;
+  border-top-color: color-mix(in srgb, var(--tag-color) 72%, #ffffff);
+  background: #ffffff;
+}
+
+.stat-card strong {
+  font-size: 31px;
+  font-weight: 760;
+}
+
+.tag,
+.parse-material {
+  font-weight: 740;
 }
 
 @media print {

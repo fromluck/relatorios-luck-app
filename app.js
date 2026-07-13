@@ -1,10 +1,10 @@
 ﻿const MATERIAL_TYPES = [
-  { label: "Vídeo (Reels)", color: "#e11d48" },
-  { label: "Vídeo Editado", color: "#0ea5e9" },
+  { label: "Vídeo (Reels)", color: "#e54668" },
+  { label: "Vídeo Editado", color: "#2f80ed" },
   { label: "Criativo (Arte)", color: "#64748b" },
-  { label: "Publicação (Fotos)", color: "#7c3aed" },
-  { label: "Flyer", color: "#16a34a" },
-  { label: "Impresso", color: "#f59e0b" }
+  { label: "Publicação (Fotos)", color: "#7a5af8" },
+  { label: "Flyer", color: "#24965a" },
+  { label: "Impresso", color: "#d97706" }
 ];
 
 const STORAGE_KEY = "luck-production-reports-v2";
@@ -5080,7 +5080,7 @@ function renderDashboard() {
     </article>
   `).join("");
 
-  const clientColors = ["#ea5a00", "#e11d48", "#64748b", "#7c3aed", "#16a34a", "#2563eb"];
+  const clientColors = ["#ea5a00", "#475467", "#667085", "#344054", "#7a5af8", "#24965a"];
   elements.dashboardClientsGrid.innerHTML = companies.length
     ? companies.map((company, index) => {
       const clientDeliveries = deliveries.filter((delivery) => delivery.company === company);
