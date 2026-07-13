@@ -5550,6 +5550,257 @@ td.action-cell {
   font-weight: 740;
 }
 
+.optional-label {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(234, 90, 0, 0.035), transparent 26%),
+    #f7f8fa;
+}
+
+.app-view,
+.content-shell,
+.quote-page,
+.hub-dashboard {
+  gap: 14px;
+}
+
+.hub-header,
+.control-bar,
+.context-panel,
+.assistant-panel,
+.report-card,
+.pending-card,
+.company-settings-card,
+.finance-card,
+.hub-card,
+.hub-kpi,
+.hub-client-summary,
+.quote-document,
+.stat-card {
+  border-color: #e7ebf0;
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.045);
+}
+
+.hub-header {
+  min-height: auto;
+  padding: 18px 22px;
+}
+
+.hub-header h1,
+.report-header h2,
+.quote-document-header h2 {
+  font-weight: 680;
+}
+
+.report-header {
+  padding: 18px 20px;
+  background: #ffffff;
+}
+
+.report-header h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+}
+
+.assistant-panel,
+.report-sections,
+.finance-body,
+.pending-body {
+  padding: 16px;
+}
+
+.contract-summary {
+  gap: 10px;
+}
+
+.contract-card {
+  gap: 10px;
+  min-height: 118px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.045);
+}
+
+.contract-card span,
+.contract-card small {
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.contract-card strong {
+  font-size: 36px;
+  font-weight: 690;
+}
+
+.video-contract,
+.creative-contract {
+  border-top-width: 1px;
+  border-top-color: #e7ebf0;
+}
+
+.progress-track {
+  height: 8px;
+  background: #eceff3;
+}
+
+.video-contract .progress-track span,
+.creative-contract .progress-track span {
+  --tag-color: var(--blue);
+}
+
+.compensation-actions {
+  padding: 10px;
+  background: #ffffff;
+}
+
+.compensation-actions button {
+  min-height: 36px;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-card {
+  min-height: 92px;
+  gap: 8px;
+  border-top-width: 1px;
+  border-top-color: #e7ebf0;
+  padding: 14px;
+}
+
+.stat-card span {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.stat-card strong {
+  font-size: 28px;
+  font-weight: 690;
+}
+
+.tag {
+  min-height: 24px;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 28%, #e7ebf0);
+  background: #ffffff;
+  color: #344054;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.finance-summary {
+  gap: 10px;
+}
+
+.finance-summary article {
+  gap: 7px;
+  background: #ffffff;
+  padding: 13px;
+}
+
+.finance-summary span {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.finance-summary strong {
+  font-size: 22px;
+  font-weight: 680;
+}
+
+.finance-summary-card.is-received,
+.finance-summary-card.is-pending,
+.finance-summary-card.is-forecast {
+  border-color: #e7ebf0;
+  background: #ffffff;
+}
+
+.finance-summary-card.is-received strong,
+.finance-summary-card.is-pending strong,
+.finance-summary-card.is-forecast strong {
+  color: var(--ink);
+}
+
+.finance-recurring-prompt {
+  border-color: #e7ebf0;
+  background: #ffffff;
+}
+
+.finance-recurring-prompt strong,
+.finance-recurring-prompt p {
+  font-weight: 650;
+}
+
+.finance-form,
+.pending-list-form {
+  background: #ffffff;
+}
+
+.quote-workspace {
+  gap: 14px;
+}
+
+.quote-calculator,
+.quote-history-card {
+  border-top-width: 1px;
+  border-top-color: #e7ebf0;
+}
+
+.quote-calculator-summary .is-total {
+  border-color: #fed7aa;
+  background: #fff8f1;
+}
+
+.quote-document {
+  min-height: 640px;
+}
+
+.quote-document-header {
+  padding: 28px 32px;
+}
+
+.quote-document-header h2 {
+  font-size: 36px;
+}
+
+.quote-document-header strong {
+  font-size: 18px;
+}
+
+.quote-document-client,
+.quote-document-section,
+.quote-document-grid,
+.quote-document-footer {
+  margin-right: 32px;
+  margin-left: 32px;
+}
+
+.quote-document-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.quote-document-grid > div {
+  background: #ffffff;
+}
+
+.quote-document-grid > div[hidden] {
+  display: none !important;
+}
+
+.reminder-button {
+  min-height: 40px;
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.16);
+}
+
 @media print {
   @page {
     size: A4;

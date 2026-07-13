@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Luck OS</title>
-    <link rel="stylesheet" href="styles.css?v=tema-limpo-1">
+    <link rel="stylesheet" href="styles.css?v=menos-poluido-1">
   </head>
   <body>
     <section id="welcomeScreen" class="welcome-screen" aria-label="Boas-vindas ao Luck OS" hidden>
@@ -1006,8 +1006,8 @@
                 <input id="quoteValidUntilInput" type="date">
               </label>
               <label>
-                Prazo de entrega
-                <input id="quoteDeadlineInput" type="text" placeholder="Ex.: 10 dias úteis após aprovação">
+                Prazo de entrega <small class="optional-label">opcional</small>
+                <input id="quoteDeadlineInput" type="text" placeholder="Opcional: 10 dias úteis após aprovação">
               </label>
               <label>
                 Forma de pagamento
@@ -1077,7 +1077,7 @@
                 <span>Validade</span>
                 <strong id="quoteDocumentValidUntil">A definir</strong>
               </div>
-              <div>
+              <div id="quoteDocumentDeadlineCard">
                 <span>Prazo</span>
                 <strong id="quoteDocumentDeadline">A definir</strong>
               </div>
@@ -1435,6 +1435,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="config.js?v=google-auth-1"></script>
     <script src="shared-data.js?v=google-auth-1"></script>
-    <script src="app.js?v=tema-limpo-1"></script>
+    <script src="app.js?v=menos-poluido-1"></script>
   </body>
 </html>

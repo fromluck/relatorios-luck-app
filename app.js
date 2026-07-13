@@ -543,6 +543,7 @@ const elements = {
   quoteDocumentService: document.querySelector("#quoteDocumentService"),
   quoteDocumentDescription: document.querySelector("#quoteDocumentDescription"),
   quoteDocumentValidUntil: document.querySelector("#quoteDocumentValidUntil"),
+  quoteDocumentDeadlineCard: document.querySelector("#quoteDocumentDeadlineCard"),
   quoteDocumentDeadline: document.querySelector("#quoteDocumentDeadline"),
   quoteDocumentPayment: document.querySelector("#quoteDocumentPayment"),
   quoteDocumentTerms: document.querySelector("#quoteDocumentTerms"),
@@ -5369,7 +5370,11 @@ function renderQuoteDocument() {
   elements.quoteDocumentService.textContent = quoteFallback(quoteData.service, "Serviço não informado");
   elements.quoteDocumentDescription.innerHTML = renderQuoteText(quoteData.description, "Preencha a descrição do serviço para montar a proposta.");
   elements.quoteDocumentValidUntil.textContent = quoteData.validUntil ? formatDate(quoteData.validUntil) : "A definir";
-  elements.quoteDocumentDeadline.textContent = quoteFallback(quoteData.deadline);
+  const hasDeadline = Boolean(String(quoteData.deadline || "").trim());
+  if (elements.quoteDocumentDeadlineCard) {
+    elements.quoteDocumentDeadlineCard.hidden = !hasDeadline;
+  }
+  elements.quoteDocumentDeadline.textContent = hasDeadline ? quoteData.deadline : "";
   elements.quoteDocumentPayment.textContent = quoteFallback(quoteData.payment);
   elements.quoteDocumentTerms.innerHTML = renderQuoteText(quoteData.terms, "Preencha os termos para finalizar o orçamento.");
 }
