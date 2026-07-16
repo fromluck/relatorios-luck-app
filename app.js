@@ -4779,6 +4779,16 @@ function deleteScheduleTask(taskId) {
   renderSchedule();
 }
 
+function publishScheduleTask(taskId) {
+  const record = getScheduleRecord();
+  const task = record.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  task.status = "Publicado";
+  if (editingScheduleTaskId === taskId) resetScheduleTaskForm();
+  saveScheduleData();
+  renderSchedule();
+}
+
 function moveScheduleTask(taskId, date) {
   const record = getScheduleRecord();
   const task = record.tasks.find((item) => item.id === taskId);
@@ -4858,6 +4868,7 @@ function renderScheduleAgenda(record) {
             <button type="button" data-schedule-edit="${task.id}">Editar</button>
             <button type="button" data-schedule-duplicate="${task.id}">Duplicar</button>
             <button type="button" data-schedule-delete="${task.id}">Excluir</button>
+            <button class="schedule-publish-button" type="button" data-schedule-publish="${task.id}" ${task.status === "Publicado" ? "disabled" : ""}>Publicado</button>
           </div>
         </div>
       </article>
@@ -6749,6 +6760,7 @@ elements.scheduleView.addEventListener("click", (event) => {
   const editButton = event.target.closest("[data-schedule-edit], [data-schedule-task]");
   const duplicateButton = event.target.closest("[data-schedule-duplicate]");
   const deleteButton = event.target.closest("[data-schedule-delete]");
+  const publishButton = event.target.closest("[data-schedule-publish]");
   const dateDeleteButton = event.target.closest("[data-schedule-date-delete]");
   const holidayDeleteButton = event.target.closest("[data-schedule-holiday-delete]");
   const day = event.target.closest("[data-schedule-date]");
@@ -6763,6 +6775,10 @@ elements.scheduleView.addEventListener("click", (event) => {
   }
   if (deleteButton) {
     deleteScheduleTask(deleteButton.dataset.scheduleDelete);
+    return;
+  }
+  if (publishButton) {
+    publishScheduleTask(publishButton.dataset.schedulePublish);
     return;
   }
   if (dateDeleteButton) {
