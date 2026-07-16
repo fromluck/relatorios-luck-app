@@ -5084,11 +5084,24 @@ td.action-cell {
   line-height: 1.4;
 }
 
+.reminder-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .reminder-item .secondary-button {
   white-space: nowrap;
   min-height: 34px;
   border-radius: 7px;
   padding: 0 12px;
+}
+
+.reminder-read-button {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #334155;
 }
 
 @keyframes reminder-pop {
@@ -6574,8 +6587,12 @@ body {
     grid-template-columns: 8px minmax(0, 1fr);
   }
 
-  .reminder-item .secondary-button {
+  .reminder-item-actions {
     grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .reminder-item .secondary-button {
     justify-self: start;
   }
 

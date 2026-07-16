@@ -33,8 +33,10 @@ const SCHEDULE_STORAGE_KEY = "luck-schedule-data-v1";
 const PROFILE_STORAGE_KEY = "luck-profile-v1";
 const THEME_STORAGE_KEY = "luck-theme-v1";
 const REMINDER_SETTINGS_STORAGE_KEY = "luck-reminder-settings-v1";
+const REMINDER_READ_STORAGE_KEY = "luck-reminder-read-v1";
 const DEFAULT_PROFILE = { firstName: "Lucas", lastName: "Costa", email: "", avatarDataUrl: "" };
 const DEFAULT_REMINDER_SETTINGS = { sound: true, visual: true };
+const REMINDER_READ_TTL_MS = 24 * 60 * 60 * 1000;
 const PROFILE_PHOTO_MAX_SIZE = 1.5 * 1024 * 1024;
 const COMPANY_LOGO_MAX_SIZE = 2.5 * 1024 * 1024;
 const COMPANY_LOGO_SCALE_MIN = 60;
@@ -412,6 +414,7 @@ let profileData = loadProfile();
 let profilePhotoDraft = profileData.avatarDataUrl || "";
 let selectedTheme = loadTheme();
 let reminderSettings = loadReminderSettings();
+let readReminderTimestamps = loadReadReminderTimestamps();
 let loginRequested = new URLSearchParams(window.location.search).get("login") === "1";
 let pendingBoards = normalizePendingBoards(loadPendingBoards());
 let financialRecords = normalizeFinancialRecords(loadFinancialRecords());
@@ -744,6 +747,7 @@ function getSharedState() {
     quoteHistory: window.LUCK_SHARED_BACKUP.quoteHistory || null,
     scheduleData: window.LUCK_SHARED_BACKUP.scheduleData || null,
     reminderSettings: window.LUCK_SHARED_BACKUP.reminderSettings || null,
+    readReminderTimestamps: window.LUCK_SHARED_BACKUP.readReminderTimestamps || null,
     updatedAt: window.LUCK_SHARED_BACKUP.updatedAt || window.LUCK_SHARED_BACKUP.exportedAt || ""
   };
 }
@@ -1072,6 +1076,37 @@ function loadReminderSettings() {
   }
 
   return normalizeReminderSettings(sharedState?.reminderSettings);
+}
+
+function normalizeReadReminderTimestamps(source = {}) {
+  const now = Date.now();
+  return Object.entries(source || {}).reduce((next, [id, timestamp]) => {
+    const value = Number(timestamp);
+    if (!id || !Number.isFinite(value)) return next;
+    if (now - value >= REMINDER_READ_TTL_MS) return next;
+    next[id] = value;
+    return next;
+  }, {});
+}
+
+function loadReadReminderTimestamps() {
+  const sharedState = getSharedState();
+  const savedState = readSavedState();
+
+  if (savedState?.readReminderTimestamps && (!sharedState || stateTime(savedState) >= stateTime(sharedState))) {
+    return normalizeReadReminderTimestamps(savedState.readReminderTimestamps);
+  }
+
+  const saved = localStorage.getItem(REMINDER_READ_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeReadReminderTimestamps(JSON.parse(saved));
+    } catch {
+      return normalizeReadReminderTimestamps(sharedState?.readReminderTimestamps);
+    }
+  }
+
+  return normalizeReadReminderTimestamps(sharedState?.readReminderTimestamps);
 }
 
 function loadProfile() {
@@ -1681,6 +1716,7 @@ function saveLocalState() {
   localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
   localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
   localStorage.setItem(REMINDER_SETTINGS_STORAGE_KEY, JSON.stringify(reminderSettings));
+  localStorage.setItem(REMINDER_READ_STORAGE_KEY, JSON.stringify(readReminderTimestamps));
 }
 
 function saveCompanySettings() {
@@ -2167,6 +2203,7 @@ function getCurrentState() {
     profile: profileData,
     theme: selectedTheme,
     reminderSettings,
+    readReminderTimestamps,
     pendingBoards,
     financialRecords,
     quoteData,
@@ -2258,6 +2295,7 @@ function loadRemoteState() {
         profileData = normalizeProfile(state.profile || profileData);
         selectedTheme = normalizeTheme(state.theme || selectedTheme);
         reminderSettings = normalizeReminderSettings(state.reminderSettings || reminderSettings);
+        readReminderTimestamps = normalizeReadReminderTimestamps(state.readReminderTimestamps || readReminderTimestamps);
         applyTheme(selectedTheme);
         pendingBoards = normalizePendingBoards(state.pendingBoards || pendingBoards);
         financialRecords = normalizeFinancialRecords(state.financialRecords || financialRecords);
@@ -2309,6 +2347,7 @@ async function loadSupabaseState() {
       profileData = normalizeProfile(record.state.profile || profileData);
       selectedTheme = normalizeTheme(record.state.theme || selectedTheme);
       reminderSettings = normalizeReminderSettings(record.state.reminderSettings || reminderSettings);
+      readReminderTimestamps = normalizeReadReminderTimestamps(record.state.readReminderTimestamps || readReminderTimestamps);
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(record.state.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(record.state.financialRecords || financialRecords);
@@ -2473,6 +2512,7 @@ function restoreBackupFile(event) {
       profileData = normalizeProfile(payload.profile || profileData);
       selectedTheme = normalizeTheme(payload.theme || selectedTheme);
       reminderSettings = normalizeReminderSettings(payload.reminderSettings || reminderSettings);
+      readReminderTimestamps = normalizeReadReminderTimestamps(payload.readReminderTimestamps || readReminderTimestamps);
       applyTheme(selectedTheme);
       pendingBoards = normalizePendingBoards(payload.pendingBoards || pendingBoards);
       financialRecords = normalizeFinancialRecords(payload.financialRecords || financialRecords);
@@ -3974,6 +4014,38 @@ function setReminderSound(enabled) {
   if (reminderSettings.sound && activeReminders.length) requestReminderSound();
 }
 
+function saveReadReminderTimestamps() {
+  readReminderTimestamps = normalizeReadReminderTimestamps(readReminderTimestamps);
+  localStorage.setItem(REMINDER_READ_STORAGE_KEY, JSON.stringify(readReminderTimestamps));
+  saveLocalState();
+  scheduleRemoteSave();
+  exposeBackupData();
+}
+
+function isReminderTemporarilyRead(reminder) {
+  const readAt = Number(readReminderTimestamps[reminder.id]);
+  return Number.isFinite(readAt) && Date.now() - readAt < REMINDER_READ_TTL_MS;
+}
+
+function pruneReadReminderTimestamps(reminders) {
+  const reminderIds = new Set(reminders.map((reminder) => reminder.id));
+  const next = normalizeReadReminderTimestamps(readReminderTimestamps);
+
+  Object.keys(next).forEach((id) => {
+    if (!reminderIds.has(id)) delete next[id];
+  });
+
+  readReminderTimestamps = next;
+  localStorage.setItem(REMINDER_READ_STORAGE_KEY, JSON.stringify(readReminderTimestamps));
+}
+
+function markReminderRead(reminderId) {
+  if (!reminderId) return;
+  readReminderTimestamps[reminderId] = Date.now();
+  saveReadReminderTimestamps();
+  renderReminderSystem({ sound: false, visual: false });
+}
+
 function reminderLevelRank(level) {
   return { danger: 0, warning: 1, info: 2 }[level] ?? 3;
 }
@@ -4119,12 +4191,17 @@ function buildScheduleReminders() {
 }
 
 function buildReminders() {
-  return [
+  const reminders = [
     ...buildPendingReminders(),
     ...buildContractReminders(),
     ...buildFinanceReminders(),
     ...buildScheduleReminders()
-  ]
+  ];
+
+  pruneReadReminderTimestamps(reminders);
+
+  return reminders
+    .filter((reminder) => !isReminderTemporarilyRead(reminder))
     .sort((a, b) => reminderLevelRank(a.level) - reminderLevelRank(b.level) || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 20);
 }
@@ -4189,7 +4266,10 @@ function renderReminderDialog() {
         <strong>${escapeHTML(reminder.title)}</strong>
         <small>${escapeHTML(reminder.body)}</small>
       </div>
-      <button class="secondary-button" type="button" data-reminder-open="${escapeHTML(reminder.id)}">Abrir</button>
+      <div class="reminder-item-actions">
+        <button class="secondary-button" type="button" data-reminder-open="${escapeHTML(reminder.id)}">Abrir</button>
+        <button class="secondary-button reminder-read-button" type="button" data-reminder-read="${escapeHTML(reminder.id)}">Lido</button>
+      </div>
     </article>
   `).join("");
 }
@@ -4209,7 +4289,7 @@ function renderReminderSystem(options = {}) {
     : "Nenhum lembrete ativo";
 
   if (elements.reminderToast) {
-    const showToast = count > 0 && reminderSettings.visual && dismissedReminderSignature !== signature;
+    const showToast = options.visual !== false && count > 0 && reminderSettings.visual && dismissedReminderSignature !== signature;
     elements.reminderToast.hidden = !showToast;
     if (showToast && firstReminder) {
       elements.reminderToastCount.textContent = String(count);
@@ -6591,6 +6671,7 @@ function exposeBackupData() {
     profile: profileData,
     theme: selectedTheme,
     reminderSettings,
+    readReminderTimestamps,
     pendingBoards,
     financialRecords,
     quoteData,
@@ -6891,6 +6972,8 @@ elements.reminderDialog?.addEventListener("click", (event) => {
 
   const reminderButton = event.target.closest("[data-reminder-open]");
   if (reminderButton) activateReminder(reminderButton.dataset.reminderOpen);
+  const readButton = event.target.closest("[data-reminder-read]");
+  if (readButton) markReminderRead(readButton.dataset.reminderRead);
 });
 elements.reminderDialog?.addEventListener("cancel", (event) => {
   event.preventDefault();
