@@ -1080,9 +1080,11 @@ function loadReminderSettings() {
 
 function normalizeReadReminderTimestamps(source = {}) {
   const now = Date.now();
+  const today = todayDateKey();
   return Object.entries(source || {}).reduce((next, [id, timestamp]) => {
     const value = Number(timestamp);
     if (!id || !Number.isFinite(value)) return next;
+    if (dateKeyFromTimestamp(value) !== today) return next;
     if (now - value >= REMINDER_READ_TTL_MS) return next;
     next[id] = value;
     return next;
@@ -3959,6 +3961,12 @@ function todayDateKey() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
+function dateKeyFromTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  if (!Number.isFinite(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function daysUntilDate(date) {
   const today = new Date(`${todayDateKey()}T00:00:00`);
   const target = new Date(`${date}T00:00:00`);
@@ -4024,7 +4032,9 @@ function saveReadReminderTimestamps() {
 
 function isReminderTemporarilyRead(reminder) {
   const readAt = Number(readReminderTimestamps[reminder.id]);
-  return Number.isFinite(readAt) && Date.now() - readAt < REMINDER_READ_TTL_MS;
+  return Number.isFinite(readAt)
+    && dateKeyFromTimestamp(readAt) === todayDateKey()
+    && Date.now() - readAt < REMINDER_READ_TTL_MS;
 }
 
 function pruneReadReminderTimestamps(reminders) {
