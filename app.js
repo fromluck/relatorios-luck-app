@@ -3557,17 +3557,27 @@ function refreshQuoteMonthOptions() {
 }
 
 function getVisibleSections(report) {
+  const forPrint = isReportPrintMode();
   const query = elements.searchInput?.value.trim().toLowerCase() || "";
 
   return report.sections
     .map((section) => ({
       ...section,
       rows: section.rows.filter((row) =>
-        !query || [section.label || "Principal", row.topic, row.material, formatDate(row.date)]
-          .some((value) => value.toLowerCase().includes(query))
+        (!forPrint || shouldPrintReportRow(row, report)) &&
+        (!query || [section.label || "Principal", row.topic, row.material, formatDate(row.date)]
+          .some((value) => value.toLowerCase().includes(query)))
       )
     }))
     .filter((section) => section.rows.length > 0);
+}
+
+function isReportPrintMode() {
+  return document.body.classList.contains("printing-report");
+}
+
+function shouldPrintReportRow(row, report) {
+  return getRowContractMonth(row, report.month) === report.month;
 }
 
 function renderAllocationNote(row, report) {
@@ -6659,6 +6669,7 @@ function fileSafeName(value) {
 }
 
 function exportPdf() {
+  document.body.classList.add("printing-report");
   render();
   window.requestAnimationFrame(() => window.print());
 }
@@ -6946,8 +6957,11 @@ elements.deleteEditButton.addEventListener("click", deleteEditingItem);
 elements.pdfButton.addEventListener("click", exportPdf);
 window.addEventListener("beforeprint", render);
 window.addEventListener("afterprint", () => {
+  const wasReportPrint = document.body.classList.contains("printing-report");
+  document.body.classList.remove("printing-report");
   document.body.classList.remove("printing-schedule");
   document.body.classList.remove("printing-quote");
+  if (wasReportPrint) render();
 });
 elements.cloudSaveButton.addEventListener("click", () => saveRemoteState());
 elements.welcomeLoginButtons.forEach((button) => {
